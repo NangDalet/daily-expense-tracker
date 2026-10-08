@@ -1,0 +1,32 @@
+# ==============================================================================
+# prod profile - container / cloud deployment
+# ==============================================================================
+spring:
+  datasource:
+    hikari:
+      maximum-pool-size: ${DB_POOL_MAX_SIZE:20}
+      minimum-idle: 5
+  flyway:
+    clean-disabled: true
+
+mybatis:
+  configuration:
+    log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
+
+logging:
+  level:
+    root: INFO
+    com.example.expensetracker: INFO
+    # NEVER enable SQL logging in production
+    com.example.expensetracker.mapper: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} %-5level [%thread] %logger{36} - %msg%n"
+
+app:
+  security:
+    jwt:
+      # Production deployments are expected to point at a real IdP
+      issuer-uri: ${OAUTH_ISSUER_URI:}
+      secret: ${JWT_SECRET}
+    cors:
+      allowed-origins: ${CORS_ALLOWED_ORIGINS:https://expenses.example.com}

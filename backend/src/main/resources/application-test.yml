@@ -1,0 +1,33 @@
+# ==============================================================================
+# test profile - used by Testcontainers integration tests.
+# The DataSource is injected dynamically by the test base class, so the JDBC
+# URL below is only a harmless placeholder.
+# ==============================================================================
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/expense_tracker_test
+    username: postgres
+    password: postgres
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    clean-disabled: false
+
+mybatis:
+  configuration:
+    log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
+
+logging:
+  level:
+    root: WARN
+    com.example.expensetracker: INFO
+    org.springframework.web: WARN
+
+app:
+  security:
+    jwt:
+      issuer-uri: ""
+      issuer: daily-expense-tracker-test
+      secret: test-secret-key-that-is-long-enough-for-hs256-algorithm
+    cors:
+      allowed-origins: http://localhost:3000

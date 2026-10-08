@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--
+  UserMapper.xml - all user SQL lives here (no @Select annotations in the project).
+  The <resultMap> relies on mybatis.configuration.map-underscore-to-camel-case
+  for the plain columns and uses an explicit <result> for roles because the
+  column stores a delimited list that is expanded into List<String> by
+  com.example.expensetracker.util.StringListTypeHandler.
+-->
+<mapper namespace="com.example.expensetracker.mapper.UserMapper">
+
+    <resultMap id="userResultMap" type="User">
+        <id property="id" column="id"/>
+        <result property="username" column="username"/>
+        <result property="email" column="email"/>
+        <result property="password" column="password"/>
+        <result property="fullName" column="full_name"/>
+        <result property="roles"
+                column="roles"
+                typeHandler="com.example.expensetracker.util.StringListTypeHandler"/>
+        <result property="enabled" column="enabled"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <sql id="columns">
+        id, username, email, password, full_name, roles, enabled, created_at, updated_at
+    </sql>
+
+    <insert id="insert" parameterType="User">
+        <selectKey keyProperty="id" resultType="java.util.UUID" order="BEFORE">
+            SELECT gen_random_uuid()
+        </selectKey>
+        INSERT INTO users (id, username, email, password, full_name, roles, enabled)
+        VALUES (#{id},
+                #{username},
+                #{email},
+                #{password},
+                #{fullName},
+                #{roles, typeHandler=com.example.expensetracker.util.StringListTypeHandler,
+                    javaType=java.util.List},
+                COALESCE(#{enabled}, TRUE))
+    </insert>
+
+    <select id="findByUsername" resultMap="userResultMap">
+        SELECT
+        <include refid="columns"/>
+        FROM users
+        WHERE username = #{username}
+    </select>
+
+    <select id="findByEmail" resultMap="userResultMap">
+        SELECT
+        <include refid="columns"/>
+        FROM users
+        WHERE lower(email) = lower(#{email})
+    </select>
+
+    <select id="findById" resultMap="userResultMap">
+        SELECT
+        <include refid="columns"/>
+        FROM users
+        WHERE id = #{id}
+    </select>
+
+    <update id="update" parameterType="User">
+        UPDATE users
+        <set>
+            <if test="email != null">email = #{email},</if>
+            <if test="password != null">password = #{password},</if>
+            <if test="fullName != null">full_name = #{fullName},</if>
+            <if test="roles != null">
+                roles = #{roles, typeHandler=com.example.expensetracker.util.StringListTypeHandler,
+                    javaType=java.util.List},
+            </if>
+            <if test="enabled != null">enabled = #{enabled},</if>
+            <!-- updated_at is also maintained by the trg_users_updated_at trigger -->
+            updated_at = now()
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        DELETE
+        FROM users
+        WHERE id = #{id}
+    </delete>
+
+    <select id="findAll" resultMap="userResultMap">
+        SELECT
+        <include refid="columns"/>
+        FROM users
+        <where>
+            <if test="search != null and search != ''">
+                username ILIKE '%' || #{search} || '%'
+                OR email ILIKE '%' || #{search} || '%'
+                OR full_name ILIKE '%' || #{search} || '%'
+            </if>
+        </where>
+        ORDER BY created_at DESC, username ASC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="countAll" resultType="long">
+        SELECT count(*)
+        FROM users
+        <where>
+            <if test="search != null and search != ''">
+                username ILIKE '%' || #{search} || '%'
+                OR email ILIKE '%' || #{search} || '%'
+                OR full_name ILIKE '%' || #{search} || '%'
+            </if>
+        </where>
+    </select>
+
+    <select id="countByUsernameExcludingId" resultType="long">
+        SELECT count(*)
+        FROM users
+        WHERE username = #{username}
+        <if test="excludingId != null">
+            AND id != #{excludingId}
+        </if>
+    </select>
+
+    <select id="countByEmailExcludingId" resultType="long">
+        SELECT count(*)
+        FROM users
+        WHERE lower(email) = lower(#{email})
+        <if test="excludingId != null">
+            AND id != #{excludingId}
+        </if>
+    </select>
+
+    <!--
+      roles is a comma separated VARCHAR, so the delimiter is wrapped around the
+      pattern to make the match exact: 'USER,ADMIN' must not match 'ADMINISTRATOR'.
+    -->
+    <select id="countEnabledByRole" resultType="long">
+        SELECT count(*)
+        FROM users
+        WHERE enabled = TRUE
+          AND ',' || roles || ',' LIKE '%,' || #{role} || ',%'
+        <if test="excludingId != null">
+            AND id != #{excludingId}
+        </if>
+    </select>
+
+</mapper>

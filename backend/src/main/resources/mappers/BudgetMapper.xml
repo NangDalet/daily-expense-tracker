@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--
+  BudgetMapper.xml
+  Highlights:
+   * <choose> to support both "budget for a category" and the overall
+     (category_id IS NULL) budget with a single statement
+   * LEFT JOIN LATERAL to join the aggregated spend of the same period,
+     including the "budget with zero expenses" case
+   * remaining / percentage computed in SQL to avoid a second query
+-->
+<mapper namespace="com.example.expensetracker.mapper.BudgetMapper">
+
+    <resultMap id="categoryAssociationMap" type="Category">
+        <id property="id" column="cat_id"/>
+        <result property="name" column="cat_name"/>
+        <result property="description" column="cat_description"/>
+        <result property="iconName" column="cat_icon_name"/>
+        <result property="colorHex" column="cat_color_hex"/>
+        <result property="userId" column="cat_user_id"/>
+    </resultMap>
+
+    <resultMap id="budgetResultMap" type="Budget">
+        <id property="id" column="id"/>
+        <result property="userId" column="user_id"/>
+        <result property="categoryId" column="category_id"/>
+        <result property="monthlyLimit" column="monthly_limit"/>
+        <result property="month" column="month"/>
+        <result property="year" column="year"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+        <association property="category" resultMap="categoryAssociationMap"/>
+    </resultMap>
+
+    <!--
+      budgetResultMap reused for the nested object of BudgetUsage, so the
+      usage rows and the plain rows are guaranteed to expose the same shape.
+    -->
+    <resultMap id="budgetUsageMap" type="BudgetUsage">
+        <result property="spentAmount" column="spent_amount"/>
+        <result property="expenseCount" column="expense_count"/>
+        <result property="remainingAmount" column="remaining_amount"/>
+        <result property="usagePercentage" column="usage_percentage"/>
+        <association property="budget" resultMap="budgetResultMap"/>
+    </resultMap>
+
+    <sql id="budgetColumns">
+        b.id, b.user_id, b.category_id, b.monthly_limit, b.month, b.year, b.created_at, b.updated_at
+    </sql>
+
+    <sql id="categoryColumns">
+        c.id AS cat_id, c.name AS cat_name, c.description AS cat_description,
+        c.icon_name AS cat_icon_name, c.color_hex AS cat_color_hex, c.user_id AS cat_user_id
+    </sql>
+
+    <insert id="insert" parameterType="Budget">
+        <selectKey keyProperty="id" resultType="java.util.UUID" order="BEFORE">
+            SELECT gen_random_uuid()
+        </selectKey>
+        INSERT INTO budgets (id, user_id, category_id, monthly_limit, month, year)
+        VALUES (#{id}, #{userId}, #{categoryId}, #{monthlyLimit}, #{month}, #{year})
+    </insert>
+
+    <select id="findById" resultMap="budgetResultMap">
+        SELECT
+        <include refid="budgetColumns"/>,
+        <include refid="categoryColumns"/>
+        FROM budgets b
+                 LEFT JOIN categories c ON c.id = b.category_id
+        WHERE b.id = #{id}
+    </select>
+
+    <select id="findByUserIdAndPeriod" resultMap="budgetResultMap">
+        SELECT
+        <include refid="budgetColumns"/>,
+        <include refid="categoryColumns"/>
+        FROM budgets b
+                 LEFT JOIN categories c ON c.id = b.category_id
+        WHERE b.user_id = #{userId}
+        AND b.year = #{year}
+        AND b.month = #{month}
+        <!-- the overall budget (no category) is listed first, then A-Z -->
+        ORDER BY (b.category_id IS NULL) DESC, lower(c.name) ASC NULLS LAST
+    </select>
+
+    <select id="findByUserIdCategoryAndPeriod" resultMap="budgetResultMap">
+        SELECT
+        <include refid="budgetColumns"/>,
+        <include refid="categoryColumns"/>
+        FROM budgets b
+                 LEFT JOIN categories c ON c.id = b.category_id
+        WHERE b.user_id = #{userId}
+        AND b.year = #{year}
+        AND b.month = #{month}
+        <choose>
+            <when test="categoryId != null">
+                AND b.category_id = #{categoryId}
+            </when>
+            <otherwise>
+                AND b.category_id IS NULL
+            </otherwise>
+        </choose>
+    </select>
+
+    <update id="update" parameterType="Budget">
+        UPDATE budgets
+        <set>
+            <if test="monthlyLimit != null">monthly_limit = #{monthlyLimit},</if>
+            <if test="month != null">month = #{month},</if>
+            <if test="year != null">year = #{year},</if>
+            updated_at = now()
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        DELETE
+        FROM budgets
+        WHERE id = #{id}
+    </delete>
+
+    <!--
+      Budgets of the period enriched with the actual spend.
+
+      The correlated sub-select is expressed as a LEFT JOIN LATERAL so:
+        * budgets without a single expense still return a row (0 spent)
+        * the "restrict to the budget's category" rule is written once
+        * remaining amount and usage percentage are computed in the same pass
+    -->
+    <select id="getBudgetUsage" resultMap="budgetUsageMap">
+        SELECT
+        <include refid="budgetColumns"/>,
+        <include refid="categoryColumns"/>,
+        COALESCE(spent.total_amount, 0) AS spent_amount,
+        COALESCE(spent.expense_count, 0) AS expense_count,
+        ROUND(b.monthly_limit - COALESCE(spent.total_amount, 0), 2) AS remaining_amount,
+        ROUND(COALESCE(spent.total_amount, 0) * 100.0 / NULLIF(b.monthly_limit, 0), 2) AS usage_percentage
+        FROM budgets b
+                 LEFT JOIN categories c ON c.id = b.category_id
+                 LEFT JOIN LATERAL (SELECT SUM(e.amount) AS total_amount,
+                                           COUNT(*) AS expense_count
+                                    FROM expenses e
+                                    WHERE e.user_id = b.user_id
+                                      AND EXTRACT(YEAR FROM e.expense_date) = b.year
+                                      AND EXTRACT(MONTH FROM e.expense_date) = b.month
+                                      AND (b.category_id IS NULL OR e.category_id = b.category_id)
+                                    ) spent ON TRUE
+        WHERE b.user_id = #{userId}
+        AND b.year = #{year}
+        AND b.month = #{month}
+        ORDER BY (b.category_id IS NULL) DESC, lower(c.name) ASC NULLS LAST
+    </select>
+
+</mapper>

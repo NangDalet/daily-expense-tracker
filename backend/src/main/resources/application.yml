@@ -1,0 +1,133 @@
+# ==============================================================================
+# Daily Expense Tracker - base configuration (shared by all profiles)
+# Every value can be overridden with an environment variable.
+# ==============================================================================
+spring:
+  application:
+    name: expense-tracker
+
+  profiles:
+    default: dev
+
+  jackson:
+    default-property-inclusion: non_null
+    serialization:
+      write-dates-as-timestamps: false
+      indent-output: false
+    deserialization:
+      fail-on-unknown-properties: false
+    time-zone: UTC
+
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/expense_tracker}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      pool-name: expense-tracker-pool
+      maximum-pool-size: ${DB_POOL_MAX_SIZE:10}
+      minimum-idle: 2
+      connection-timeout: 30000
+      auto-commit: false
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    baseline-version: 0
+    validate-on-migrate: true
+    # Development convenience; keep false in production
+    clean-disabled: ${FLYWAY_CLEAN_DISABLED:true}
+
+  threads:
+    virtual:
+      enabled: true
+
+# ------------------------------------------------------------------------------
+# MyBatis - ALL SQL lives in XML mappers (no @Select annotations anywhere)
+# ------------------------------------------------------------------------------
+mybatis:
+  mapper-locations: classpath*:mappers/*.xml
+  type-aliases-package: com.example.expensetracker.domain
+  configuration:
+    map-underscore-to-camel-case: true
+    default-statement-timeout: 30
+    default-fetch-size: 100
+    default-result-type: java.util.HashMap
+    jdbc-type-for-null: 'null'
+    call-setters-on-nulls: true
+    # NOTE: the custom handlers in com.example.expensetracker.util are NOT
+    # registered globally - both of them are bound to java.util.List and a
+    # global registration would make the roles/tags mapping ambiguous.
+    # Every usage names its handler explicitly inside the XML mappers.
+    log-impl: ${MYBATIS_LOG_IMPL:org.apache.ibatis.logging.slf4j.Slf4jImpl}
+
+# ------------------------------------------------------------------------------
+# Application specific settings
+# ------------------------------------------------------------------------------
+app:
+  security:
+    jwt:
+      # When non-blank the resource server validates tokens against the
+      # provider's JWK set (Keycloak / Auth0 / Okta ...). When blank the
+      # application falls back to locally issued HS256 tokens, which keeps the
+      # stack runnable without any external identity provider.
+      issuer-uri: ${OAUTH_ISSUER_URI:}
+      # `iss` claim used for locally issued tokens.
+      issuer: ${JWT_ISSUER:daily-expense-tracker}
+      # HS256 secret - MUST be overridden (>= 32 chars) outside dev/test.
+      secret: ${JWT_SECRET:change-me-in-production-this-must-be-at-least-32-bytes-long}
+      access-token-ttl: ${JWT_ACCESS_TOKEN_TTL:PT30M}
+      refresh-token-ttl: ${JWT_REFRESH_TOKEN_TTL:P7D}
+      clock-skew: ${JWT_CLOCK_SKEW:PT60S}
+    cors:
+      allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
+      allowed-methods: GET,POST,PUT,PATCH,DELETE,OPTIONS
+      allowed-headers: Authorization,Content-Type,Accept,X-Requested-With
+      exposed-headers: Location,X-Total-Count
+      allow-credentials: true
+      max-age: 3600
+  pagination:
+    default-size: ${DEFAULT_PAGE_SIZE:20}
+    max-size: ${MAX_PAGE_SIZE:100}
+
+# ------------------------------------------------------------------------------
+# Docs / Actuator
+# ------------------------------------------------------------------------------
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha
+    display-request-duration: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: when-authorized
+
+server:
+  port: ${SERVER_PORT:8080}
+  shutdown: graceful
+  error:
+    include-message: never
+    include-stacktrace: never
+  compression:
+    enabled: true
+    mime-types: application/json,text/plain,text/css,application/javascript
+  forward-headers-strategy: framework
+
+logging:
+  level:
+    root: INFO
+    com.example.expensetracker: ${LOG_LEVEL_APP:INFO}
+    org.springframework.security: ${LOG_LEVEL_SECURITY:INFO}
+    org.mybatis: ${LOG_LEVEL_MYBATIS:INFO}

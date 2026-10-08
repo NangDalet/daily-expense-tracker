@@ -1,0 +1,359 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--
+  ExpenseMapper.xml - the most dynamic mapper of the project.
+
+  Contents
+   1. <resultMap> with a nested <association> for the category (no N+1 queries)
+   2. <sql> fragments shared between the paged list and the matching count query
+   3. <if> for every optional filter, <foreach> for the payment method list
+   4. <choose> for the ORDER BY whitelist and for the DATE_TRUNC granularity
+   5. <selectKey> to generate the UUID primary key
+-->
+<mapper namespace="com.example.expensetracker.mapper.ExpenseMapper">
+
+    <!-- ===================== Result maps ===================== -->
+
+    <!-- Category columns are prefixed with cat_ so they cannot clash with the
+         expense columns inside the nested <association>. -->
+    <resultMap id="categoryAssociationMap" type="Category">
+        <id property="id" column="cat_id"/>
+        <result property="name" column="cat_name"/>
+        <result property="description" column="cat_description"/>
+        <result property="iconName" column="cat_icon_name"/>
+        <result property="colorHex" column="cat_color_hex"/>
+        <result property="userId" column="cat_user_id"/>
+    </resultMap>
+
+    <resultMap id="expenseResultMap" type="Expense">
+        <id property="id" column="id"/>
+        <result property="amount" column="amount"/>
+        <result property="currency" column="currency"/>
+        <result property="description" column="description"/>
+        <result property="expenseDate" column="expense_date"/>
+        <result property="paymentMethod" column="payment_method"/>
+        <result property="categoryId" column="category_id"/>
+        <result property="userId" column="user_id"/>
+        <result property="receiptUrl" column="receipt_url"/>
+        <result property="tags"
+                column="tags"
+                typeHandler="com.example.expensetracker.util.StringArrayTypeHandler"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+        <!--
+          LEFT JOIN semantics: all cat_* columns are NULL when the expense has
+          no category, and MyBatis leaves the nested object null as well.
+        -->
+        <association property="category" resultMap="categoryAssociationMap"/>
+    </resultMap>
+
+    <resultMap id="expenseSummaryMap" type="ExpenseSummary">
+        <id property="periodStart" column="period_start"/>
+        <result property="totalAmount" column="total_amount"/>
+        <result property="expenseCount" column="expense_count"/>
+        <result property="averageAmount" column="average_amount"/>
+    </resultMap>
+
+    <resultMap id="categoryStatMap" type="CategoryStat">
+        <id property="categoryId" column="category_id"/>
+        <result property="categoryName" column="category_name"/>
+        <result property="categoryColor" column="category_color"/>
+        <result property="categoryIcon" column="category_icon"/>
+        <result property="totalAmount" column="total_amount"/>
+        <result property="expenseCount" column="expense_count"/>
+        <result property="averageAmount" column="average_amount"/>
+        <result property="percentage" column="percentage"/>
+    </resultMap>
+
+    <!-- ===================== Column fragments ===================== -->
+
+    <sql id="expenseColumns">
+        e.id, e.amount, e.currency, e.description, e.expense_date, e.payment_method,
+        e.category_id, e.user_id, e.receipt_url, e.tags, e.created_at, e.updated_at
+    </sql>
+
+    <sql id="categoryColumns">
+        c.id AS cat_id, c.name AS cat_name, c.description AS cat_description,
+        c.icon_name AS cat_icon_name, c.color_hex AS cat_color_hex, c.user_id AS cat_user_id
+    </sql>
+
+    <sql id="expenseColumnsWithCategory">
+        <include refid="expenseColumns"/>,
+        <include refid="categoryColumns"/>
+    </sql>
+
+    <!--
+      The single source of truth for the dynamic WHERE clause. Both
+      findByFilters and countByFilters include it, which guarantees the page
+      content and the total count always describe the same result set.
+      Every parameter is optional: a null value simply removes the predicate.
+    -->
+    <sql id="filterClauses">
+        <!-- Multi-tenant boundary: always present, never derived from input -->
+        e.user_id = #{userId}
+
+        <!--
+          The filter arrives as a String, so it is cast explicitly (PostgreSQL
+          has no uuid = varchar operator). ExpenseService validates the value
+          before the statement runs, therefore the cast can never fail.
+        -->
+        <if test="filter.categoryId != null and filter.categoryId != ''">
+            AND e.category_id = CAST(#{filter.categoryId} AS uuid)
+        </if>
+
+        <if test="filter.fromDate != null">
+            AND e.expense_date &gt;= #{filter.fromDate}
+        </if>
+
+        <if test="filter.toDate != null">
+            AND e.expense_date &lt;= #{filter.toDate}
+        </if>
+
+        <if test="filter.minAmount != null">
+            AND e.amount &gt;= #{filter.minAmount}
+        </if>
+
+        <if test="filter.maxAmount != null">
+            AND e.amount &lt;= #{filter.maxAmount}
+        </if>
+
+        <!--
+          Free-text search across the description and the numeric amount.
+          The value is always bound as a parameter, never concatenated.
+        -->
+        <if test="filter.search != null and filter.search.trim() != ''">
+            AND (
+            e.description ILIKE '%' || #{filter.search} || '%'
+            OR e.amount::text LIKE '%' || #{filter.search} || '%'
+            )
+        </if>
+
+        <!-- Multi-select payment method filter; skipped entirely for an empty list -->
+        <if test="filter.paymentMethods != null and filter.paymentMethods.size() > 0">
+            AND e.payment_method IN
+            <foreach collection="filter.paymentMethods" item="paymentMethod" open="(" separator="," close=")">
+                #{paymentMethod}
+            </foreach>
+        </if>
+    </sql>
+
+    <!-- ===================== Writes ===================== -->
+
+    <insert id="insert" parameterType="Expense">
+        <selectKey keyProperty="id" resultType="java.util.UUID" order="BEFORE">
+            SELECT gen_random_uuid()
+        </selectKey>
+        INSERT INTO expenses (id, amount, currency, description, expense_date, payment_method,
+                              category_id, user_id, receipt_url, tags)
+        VALUES (#{id},
+                #{amount},
+                COALESCE(#{currency}, 'USD'),
+                #{description},
+                #{expenseDate},
+                #{paymentMethod},
+                #{categoryId},
+                #{userId},
+                #{receiptUrl},
+                <choose>
+                    <!-- never store NULL in a NOT NULL text[] column -->
+                    <when test="tags != null">
+                        #{tags, typeHandler=com.example.expensetracker.util.StringArrayTypeHandler,
+                            javaType=java.util.List}
+                    </when>
+                    <otherwise>ARRAY[]::text[]</otherwise>
+                </choose>)
+    </insert>
+
+    <update id="update" parameterType="Expense">
+        UPDATE expenses
+        <set>
+            <if test="amount != null">amount = #{amount},</if>
+            <if test="currency != null">currency = #{currency},</if>
+            <if test="description != null">description = #{description},</if>
+            <if test="expenseDate != null">expense_date = #{expenseDate},</if>
+            <if test="paymentMethod != null">payment_method = #{paymentMethod},</if>
+            <if test="categoryId != null">category_id = #{categoryId},</if>
+            <if test="receiptUrl != null">receipt_url = #{receiptUrl},</if>
+            <if test="tags != null">
+                tags = #{tags, typeHandler=com.example.expensetracker.util.StringArrayTypeHandler,
+                    javaType=java.util.List},
+            </if>
+            updated_at = now()
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        DELETE
+        FROM expenses
+        WHERE id = #{id}
+    </delete>
+
+    <!--
+      Assigning a NULL cannot be expressed inside the <set> of the dynamic
+      UPDATE above (null means "leave untouched" there), so clearing the
+      category of an expense is an explicit statement.
+    -->
+    <update id="detachCategory">
+        UPDATE expenses
+        SET category_id = NULL,
+            updated_at  = now()
+        WHERE id = #{id}
+          AND user_id = #{userId}
+    </update>
+
+    <!-- ===================== Single row reads ===================== -->
+
+    <select id="findById" resultMap="expenseResultMap">
+        SELECT
+        <include refid="expenseColumnsWithCategory"/>
+        FROM expenses e
+                 LEFT JOIN categories c ON c.id = e.category_id
+        WHERE e.id = #{id}
+    </select>
+
+    <select id="findByIdAndUserId" resultMap="expenseResultMap">
+        SELECT
+        <include refid="expenseColumnsWithCategory"/>
+        FROM expenses e
+                 LEFT JOIN categories c ON c.id = e.category_id
+        WHERE e.id = #{id}
+        AND e.user_id = #{userId}
+    </select>
+
+    <select id="findRecentByUserId" resultMap="expenseResultMap">
+        SELECT
+        <include refid="expenseColumnsWithCategory"/>
+        FROM expenses e
+                 LEFT JOIN categories c ON c.id = e.category_id
+        WHERE e.user_id = #{userId}
+        ORDER BY e.expense_date DESC, e.created_at DESC
+        LIMIT #{limit}
+    </select>
+
+    <!-- ===================== Paged list ===================== -->
+
+    <select id="findByFilters" resultMap="expenseResultMap">
+        SELECT
+        <include refid="expenseColumnsWithCategory"/>
+        FROM expenses e
+        LEFT JOIN categories c ON c.id = e.category_id
+        <where>
+            <include refid="filterClauses"/>
+        </where>
+        <!--
+          sortColumn arrives from the client, so it is mapped through a strict
+          whitelist instead of being interpolated. Unknown values fall back to
+          expenseDate, which is also the index-friendly default
+          (idx_expenses_user_date).
+        -->
+        ORDER BY
+        <choose>
+            <when test="sortColumn == 'amount'">e.amount</when>
+            <when test="sortColumn == 'description'">e.description</when>
+            <when test="sortColumn == 'paymentMethod'">e.payment_method</when>
+            <when test="sortColumn == 'currency'">e.currency</when>
+            <when test="sortColumn == 'createdAt'">e.created_at</when>
+            <when test="sortColumn == 'updatedAt'">e.updated_at</when>
+            <when test="sortColumn == 'category'">c.name</when>
+            <otherwise>e.expense_date</otherwise>
+        </choose>
+        <!--
+          second key keeps pagination stable for rows sharing a sort value.
+          The service normalises the direction to exactly ASC or DESC, so the
+          whitelist below only has to guard against null.
+        -->
+        <choose>
+            <when test="'ASC'.equals(sortDirection)">ASC</when>
+            <otherwise>DESC</otherwise>
+        </choose>,
+        e.id DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="countByFilters" resultType="long">
+        SELECT count(*)
+        FROM expenses e
+        <where>
+            <include refid="filterClauses"/>
+        </where>
+    </select>
+
+    <!-- ===================== Aggregations ===================== -->
+
+    <!--
+      DATE_TRUNC granularity is whitelisted to day/week/month by
+      ExpenseSummaryRequest.GroupBy; the value is still bound as a parameter so
+      it can never be used to inject SQL.
+    -->
+    <select id="sumByPeriod" resultMap="expenseSummaryMap">
+        SELECT DATE_TRUNC(#{groupBy}, e.expense_date)::date AS period_start,
+               COALESCE(SUM(e.amount), 0) AS total_amount,
+               COUNT(*) AS expense_count,
+               ROUND(COALESCE(SUM(e.amount), 0) / NULLIF(COUNT(*), 0), 2) AS average_amount
+        FROM expenses e
+        <where>
+            e.user_id = #{userId}
+            <if test="categoryId != null">
+                AND e.category_id = #{categoryId}
+            </if>
+            <if test="paymentMethod != null">
+                AND e.payment_method = #{paymentMethod}
+            </if>
+            <if test="from != null">
+                AND e.expense_date &gt;= #{from}
+            </if>
+            <if test="to != null">
+                AND e.expense_date &lt;= #{to}
+            </if>
+        </where>
+        <!--
+          GROUP BY 1 (the ordinal) instead of repeating the expression: the
+          granularity arrives as a bind parameter, and PostgreSQL does not treat
+          two DATE_TRUNC() calls with *different* parameter placeholders as the
+          same grouping key.
+        -->
+        GROUP BY 1
+        ORDER BY period_start ASC
+    </select>
+
+    <!--
+      Spend per category. The inner query aggregates, the outer query adds the
+      percentage share through a window function so the whole report is one
+      round trip and the shares always add up to 100.
+      Expenses without a category are grouped under the literal 'Uncategorised'
+      row via COALESCE.
+    -->
+    <select id="statsByCategory" resultMap="categoryStatMap">
+        SELECT s.category_id,
+               s.category_name,
+               s.category_color,
+               s.category_icon,
+               s.total_amount,
+               s.expense_count,
+               s.average_amount,
+               ROUND(s.total_amount * 100.0 / NULLIF(SUM(s.total_amount) OVER (), 0), 2) AS percentage
+        FROM (SELECT COALESCE(c.id, '00000000-0000-0000-0000-000000000000'::uuid) AS category_id,
+                     COALESCE(c.name, 'Uncategorised') AS category_name,
+                     COALESCE(c.color_hex, '#94a3b8') AS category_color,
+                     COALESCE(c.icon_name, 'CircleHelp') AS category_icon,
+                     SUM(e.amount) AS total_amount,
+                     COUNT(*) AS expense_count,
+                     ROUND(SUM(e.amount) / NULLIF(COUNT(*), 0), 2) AS average_amount
+              FROM expenses e
+                       LEFT JOIN categories c ON c.id = e.category_id
+              <where>
+                  e.user_id = #{userId}
+                  <if test="from != null">
+                      AND e.expense_date &gt;= #{from}
+                  </if>
+                  <if test="to != null">
+                      AND e.expense_date &lt;= #{to}
+                  </if>
+              </where>
+              GROUP BY c.id, c.name, c.color_hex, c.icon_name) s
+        ORDER BY s.total_amount DESC
+    </select>
+
+</mapper>

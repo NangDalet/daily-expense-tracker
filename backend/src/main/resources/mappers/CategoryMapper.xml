@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--
+  CategoryMapper.xml
+  Highlights:
+   * <sql> column fragment shared by every statement
+   * LEFT JOIN + GROUP BY to compute expense_count without an N+1 query
+   * <choose> for the "own row or nothing" update semantics
+-->
+<mapper namespace="com.example.expensetracker.mapper.CategoryMapper">
+
+    <resultMap id="categoryResultMap" type="Category">
+        <id property="id" column="id"/>
+        <result property="name" column="name"/>
+        <result property="description" column="description"/>
+        <result property="iconName" column="icon_name"/>
+        <result property="colorHex" column="color_hex"/>
+        <result property="userId" column="user_id"/>
+        <result property="expenseCount" column="expense_count"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <sql id="columns">
+        c.id, c.name, c.description, c.icon_name, c.color_hex, c.user_id, c.created_at, c.updated_at
+    </sql>
+
+    <insert id="insert" parameterType="Category">
+        <selectKey keyProperty="id" resultType="java.util.UUID" order="BEFORE">
+            SELECT gen_random_uuid()
+        </selectKey>
+        INSERT INTO categories (id, name, description, icon_name, color_hex, user_id)
+        VALUES (#{id}, #{name}, #{description},
+                COALESCE(#{iconName}, 'Tag'),
+                COALESCE(#{colorHex}, '#6366f1'),
+                #{userId})
+    </insert>
+
+    <select id="findById" resultMap="categoryResultMap">
+        SELECT
+        <include refid="columns"/>
+        FROM categories c
+        WHERE c.id = #{id}
+    </select>
+
+    <!-- Case-insensitive lookup mirroring uq_categories_user_name -->
+    <select id="findByNameAndUserId" resultMap="categoryResultMap">
+        SELECT
+        <include refid="columns"/>
+        FROM categories c
+        WHERE c.user_id = #{userId}
+        AND lower(c.name) = lower(#{name})
+    </select>
+
+    <select id="findAllByUserId" resultMap="categoryResultMap">
+        SELECT
+        <include refid="columns"/>
+        FROM categories c
+        WHERE c.user_id = #{userId}
+        ORDER BY lower(c.name) ASC
+    </select>
+
+    <!--
+      Single round trip that also returns the number of linked expenses.
+      COUNT is evaluated per group and the join is a LEFT JOIN so categories
+      without expenses are kept (count = 0 instead of NULL).
+    -->
+    <select id="findAllByUserIdWithExpenseCount" resultMap="categoryResultMap">
+        SELECT
+        <include refid="columns"/>,
+        COUNT(e.id) AS expense_count
+        FROM categories c
+                 LEFT JOIN expenses e ON e.category_id = c.id
+        WHERE c.user_id = #{userId}
+        GROUP BY c.id, c.name, c.description, c.icon_name, c.color_hex, c.user_id, c.created_at, c.updated_at
+        ORDER BY lower(c.name) ASC
+    </select>
+
+    <update id="update" parameterType="Category">
+        UPDATE categories
+        <set>
+            <if test="name != null">name = #{name},</if>
+            <if test="description != null">description = #{description},</if>
+            <if test="iconName != null">icon_name = #{iconName},</if>
+            <if test="colorHex != null">color_hex = #{colorHex},</if>
+            updated_at = now()
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        DELETE
+        FROM categories
+        WHERE id = #{id}
+    </delete>
+
+    <select id="countExpensesByCategoryId" resultType="long">
+        SELECT count(*)
+        FROM expenses
+        WHERE category_id = #{categoryId}
+    </select>
+
+    <select id="countByUserId" resultType="long">
+        SELECT count(*)
+        FROM categories
+        WHERE user_id = #{userId}
+    </select>
+
+</mapper>

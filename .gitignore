@@ -1,0 +1,14 @@
+.neon
+.env.local
+node_modules/
+.vercel/
+**/target/
+**/dist/
+**/.idea/
+*.log
+*.tsbuildinfo
+*.err
+META-INF/
+.env
+.env.*
+!.env.example
