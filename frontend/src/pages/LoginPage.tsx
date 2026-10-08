@@ -62,7 +62,7 @@ export default function LoginPage() {
 
         <Input
           label="Username or e-mail"
-          placeholder="demo"
+          placeholder="Enter your username"
           autoComplete="username"
           autoFocus
           {...register('username', { required: 'Username is required' })}
@@ -72,7 +72,7 @@ export default function LoginPage() {
         <Input
           label="Password"
           type="password"
-          placeholder="Demo@123"
+          placeholder="Enter your password"
           autoComplete="current-password"
           {...register('password', { required: 'Password is required' })}
           error={errors.password?.message}
@@ -83,17 +83,6 @@ export default function LoginPage() {
         </Button>
       </form>
 
-      <div className="mt-6 rounded-lg border border-slate-200 bg-slate-50 px-3.5 py-3 text-xs text-slate-600">
-        <p className="font-medium text-slate-700">Demo accounts</p>
-        <p className="mt-1">
-          User <code className="font-mono">demo</code> /{' '}
-          <code className="font-mono">Demo@123</code>
-        </p>
-        <p className="mt-0.5">
-          Admin <code className="font-mono">admin</code> /{' '}
-          <code className="font-mono">Admin@123</code>
-        </p>
-      </div>
     </AuthLayout>
   )
 }
