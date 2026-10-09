@@ -3,6 +3,7 @@ package com.example.expensetracker.integration;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.DockerClientFactory;
@@ -20,6 +21,8 @@ import org.testcontainers.containers.PostgreSQLContainer;
  * {@link Assumptions} skips the class instead of failing the build - which keeps
  * {@code mvn verify} usable on machines that only want the unit tests.
  */
+// Each class starts a new container, so its Spring context must not be reused.
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 public abstract class AbstractPostgresIT {
 
     private static final String IMAGE = "postgres:16-alpine";

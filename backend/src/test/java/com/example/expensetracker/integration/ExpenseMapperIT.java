@@ -138,7 +138,8 @@ class ExpenseMapperIT extends AbstractPostgresIT {
 
         // 'USER' must not be found inside a longer role name
         assertThat(userMapper.countEnabledByRole("USE", null)).isZero();
-        assertThat(userMapper.countEnabledByRole("USER", userId)).isZero();
+        long allUsers = userMapper.countEnabledByRole("USER", null);
+        assertThat(userMapper.countEnabledByRole("USER", userId)).isEqualTo(allUsers - 1);
     }
 
     @Test

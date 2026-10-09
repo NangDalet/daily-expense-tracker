@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/context/AuthContext'
-import { budgetApi, categoryApi, expenseApi, userApi } from '@/lib/api/endpoints'
+import { budgetApi, categoryApi, expenseApi, incomeApi, userApi } from '@/lib/api/endpoints'
 import type {
   BudgetRequest,
   BudgetUsageResponse,
@@ -8,6 +8,8 @@ import type {
   CategoryResponse,
   CategoryStatResponse,
   CreateUserRequest,
+  IncomeFilterParams,
+  IncomeRequest,
   ExpenseFilterParams,
   ExpenseRequest,
   ExpenseSummaryResponse,
@@ -61,6 +63,7 @@ export function useUpdateCategory() {
     onSuccess: () => {
       void client.invalidateQueries({ queryKey: ['categories'] })
       void client.invalidateQueries({ queryKey: ['expenses'] })
+      void client.invalidateQueries({ queryKey: ['incomes'] })
       void client.invalidateQueries({ queryKey: ['budgets'] })
     },
   })
@@ -70,7 +73,12 @@ export function useDeleteCategory() {
   const client = useQueryClient()
   return useMutation({
     mutationFn: (id: string) => categoryApi.remove(id),
-    onSuccess: () => client.invalidateQueries({ queryKey: ['categories'] }),
+    onSuccess: () => {
+      void client.invalidateQueries({ queryKey: ['categories'] })
+      void client.invalidateQueries({ queryKey: ['expenses'] })
+      void client.invalidateQueries({ queryKey: ['incomes'] })
+      void client.invalidateQueries({ queryKey: ['budgets'] })
+    },
   })
 }
 
@@ -134,7 +142,7 @@ export function useDeleteExpense() {
 
 /**
  * Any expense write changes the aggregates too (summaries, category stats,
- * budget usage), so those caches are dropped alongside the listing.
+ * Category projections are refreshed alongside the income queries.
  */
 function invalidateExpenseDerived(client: ReturnType<typeof useQueryClient>) {
   void client.invalidateQueries({ queryKey: ['expenses'] })
@@ -247,3 +255,67 @@ export function totalOf<T>(items: T[] | undefined, pick: (item: T) => number): n
 }
 
 export type { BudgetUsageResponse, CategoryStatResponse, ExpenseSummaryResponse, ExpenseResponse }
+
+export function useIncomes(filter: IncomeFilterParams) {
+  return useQuery({
+    queryKey: ['incomes', 'list', filter],
+    queryFn: () => incomeApi.list(filter),
+    placeholderData: (previous) => previous,
+  })
+}
+
+export function useRecentIncome(limit = 5) {
+  return useQuery({
+    queryKey: ['incomes', 'recent', limit],
+    queryFn: () => incomeApi.recent(limit),
+  })
+}
+
+export function useIncomeSummary(params: SummaryParams) {
+  return useQuery({
+    queryKey: ['incomes', 'summary', params],
+    queryFn: () => incomeApi.summary(params),
+  })
+}
+
+export function useIncomeCategoryStats(from?: string, to?: string) {
+  return useQuery({
+    queryKey: ['incomes', 'stats-by-category', { from, to }],
+    queryFn: () => incomeApi.statsByCategory(from, to),
+  })
+}
+
+export function useCreateIncome() {
+  const client = useQueryClient()
+  return useMutation({
+    mutationFn: (body: IncomeRequest) => incomeApi.create(body),
+    onSuccess: () => invalidateIncomeDerived(client),
+  })
+}
+
+export function useUpdateIncome() {
+  const client = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, body }: { id: string; body: IncomeRequest }) =>
+      incomeApi.update(id, body),
+    onSuccess: () => invalidateIncomeDerived(client),
+  })
+}
+
+export function useDeleteIncome() {
+  const client = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => incomeApi.remove(id),
+    onSuccess: () => invalidateIncomeDerived(client),
+  })
+}
+
+/**
+ * Income writes invalidate listings, summaries and category statistics.
+ * Category projections are refreshed alongside the income queries.
+ */
+function invalidateIncomeDerived(client: ReturnType<typeof useQueryClient>) {
+  void client.invalidateQueries({ queryKey: ['incomes'] })
+
+  void client.invalidateQueries({ queryKey: ['categories'] })
+}

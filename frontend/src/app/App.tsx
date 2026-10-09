@@ -9,6 +9,7 @@ import { RedirectIfAuthenticated, RequireAdmin, RequireAuth } from './routeGuard
 
 const DashboardPage = lazy(() => import('@/pages/DashboardPage'))
 const ExpensesPage = lazy(() => import('@/pages/ExpensesPage'))
+const IncomePage = lazy(() => import('@/pages/IncomePage'))
 const CategoriesPage = lazy(() => import('@/pages/CategoriesPage'))
 const BudgetsPage = lazy(() => import('@/pages/BudgetsPage'))
 const AdminUsersPage = lazy(() => import('@/pages/AdminUsersPage'))
@@ -51,6 +52,7 @@ export function App() {
                 <Route element={<AppLayout />}>
                   <Route index element={<DashboardPage />} />
                   <Route path="expenses" element={<ExpensesPage />} />
+                  <Route path="incomes" element={<IncomePage />} />
                   <Route path="categories" element={<CategoriesPage />} />
                   <Route path="budgets" element={<BudgetsPage />} />
                   <Route element={<RequireAdmin />}>

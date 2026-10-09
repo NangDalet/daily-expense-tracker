@@ -7,6 +7,11 @@ import type {
   CategoryResponse,
   CategoryStatResponse,
   CreateUserRequest,
+  IncomeFilterParams,
+  IncomeRequest,
+  IncomeResponse,
+  IncomeSummaryResponse,
+  IncomeCategoryStatResponse,
   ExpenseFilterParams,
   ExpenseRequest,
   ExpenseResponse,
@@ -80,6 +85,37 @@ export const expenseApi = {
   statsByCategory: (from?: string, to?: string) =>
     http.get<CategoryStatResponse[]>('/expenses/stats/by-category', { from, to }),
   recent: (limit = 5) => http.get<ExpenseResponse[]>('/expenses/recent', { limit }),
+}
+
+export const incomeApi = {
+  async list(filter: IncomeFilterParams = {}): Promise<Page<IncomeResponse>> {
+    const envelope = await http.getEnvelope<IncomeResponse[]>(
+      '/incomes',
+      toExpenseQuery(filter),
+    )
+    return {
+      items: envelope.data ?? [],
+      page: envelope.page ?? 0,
+      size: envelope.size ?? 20,
+      totalElements: envelope.totalElements ?? 0,
+      totalPages: envelope.totalPages ?? 0,
+    }
+  },
+  get: (id: string) => http.get<IncomeResponse>(`/incomes/${id}`),
+  create: (body: IncomeRequest) => http.post<IncomeResponse>('/incomes', body),
+  update: (id: string, body: IncomeRequest) => http.put<IncomeResponse>(`/incomes/${id}`, body),
+  remove: (id: string) => http.delete<void>(`/incomes/${id}`),
+  summary: (params: SummaryParams) =>
+    http.get<IncomeSummaryResponse[]>('/incomes/summary', {
+      groupBy: params.groupBy,
+      from: params.from,
+      to: params.to,
+      categoryId: params.categoryId,
+      paymentMethod: params.paymentMethod,
+    }),
+  statsByCategory: (from?: string, to?: string) =>
+    http.get<IncomeCategoryStatResponse[]>('/incomes/stats/by-category', { from, to }),
+  recent: (limit = 5) => http.get<IncomeResponse[]>('/incomes/recent', { limit }),
 }
 
 export const categoryApi = {

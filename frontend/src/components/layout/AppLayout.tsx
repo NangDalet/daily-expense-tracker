@@ -9,6 +9,7 @@ import {
   Shield,
   Tags,
   Target,
+  TrendingUp,
   Wallet,
   X,
 } from 'lucide-react'
@@ -27,6 +28,7 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/expenses', label: 'Expenses', icon: Receipt },
+  { to: '/incomes', label: 'Income', icon: TrendingUp },
   { to: '/categories', label: 'Categories', icon: Tags },
   { to: '/budgets', label: 'Budgets', icon: Target },
   { to: '/users', label: 'Users', icon: Shield, adminOnly: true },
@@ -54,6 +56,8 @@ function Breadcrumbs() {
 export function AppLayout() {
   const { user, isAdmin, isSuperAdmin, logout } = useAuth()
   const navigate = useNavigate()
+  const { pathname } = useLocation()
+  const isIncomePage = pathname.startsWith('/incomes')
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
 
   const visibleItems = NAV_ITEMS.filter((item) => !item.adminOnly || isAdmin)
@@ -161,9 +165,9 @@ export function AppLayout() {
             <Breadcrumbs />
           </div>
 
-          <Button size="sm" onClick={() => navigate('/expenses?new=1')}>
+          <Button size="sm" onClick={() => navigate(isIncomePage ? '/incomes?new=1' : '/expenses?new=1')}>
             <Plus className="h-4 w-4" aria-hidden />
-            <span className="hidden sm:inline">Add expense</span>
+            <span className="hidden sm:inline">{isIncomePage ? 'Add income' : 'Add expense'}</span>
           </Button>
         </header>
 

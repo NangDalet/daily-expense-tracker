@@ -41,7 +41,7 @@ public class PaginationProperties {
 
     /** Whitelist of client sortable properties mapped to their SQL column. */
     private static final List<String> SORTABLE_PROPERTIES =
-            List.of("expenseDate", "amount", "description", "paymentMethod", "currency",
+            List.of("expenseDate", "incomeDate", "amount", "description", "paymentMethod", "currency",
                     "createdAt", "updatedAt", "category");
 
     /**

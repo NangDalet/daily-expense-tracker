@@ -22,12 +22,14 @@ import { ProgressBar } from '@/components/ui/ProgressBar'
 import { EmptyState, ErrorState, LoadingBlock } from '@/components/ui/States'
 import { CategorySwatch } from '@/components/ui/CategoryIcon'
 import { ExpenseList } from '@/components/expenses/ExpenseList'
+import { IncomeList } from '@/components/incomes/IncomeList'
 import {
   useBudgetUsage,
   useCategories,
   useCategoryStats,
   useExpenseSummary,
   useRecentExpenses,
+  useRecentIncome,
 } from '@/hooks/queries'
 import { useAuth } from '@/context/AuthContext'
 import type { SummaryGroupBy } from '@/lib/api/types'
@@ -73,6 +75,7 @@ export default function DashboardPage() {
   const summary = useExpenseSummary({ groupBy, from, to })
   const stats = useCategoryStats(from, to)
   const recent = useRecentExpenses(6)
+  const recentIncome = useRecentIncome(6)
   const budgets = useBudgetUsage()
   const { data: categories } = useCategories()
 
@@ -327,6 +330,23 @@ export default function DashboardPage() {
             </CardBody>
           </Card>
         </div>
+
+        <Card>
+          <CardHeader title="Recent income" action={
+            <Link to="/incomes" className="text-xs font-medium text-brand-600 hover:text-brand-700">View all</Link>
+          } />
+          {recentIncome.isError ? (
+            <ErrorState title="Could not load income" onRetry={() => void recentIncome.refetch()} />
+          ) : recentIncome.isPending ? (
+            <LoadingBlock label="Loading income" />
+          ) : (recentIncome.data?.length ?? 0) === 0 ? (
+            <EmptyState title="No income recorded" description="Record salary, freelance payments or other income." action={
+              <Link to="/incomes?new=1"><Button size="sm">Add income</Button></Link>
+            } />
+          ) : (
+            <IncomeList incomes={recentIncome.data ?? []} />
+          )}
+        </Card>
 
         <div className="grid gap-4 lg:grid-cols-2">
           <Card>

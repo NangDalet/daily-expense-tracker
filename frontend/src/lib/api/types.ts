@@ -274,3 +274,67 @@ export interface SummaryParams {
   categoryId?: string
   paymentMethod?: PaymentMethod
 }
+
+export interface IncomeResponse {
+  id: string
+  amount: number
+  currency: string
+  description?: string
+  /** ISO date, e.g. `2026-01-30`. */
+  incomeDate: string
+  paymentMethod: PaymentMethod
+  categoryId?: string
+  /** Denormalised category, absent when the income has no category. */
+  category?: CategoryResponse
+  userId?: string
+  receiptUrl?: string
+  tags?: string[]
+  createdAt?: string
+  updatedAt?: string
+}
+
+export interface IncomeRequest {
+  amount: number
+  currency: string
+  description?: string
+  incomeDate: string
+  paymentMethod: PaymentMethod
+  categoryId?: string | null
+  receiptUrl?: string
+  tags?: string[]
+}
+
+export interface IncomeFilterParams {
+  categoryId?: string
+  fromDate?: string
+  toDate?: string
+  minAmount?: number
+  maxAmount?: number
+  search?: string
+  paymentMethods?: PaymentMethod[]
+  page?: number
+  size?: number
+  /** e.g. `incomeDate,desc`. */
+  sort?: string
+}
+
+export interface IncomeSummaryResponse {
+  currency: string
+  /** First day of the bucket. */
+  periodStart: string
+  totalAmount: number
+  incomeCount: number
+  averageAmount: number
+}
+
+export interface IncomeCategoryStatResponse {
+  currency: string
+  categoryId?: string
+  categoryName?: string
+  categoryColor?: string
+  categoryIcon?: string
+  totalAmount: number
+  incomeCount: number
+  averageAmount: number
+  percentage: number
+}
