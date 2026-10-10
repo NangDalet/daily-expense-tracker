@@ -155,6 +155,7 @@ export function useDeleteExpense() {
  * Category projections are refreshed alongside the income queries.
  */
 function invalidateExpenseDerived(client: ReturnType<typeof useQueryClient>) {
+  void client.invalidateQueries({ queryKey: ['monthly-finances'] })
   void client.invalidateQueries({ queryKey: ['expenses'] })
   void client.invalidateQueries({ queryKey: ['budgets'] })
   void client.invalidateQueries({ queryKey: ['categories'] })
@@ -335,6 +336,7 @@ export function useDeleteIncome() {
  * Category projections are refreshed alongside the income queries.
  */
 function invalidateIncomeDerived(client: ReturnType<typeof useQueryClient>) {
+  void client.invalidateQueries({ queryKey: ['monthly-finances'] })
   void client.invalidateQueries({ queryKey: ['incomes'] })
 
   void client.invalidateQueries({ queryKey: ['categories'] })

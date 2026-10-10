@@ -26,6 +26,8 @@ public class UserResponse {
 
     private String fullName;
 
+    private String avatarUrl;
+
     @Schema(description = "Authorities without the ROLE_ prefix, e.g. [\"USER\"]")
     private List<String> roles;
 

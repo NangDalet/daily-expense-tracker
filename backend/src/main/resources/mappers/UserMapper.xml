@@ -16,6 +16,7 @@
         <result property="email" column="email"/>
         <result property="password" column="password"/>
         <result property="fullName" column="full_name"/>
+        <result property="avatarUrl" column="avatar_url"/>
         <result property="roles"
                 column="roles"
                 typeHandler="com.example.expensetracker.util.StringListTypeHandler"/>
@@ -25,7 +26,7 @@
     </resultMap>
 
     <sql id="columns">
-        id, username, email, password, full_name, roles, enabled, created_at, updated_at
+        id, username, email, password, full_name, avatar_url, roles, enabled, created_at, updated_at
     </sql>
 
     <insert id="insert" parameterType="User">
@@ -86,6 +87,17 @@
         FROM users
         WHERE id = #{id}
     </delete>
+
+    <update id="updateProfile" parameterType="User">
+        UPDATE users SET username = #{username}, email = #{email},
+                         full_name = #{fullName}, updated_at = now()
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateAvatar">
+        UPDATE users SET avatar_url = #{avatarUrl,jdbcType=VARCHAR}, updated_at = now()
+        WHERE id = #{id}
+    </update>
 
     <select id="findAll" resultMap="userResultMap">
         SELECT

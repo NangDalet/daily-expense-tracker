@@ -22,6 +22,7 @@ import type {
   TokenResponse,
   UpdateUserRequest,
   UserResponse,
+  MonthlyFinanceResponse,
 } from './types'
 
 /** Paged payload, mirroring the page fields of the response envelope. */
@@ -39,6 +40,18 @@ export const authApi = {
   // `skipRefresh`: a 401 here must not trigger another refresh attempt.
   refresh: (refreshToken: string) =>
     http.post<TokenResponse>('/auth/refresh', { refreshToken }, true),
+}
+
+export const profileApi = {
+  get: () => http.get<UserResponse>('/profile'),
+  update: (body: { username: string; email: string; fullName: string }) => http.put<UserResponse>('/profile', body),
+  photo: (imageData: string) => http.put<UserResponse>('/profile/photo', { imageData }),
+  removePhoto: () => http.delete<UserResponse>('/profile/photo'),
+}
+
+export const financeApi = {
+  monthly: (year: number, month: number, signal?: AbortSignal) =>
+    http.get<MonthlyFinanceResponse[]>('/reports/monthly', { year, month }, signal),
 }
 
 function toExpenseQuery(filter: ExpenseFilterParams = {}): QueryParams {

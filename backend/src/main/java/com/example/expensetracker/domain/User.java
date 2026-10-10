@@ -33,6 +33,9 @@ public class User {
 
     private String fullName;
 
+    /** A small, validated JPEG data URL; persists across container restarts. */
+    private String avatarUrl;
+
     private List<String> roles;
 
     private Boolean enabled;

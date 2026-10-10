@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
-import { Wallet } from 'lucide-react'
+import { Wallet, Moon, Sun } from 'lucide-react'
+import { useTheme } from '@/context/ThemeContext'
 
 /** Shared split-screen shell for the sign-in and sign-up screens. */
 export function AuthLayout({
@@ -13,6 +14,7 @@ export function AuthLayout({
   children: ReactNode
   footer?: ReactNode
 }) {
+  const { theme, toggleTheme } = useTheme()
   return (
     <div className="flex min-h-screen">
       <div className="flex w-full flex-col justify-center px-6 py-12 sm:px-12 lg:w-[46%] lg:px-16">
@@ -22,6 +24,10 @@ export function AuthLayout({
               <Wallet className="h-5 w-5" aria-hidden />
             </span>
             <span className="text-base font-semibold text-slate-900">Expense Tracker</span>
+            <button type="button" onClick={toggleTheme} className="ml-auto rounded-lg p-2 text-slate-600 hover:bg-slate-100"
+              aria-label={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}>
+              {theme === 'light' ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
+            </button>
           </div>
 
           <h1 className="text-2xl font-semibold tracking-tight text-slate-900">{title}</h1>

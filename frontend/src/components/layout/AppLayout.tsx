@@ -13,8 +13,13 @@ import {
   TrendingUp,
   Wallet,
   X,
+  UserRound,
+  Calculator,
+  Moon,
+  Sun,
 } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
+import { useTheme } from '@/context/ThemeContext'
 import { Button } from '@/components/ui/Button'
 import { Avatar } from '@/components/layout/Avatar'
 import { cn } from '@/lib/utils'
@@ -30,9 +35,11 @@ const NAV_ITEMS: NavItem[] = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/expenses', label: 'Expenses', icon: Receipt },
   { to: '/incomes', label: 'Income', icon: TrendingUp },
+  { to: '/monthly', label: 'Monthly calculator', icon: Calculator },
   { to: '/categories', label: 'Categories', icon: Tags },
   { to: '/budgets', label: 'Budgets', icon: Target },
   { to: '/telegram', label: 'Telegram alerts', icon: Bell },
+  { to: '/profile', label: 'My profile', icon: UserRound },
   { to: '/users', label: 'Users', icon: Shield, adminOnly: true },
 ]
 
@@ -57,6 +64,7 @@ function Breadcrumbs() {
 
 export function AppLayout() {
   const { user, isAdmin, isSuperAdmin, logout } = useAuth()
+  const { theme, toggleTheme } = useTheme()
   const navigate = useNavigate()
   const { pathname } = useLocation()
   const isIncomePage = pathname.startsWith('/incomes')
@@ -132,7 +140,7 @@ export function AppLayout() {
 
         <div className="border-t border-slate-200 p-3">
           <div className="flex items-center gap-3 rounded-lg px-2 py-2">
-            <Avatar name={user?.fullName || user?.username} />
+            <NavLink to="/profile" aria-label="Edit my profile"><Avatar name={user?.fullName || user?.username} src={user?.avatarUrl} /></NavLink>
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium text-slate-900">
                 {user?.fullName || user?.username}
@@ -167,6 +175,10 @@ export function AppLayout() {
             <Breadcrumbs />
           </div>
 
+          <button type="button" onClick={toggleTheme} aria-label={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
+            title={theme === 'light' ? 'Dark mode' : 'Light mode'} className="rounded-lg p-2 text-slate-600 hover:bg-slate-100">
+            {theme === 'light' ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
+          </button>
           <Button size="sm" onClick={() => navigate(isIncomePage ? '/incomes?new=1' : '/expenses?new=1')}>
             <Plus className="h-4 w-4" aria-hidden />
             <span className="hidden sm:inline">{isIncomePage ? 'Add income' : 'Add expense'}</span>

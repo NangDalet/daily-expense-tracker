@@ -20,10 +20,12 @@ export function Avatar({
   name,
   size = 'md',
   className,
+  src,
 }: {
   name?: string
   size?: keyof typeof SIZES
   className?: string
+  src?: string | null
 }) {
   const initials = (name ?? '?')
     .trim()
@@ -47,7 +49,7 @@ export function Avatar({
         className,
       )}
     >
-      {initials || '?'}
+      {src ? <img src={src} alt="" className="h-full w-full rounded-full object-cover" /> : initials || '?'}
     </span>
   )
 }

@@ -101,6 +101,7 @@ export const PAYMENT_METHODS = [
 export type PaymentMethod = (typeof PAYMENT_METHODS)[number]
 
 export interface UserResponse {
+  avatarUrl?: string | null
   id: string
   username: string
   email: string
@@ -108,6 +109,15 @@ export interface UserResponse {
   roles: Role[]
   enabled: boolean
   createdAt?: string
+}
+
+export interface MonthlyFinanceResponse {
+  currency: string
+  totalIncome: number
+  totalExpenses: number
+  balance: number
+  incomeCount: number
+  expenseCount: number
 }
 
 export interface TokenResponse {

@@ -26,6 +26,10 @@ public interface UserMapper {
     /** Updates the mutable columns; never touches {@code username}, {@code createdAt}. */
     int update(User user);
 
+    int updateProfile(User user);
+
+    int updateAvatar(@Param("id") UUID id, @Param("avatarUrl") String avatarUrl);
+
     int deleteById(@Param("id") UUID id);
 
     /**

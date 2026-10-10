@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.expensetracker.mapper.MonthlyFinanceMapper">
+    <select id="summary" resultType="com.example.expensetracker.dto.response.MonthlyFinanceResponse">
+        SELECT currency, SUM(income) AS total_income, SUM(expenses) AS total_expenses,
+               SUM(income) - SUM(expenses) AS balance,
+               SUM(income_count) AS income_count, SUM(expense_count) AS expense_count
+        FROM (
+            SELECT currency, SUM(amount) AS income, 0::numeric AS expenses,
+                   COUNT(*) AS income_count, 0::bigint AS expense_count
+            FROM incomes WHERE user_id = #{userId} AND income_date BETWEEN #{from} AND #{to}
+            GROUP BY currency
+            UNION ALL
+            SELECT currency, 0::numeric AS income, SUM(amount) AS expenses,
+                   0::bigint AS income_count, COUNT(*) AS expense_count
+            FROM expenses WHERE user_id = #{userId} AND expense_date BETWEEN #{from} AND #{to}
+            GROUP BY currency
+        ) totals GROUP BY currency ORDER BY currency
+    </select>
+</mapper>

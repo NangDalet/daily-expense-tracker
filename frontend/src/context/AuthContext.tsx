@@ -21,6 +21,7 @@ interface AuthContextValue {
   logout: () => void
   /** Re-reads the profile after a role or status change. */
   refreshUser: () => Promise<UserResponse | null>
+  updateUser: (profile: UserResponse) => void
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -91,6 +92,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null)
   }, [])
 
+  const updateUser = useCallback((profile: UserResponse) => {
+    persistUser(profile)
+    setUser(profile)
+  }, [])
+
   const value = useMemo<AuthContextValue>(
     () => ({
       user,
@@ -101,6 +107,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       login,
       register,
       logout,
+      updateUser,
       refreshUser: async () => {
         if (!tokenStorage.access) return null
         // The token pair itself carries the profile, so a refresh is enough.
@@ -113,7 +120,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return tokens.user
       },
     }),
-    [user, isInitialising, login, register, logout],
+    [user, isInitialising, login, register, logout, updateUser],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

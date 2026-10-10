@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react'
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AuthProvider } from '@/context/AuthContext'
+import { ThemeProvider } from '@/context/ThemeContext'
 import { ApiError } from '@/lib/api/client'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { LoadingBlock } from '@/components/ui/States'
@@ -12,6 +13,8 @@ const ExpensesPage = lazy(() => import('@/pages/ExpensesPage'))
 const IncomePage = lazy(() => import('@/pages/IncomePage'))
 const CategoriesPage = lazy(() => import('@/pages/CategoriesPage'))
 const TelegramPage = lazy(() => import('@/pages/TelegramPage'))
+const ProfilePage = lazy(() => import('@/pages/ProfilePage'))
+const MonthlyPage = lazy(() => import('@/pages/MonthlyPage'))
 const BudgetsPage = lazy(() => import('@/pages/BudgetsPage'))
 const AdminUsersPage = lazy(() => import('@/pages/AdminUsersPage'))
 const LoginPage = lazy(() => import('@/pages/LoginPage'))
@@ -41,7 +44,7 @@ export function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <AuthProvider>
+        <ThemeProvider><AuthProvider>
           <Suspense fallback={<LoadingBlock label="Loading" />}>
             <Routes>
               <Route element={<RedirectIfAuthenticated />}>
@@ -57,6 +60,8 @@ export function App() {
                   <Route path="categories" element={<CategoriesPage />} />
                   <Route path="budgets" element={<BudgetsPage />} />
                   <Route path="telegram" element={<TelegramPage />} />
+                  <Route path="profile" element={<ProfilePage />} />
+                  <Route path="monthly" element={<MonthlyPage />} />
                   <Route element={<RequireAdmin />}>
                     <Route path="users" element={<AdminUsersPage />} />
                   </Route>
@@ -66,7 +71,7 @@ export function App() {
               <Route path="*" element={<NotFoundPage />} />
             </Routes>
           </Suspense>
-        </AuthProvider>
+        </AuthProvider></ThemeProvider>
       </BrowserRouter>
     </QueryClientProvider>
   )

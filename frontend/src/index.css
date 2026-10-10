@@ -56,6 +56,45 @@
   outline: none;
 }
 
+html[data-theme='dark'] {
+  --color-slate-50: #0b1220;
+  --color-slate-100: #162235;
+  --color-slate-200: #29374e;
+  --color-slate-300: #40506a;
+  --color-slate-400: #8898b2;
+  --color-slate-500: #a0aec0;
+  --color-slate-600: #b4bfd2;
+  --color-slate-700: #ccd5e5;
+  --color-slate-800: #e2e8f0;
+  --color-slate-900: #f1f5f9;
+  --color-brand-50: #202849;
+  --color-brand-100: #2d3561;
+  --color-brand-200: #465284;
+  --color-red-50: #351c29;
+  --color-red-100: #492330;
+  --color-emerald-50: #12312e;
+  --color-emerald-100: #164237;
+  --color-amber-50: #332c1b;
+  --color-amber-100: #46371a;
+}
+
+html[data-theme='dark'] .card,
+html[data-theme='dark'] .bg-white { background-color: #162235; }
+html[data-theme='dark'] [class~='bg-white/90'] { background-color: rgb(22 34 53 / 90%); }
+html[data-theme='dark'] .bg-slate-900 { background-color: #0f172a; }
+html[data-theme='dark'] .text-brand-600,
+html[data-theme='dark'] .text-brand-700 { color: #a5b4fc; }
+html[data-theme='dark'] .text-red-600,
+html[data-theme='dark'] .text-red-700,
+html[data-theme='dark'] .text-red-800 { color: #fda4af; }
+html[data-theme='dark'] .text-emerald-600,
+html[data-theme='dark'] .text-emerald-700,
+html[data-theme='dark'] .text-emerald-800 { color: #6ee7b7; }
+html[data-theme='dark'] .text-amber-600,
+html[data-theme='dark'] .text-amber-700 { color: #fcd34d; }
+html[data-theme='dark'] .recharts-cartesian-axis-tick-value { fill: #a0aec0; }
+html[data-theme='dark'] .recharts-default-tooltip { background-color: #162235 !important; border-color: #40506a !important; }
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
