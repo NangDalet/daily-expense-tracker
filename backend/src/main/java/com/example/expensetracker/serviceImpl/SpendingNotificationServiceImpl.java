@@ -8,6 +8,7 @@ import com.example.expensetracker.domain.Expense;
 import com.example.expensetracker.domain.BudgetUsage;
 import com.example.expensetracker.mapper.BudgetMapper;
 import com.example.expensetracker.mapper.TelegramMapper;
+import com.example.expensetracker.mapper.UserMapper;
 import com.example.expensetracker.service.SpendingNotificationService;
 import org.springframework.stereotype.Service;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +17,7 @@ public class SpendingNotificationServiceImpl implements SpendingNotificationServ
     private final BudgetMapper budgets;
     private final TelegramMapper telegram;
     private final TelegramProperties properties;
+    private final UserMapper users;
     @Override public void beforeChange(UUID userId) {
         // Serialize concurrent expense/budget writes before they read monthly usage.
         if (properties.isConfigured()) telegram.lockUser(userId);
@@ -42,11 +44,12 @@ public class SpendingNotificationServiceImpl implements SpendingNotificationServ
         if (item.getSpentAmount().compareTo(budget.getMonthlyLimit().multiply(new BigDecimal("0.80"))) < 0) return;
         String key = "budget80:" + budget.getId() + ":" + budget.getYear() + ":" + budget.getMonth() + ":" + budget.getCurrency();
         telegram.enqueue(userId, chatId, key, "📊 Daily Expense Tracker\n\n"
-                + "⚠️ Budget Alert: 80% reached\n\n" + budgetDetails(item)
+                + recipient(userId) + "\n\n⚠️ Budget Alert: 80% reached\n\n" + budgetDetails(item)
                 + "\n\n🔔 Review your spending to stay within your budget.");
     }
     private String expenseMessage(Expense expense, List<BudgetUsage> matching) {
-        var message = new StringBuilder("📊 Daily Expense Tracker\n\n✅ Expense Recorded\n")
+        var message = new StringBuilder("📊 Daily Expense Tracker\n\n")
+                .append(recipient(expense.getUserId())).append("\n\n✅ Expense Recorded\n")
                 .append("💸 Amount: ").append(money(expense.getCurrency(), expense.getAmount()))
                 .append("\n📅 Date: ").append(expense.getExpenseDate());
         if (expense.getDescription() != null && !expense.getDescription().isBlank())
@@ -70,6 +73,13 @@ public class SpendingNotificationServiceImpl implements SpendingNotificationServ
     }
     private String money(String currency, BigDecimal amount) {
         return currency + " " + amount.setScale(2, RoundingMode.HALF_UP).toPlainString();
+    }
+    private String recipient(UUID userId) {
+        var user = users.findById(userId);
+        String name = user == null ? null : user.getFullName();
+        if (name == null || name.isBlank()) name = user == null ? null : user.getUsername();
+        if (name == null || name.isBlank()) name = "Account holder";
+        return "👤 User: " + truncate(name.replaceAll("\\s+", " ").strip());
     }
     private String truncate(String text) { return text == null ? "" : text.codePoints().limit(500).collect(StringBuilder::new, StringBuilder::appendCodePoint, StringBuilder::append).toString(); }
 }

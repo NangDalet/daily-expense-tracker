@@ -1,6 +1,14 @@
 # Telegram budget alerts
 
-The feature is implemented but disabled by default. No bot credentials are committed to Git.
+The feature is implemented but disabled by default. No bot credentials are committed to Git. Production Telegram alerts are now enabled on the existing Render backend.
+
+## Production status — October 10, 2026
+
+- Backend release `8746f61dc77bc9368488ea795dc60b2fd501a0fe` was published to GitHub and deployed to the existing `daily-expense-tracker-api` Render service. Deployment `dep-db4tuoajnfac738hg9lg` is live and `/actuator/health` reports `UP`.
+- Render's five Telegram environment variables are configured. Flyway successfully applied migration V5. The hosted API now exposes Telegram endpoints and supports budget currency.
+- The webhook is registered at `https://daily-expense-tracker-api-mrl6.onrender.com/api/v1/telegram/webhook`. Final checks showed zero pending updates and no webhook error.
+- The supplied test account was connected through its real Telegram Start link. A temporary USD 0.01 expense triggered automatic spending and 80% budget messages. Scoped read-only database checks confirmed both were `sent` on their first attempt to the account's connected private chat, with budget limit and total spent included. The temporary expense was then deleted.
+- Other users must connect their own accounts through **Telegram alerts → Connect Telegram → Start**. Each user's messages go to their own connected private chat. The 80% alert remains once per budget, month, and currency.
 
 ## Administrator setup
 
@@ -45,8 +53,12 @@ Live sending requires bot credentials and either polling mode or a registered we
 
 New expense messages include the expense amount, date, description, and usage of each matching budget. The separate 80% alert uses this layout:
 
+Both messages identify the expense account with `👤 User: <full name>`. If the account has no full name, they use its Expense Tracker username. The name is loaded from the account that owns the expense or budget, independently of the Telegram bot name.
+
 ```text
 📊 Daily Expense Tracker
+
+👤 User: Nang Dalet
 
 ⚠️ Budget Alert: 80% reached
 
@@ -72,7 +84,7 @@ A private production environment file has been prepared at `backend/.env.render.
 
 ## Production release
 
-The production frontend is hosted at `https://daily-expense-tracker-topaz.vercel.app`. Its backend is `https://daily-expense-tracker-api-mrl6.onrender.com`. The updated frontend was deployed to production on October 10, 2026 with deployment ID `dpl_Gx6vSkLSz7ocMMTom7z2TA5fjD42`. The backend release artifact was built successfully, but deploying it to Render is still pending because Render is not connected.
+The production frontend is hosted at `https://daily-expense-tracker-topaz.vercel.app`. Its backend is `https://daily-expense-tracker-api-mrl6.onrender.com`. The updated frontend was deployed to production on October 10, 2026 with deployment ID `dpl_Gx6vSkLSz7ocMMTom7z2TA5fjD42`. The backend Telegram release is also live; see the production status above for deployment and delivery verification.
 
 Deploy the backend source and Flyway migrations to the existing Render service, set its Telegram secret environment variables, and verify `/actuator/health`. In webhook mode, register `https://daily-expense-tracker-api-mrl6.onrender.com/api/v1/telegram/webhook` with the same `TELEGRAM_WEBHOOK_SECRET` configured on Render. Ensure local polling is stopped when production uses the same bot. Do not register the webhook before the updated backend and its Telegram settings are active.
 
@@ -84,7 +96,9 @@ vercel --scope team_AIiMUVslypqVUEcssscK2z8v deploy --prod --yes --build-env VIT
 
 Verify personal Telegram connection and budget alert delivery after promotion. Existing budgets migrate to USD; review their currency where needed.
 
-### Hosted checks on October 10, 2026
+### Earlier hosted checks on October 10, 2026
+
+The entries below record the earlier diagnosis before backend deployment. The production status above supersedes the deployment blockers and missing-endpoint observations.
 
 - Before this release, the production frontend served an older build without the Telegram route, and its Khmer font URL returned HTML. After the production deployment, `/login` returned HTTP 200, the Khmer font returned HTTP 200 with `font/ttf`, and the served JavaScript included the Telegram page.
 - The new preview is ready and serves `NotoSansKhmer-Regular.ttf` as `font/ttf`.
