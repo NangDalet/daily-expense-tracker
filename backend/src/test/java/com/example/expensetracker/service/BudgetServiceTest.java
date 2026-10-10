@@ -27,6 +27,8 @@ import com.example.expensetracker.exception.ApiException;
 import com.example.expensetracker.exception.ResourceNotFoundException;
 import com.example.expensetracker.mapper.BudgetMapper;
 import com.example.expensetracker.mapper.CategoryMapper;
+import com.example.expensetracker.service.SpendingNotificationService;
+import com.example.expensetracker.serviceImpl.BudgetServiceImpl;
 import com.example.expensetracker.support.TestFixtures;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -49,18 +51,21 @@ class BudgetServiceTest {
     @Mock
     private CategoryMapper categoryMapper;
 
+    @Mock
+    private SpendingNotificationService notifications;
+
     private BudgetService budgetService;
 
     @BeforeEach
     void setUp() {
-        budgetService = new BudgetService(budgetMapper, categoryMapper, TestFixtures.budgetConvert());
+        budgetService = new BudgetServiceImpl(budgetMapper, categoryMapper, TestFixtures.budgetConvert(), notifications);
     }
 
     @Test
     @DisplayName("creates the budget when the period has none yet")
     void createsBudget() {
         when(categoryMapper.findById(CATEGORY_ID)).thenReturn(category(CATEGORY_ID, USER_ID, "Groceries"));
-        when(budgetMapper.findByUserIdCategoryAndPeriod(USER_ID, CATEGORY_ID, 2026, 1)).thenReturn(null);
+        when(budgetMapper.findByUserIdCategoryAndPeriod(USER_ID, CATEGORY_ID, 2026, 1, "USD")).thenReturn(null);
         when(budgetMapper.insert(any())).thenAnswer(invocation -> {
             invocation.<Budget>getArgument(0).setId(BUDGET_ID);
             return 1;
@@ -85,7 +90,7 @@ class BudgetServiceTest {
     @DisplayName("updates the limit when the period already has a budget")
     void updatesExistingBudget() {
         Budget existing = budget(BUDGET_ID, USER_ID, null);
-        when(budgetMapper.findByUserIdCategoryAndPeriod(USER_ID, null, 2026, 2)).thenReturn(existing);
+        when(budgetMapper.findByUserIdCategoryAndPeriod(USER_ID, null, 2026, 2, "USD")).thenReturn(existing);
 
         budgetService.upsert(USER_ID, BudgetRequest.builder()
                 .monthlyLimit(new BigDecimal("1250.00"))
@@ -101,7 +106,7 @@ class BudgetServiceTest {
     @Test
     @DisplayName("treats a missing categoryId as the overall monthly budget")
     void treatsMissingCategoryAsOverallBudget() {
-        when(budgetMapper.findByUserIdCategoryAndPeriod(USER_ID, null, 2026, 1)).thenReturn(null);
+        when(budgetMapper.findByUserIdCategoryAndPeriod(USER_ID, null, 2026, 1, "USD")).thenReturn(null);
         when(budgetMapper.insert(any())).thenAnswer(invocation -> {
             invocation.<Budget>getArgument(0).setId(BUDGET_ID);
             return 1;
@@ -115,7 +120,7 @@ class BudgetServiceTest {
                 .build());
 
         verify(categoryMapper, never()).findById(any());
-        verify(budgetMapper).findByUserIdCategoryAndPeriod(USER_ID, null, 2026, 1);
+        verify(budgetMapper).findByUserIdCategoryAndPeriod(USER_ID, null, 2026, 1, "USD");
     }
 
     @Test

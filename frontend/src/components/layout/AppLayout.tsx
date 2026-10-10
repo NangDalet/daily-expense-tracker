@@ -4,6 +4,7 @@ import {
   LayoutDashboard,
   LogOut,
   Menu,
+  Bell,
   Plus,
   Receipt,
   Shield,
@@ -31,6 +32,7 @@ const NAV_ITEMS: NavItem[] = [
   { to: '/incomes', label: 'Income', icon: TrendingUp },
   { to: '/categories', label: 'Categories', icon: Tags },
   { to: '/budgets', label: 'Budgets', icon: Target },
+  { to: '/telegram', label: 'Telegram alerts', icon: Bell },
   { to: '/users', label: 'Users', icon: Shield, adminOnly: true },
 ]
 

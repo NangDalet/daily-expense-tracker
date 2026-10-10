@@ -5,6 +5,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 import com.example.expensetracker.domain.PaymentMethod;
+import com.example.expensetracker.util.MoneyUtils;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.DecimalMax;
@@ -32,9 +33,9 @@ public class ExpenseRequest {
     @Schema(example = "42.75", requiredMode = Schema.RequiredMode.REQUIRED)
     private BigDecimal amount;
 
-    @Pattern(regexp = "^[A-Z]{3}$", message = "currency must be a 3 letter ISO-4217 code")
+    @Pattern(regexp = MoneyUtils.SUPPORTED_CURRENCY_PATTERN, message = "currency must be USD or KHR")
     @Builder.Default
-    @Schema(example = "USD")
+    @Schema(example = "USD", allowableValues = {"USD", "KHR"})
     private String currency = "USD";
 
     @Size(max = 500, message = "description must not exceed 500 characters")

@@ -29,6 +29,7 @@ import com.example.expensetracker.exception.ResourceNotFoundException;
 import com.example.expensetracker.mapper.CategoryMapper;
 import com.example.expensetracker.mapper.UserMapper;
 import com.example.expensetracker.security.CurrentUser;
+import com.example.expensetracker.serviceImpl.UserServiceImpl;
 import com.example.expensetracker.support.TestFixtures;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -65,7 +66,7 @@ class UserServiceTest {
 
     @BeforeEach
     void setUp() {
-        userService = new UserService(userMapper, TestFixtures.userConvert(), new PaginationProperties(),
+        userService = new UserServiceImpl(userMapper, TestFixtures.userConvert(), new PaginationProperties(),
                 passwordEncoder, TestFixtures.defaultCategorySeeder(categoryMapper));
     }
 

@@ -20,6 +20,7 @@ import {
 } from '@/hooks/queries'
 import { ApiError } from '@/lib/api/client'
 import type { BudgetRequest, BudgetUsageResponse } from '@/lib/api/types'
+import { CURRENCIES } from '@/lib/api/types'
 import {
   MONTH_NAMES,
   cn,
@@ -81,10 +82,13 @@ export default function BudgetsPage() {
   }
 
   // The backend lists the overall (category-less) budget first.
-  const overall = usage?.find((entry) => !entry.budget.categoryId)
+  const overallBudgets = usage?.filter((entry) => !entry.budget.categoryId) ?? []
   const perCategory = usage?.filter((entry) => entry.budget.categoryId) ?? []
-  const totalLimit = (usage ?? []).reduce((sum, e) => sum + e.budget.monthlyLimit, 0)
-  const totalSpent = (usage ?? []).reduce((sum, e) => sum + e.spentAmount, 0)
+  const categorySummary = CURRENCIES.map((currency) => {
+    const entries = perCategory.filter((entry) => entry.budget.currency === currency)
+    if (!entries.length) return null
+    return `${formatMoney(entries.reduce((sum, entry) => sum + entry.spentAmount, 0), currency)} spent of ${formatMoney(entries.reduce((sum, entry) => sum + entry.budget.monthlyLimit, 0), currency)}`
+  }).filter(Boolean).join(' | ')
 
   return (
     <div className="mx-auto max-w-5xl">
@@ -135,7 +139,7 @@ export default function BudgetsPage() {
         <Card>
           <ErrorState
             title="Could not load budgets"
-            message={error instanceof ApiError ? error.message : undefined}
+            message={error instanceof Error ? error.message : undefined}
             onRetry={() => void refetch()}
           />
         </Card>
@@ -159,8 +163,8 @@ export default function BudgetsPage() {
         </Card>
       ) : (
         <div className="space-y-4">
-          {overall && (
-            <Card>
+          {overallBudgets.map((overall) => (
+            <Card key={overall.budget.id}>
               <CardHeader
                 title={
                   <span className="flex items-center gap-2">
@@ -168,8 +172,8 @@ export default function BudgetsPage() {
                     Overall budget
                   </span>
                 }
-                description={`${formatMoney(overall.spentAmount)} spent of ${formatMoney(
-                  overall.budget.monthlyLimit,
+                description={`${formatMoney(overall.spentAmount, overall.budget.currency)} spent of ${formatMoney(
+                  overall.budget.monthlyLimit, overall.budget.currency,
                 )} across ${formatNumber(overall.expenseCount)} expenses`}
                 action={
                   <div className="flex items-center gap-1">
@@ -207,8 +211,8 @@ export default function BudgetsPage() {
                     )}
                   >
                     {overall.exceeded
-                      ? `Over budget by ${formatMoney(Math.abs(overall.remainingAmount))}`
-                      : `${formatMoney(overall.remainingAmount)} remaining`}
+                      ? `Over budget by ${formatMoney(Math.abs(overall.remainingAmount), overall.budget.currency)}`
+                      : `${formatMoney(overall.remainingAmount, overall.budget.currency)} remaining`}
                   </span>
                   <span className="tabular-nums text-slate-500">
                     {formatPercent(overall.usagePercentage)}
@@ -216,13 +220,13 @@ export default function BudgetsPage() {
                 </div>
               </CardBody>
             </Card>
-          )}
+          ))}
 
           {perCategory.length > 0 && (
             <Card>
               <CardHeader
                 title="Category budgets"
-                description={`${formatMoney(totalSpent)} spent of ${formatMoney(totalLimit)} combined`}
+                description={categorySummary}
               />
               <ul className="divide-y divide-slate-100">
                 {perCategory.map((entry) => {
@@ -248,10 +252,10 @@ export default function BudgetsPage() {
                                   entry.exceeded ? 'text-red-600' : 'text-slate-800',
                                 )}
                               >
-                                {formatMoney(entry.spentAmount)}
+                                {formatMoney(entry.spentAmount, entry.budget.currency)}
                               </span>
                               {' / '}
-                              {formatMoney(entry.budget.monthlyLimit)}
+                              {formatMoney(entry.budget.monthlyLimit, entry.budget.currency)}
                             </span>
                           </div>
 
@@ -269,8 +273,8 @@ export default function BudgetsPage() {
                             </span>
                             <span className={cn(entry.exceeded && 'font-medium text-red-600')}>
                               {entry.exceeded
-                                ? `${formatMoney(Math.abs(entry.remainingAmount))} over`
-                                : `${formatMoney(entry.remainingAmount)} left`}
+                                ? `${formatMoney(Math.abs(entry.remainingAmount), entry.budget.currency)} over`
+                                : `${formatMoney(entry.remainingAmount, entry.budget.currency)} left`}
                             </span>
                           </div>
                         </div>
@@ -309,7 +313,7 @@ export default function BudgetsPage() {
         title={formSeed ? 'Edit budget' : 'Set a budget'}
         description={
           formSeed
-            ? 'The category of an existing budget is immutable; only the limit and period can change.'
+            ? 'The category of an existing budget is immutable; the currency, limit and period can change.'
             : 'Pick a category, or leave it empty for the overall limit.'
         }
         size="md"
@@ -360,6 +364,7 @@ export default function BudgetsPage() {
 
 /** The inputs are text controls, so the numeric DTO fields arrive as strings. */
 interface BudgetFormValues {
+  currency: string
   categoryId: string
   monthlyLimit: string
   month: string
@@ -392,6 +397,7 @@ function BudgetForm({
     formState: { errors },
   } = useForm<BudgetFormValues>({
     defaultValues: {
+      currency: seed?.budget.currency ?? 'USD',
       categoryId: seed?.budget.categoryId ?? '',
       monthlyLimit: seed ? String(seed.budget.monthlyLimit) : '',
       month: String(seed?.budget.month ?? defaultPeriod.month),
@@ -407,6 +413,7 @@ function BudgetForm({
         await onSubmit({
           // `monthlyLimit` is a number in the DTO, but the input yields a string.
           monthlyLimit: Number(values.monthlyLimit),
+          currency: values.currency,
           month: Number(values.month),
           year: Number(values.year),
           // Null (not "") addresses the overall budget.
@@ -433,6 +440,13 @@ function BudgetForm({
         {...register('categoryId')}
         error={errors.categoryId?.message}
         hint={isEditing ? 'The category of an existing budget cannot be changed.' : undefined}
+      />
+
+      <Select
+        label="Currency"
+        options={CURRENCIES.map((code) => ({ value: code, label: code }))}
+        {...register('currency', { required: true })}
+        hint="Only spending in this currency counts toward this budget."
       />
 
       <Input

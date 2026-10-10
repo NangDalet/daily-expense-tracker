@@ -492,9 +492,9 @@ class ExpenseMapperIT extends AbstractPostgresIT {
         budgetMapper.insert(Budget.builder().userId(userId).categoryId(groceriesId)
                 .monthlyLimit(new BigDecimal("100.00")).month(1).year(2026).build());
 
-        assertThat(budgetMapper.findByUserIdCategoryAndPeriod(userId, null, 2026, 1)).isNotNull();
-        assertThat(budgetMapper.findByUserIdCategoryAndPeriod(userId, groceriesId, 2026, 1)).isNotNull();
-        assertThat(budgetMapper.findByUserIdCategoryAndPeriod(userId, diningId, 2026, 1)).isNull();
+        assertThat(budgetMapper.findByUserIdCategoryAndPeriod(userId, null, 2026, 1, "USD")).isNotNull();
+        assertThat(budgetMapper.findByUserIdCategoryAndPeriod(userId, groceriesId, 2026, 1, "USD")).isNotNull();
+        assertThat(budgetMapper.findByUserIdCategoryAndPeriod(userId, diningId, 2026, 1, "USD")).isNull();
         assertThat(budgetMapper.findByUserIdAndPeriod(userId, 2026, 1)).hasSize(2);
     }
 

@@ -26,13 +26,13 @@ import { IncomeList } from '@/components/incomes/IncomeList'
 import {
   useBudgetUsage,
   useCategories,
-  useCategoryStats,
-  useExpenseSummary,
+  useDashboardExpenses,
   useRecentExpenses,
   useRecentIncome,
 } from '@/hooks/queries'
 import { useAuth } from '@/context/AuthContext'
 import type { SummaryGroupBy } from '@/lib/api/types'
+import { summarizeDashboardExpenses } from '@/lib/dashboardSpending'
 import {
   MONTH_NAMES,
   cn,
@@ -58,12 +58,10 @@ function trendWindow(groupBy: SummaryGroupBy): number {
   return 365
 }
 
-/** Recharts passes (value, index) to axis formatters; only the value is used. */
-const formatAxisTick = (value: number) => formatMoneyCompact(value)
-
 export default function DashboardPage() {
   const { user } = useAuth()
   const [groupBy, setGroupBy] = useState<SummaryGroupBy>('daily')
+  const [chosenCurrency, setChosenCurrency] = useState<string>()
 
   const to = useMemo(() => toIsoDate(new Date()), [])
   const from = useMemo(() => {
@@ -72,8 +70,13 @@ export default function DashboardPage() {
     return toIsoDate(date)
   }, [groupBy])
 
-  const summary = useExpenseSummary({ groupBy, from, to })
-  const stats = useCategoryStats(from, to)
+  const spending = useDashboardExpenses(from, to)
+  const currency = chosenCurrency ?? (spending.data?.some((expense) => expense.currency === 'USD')
+    ? 'USD' : spending.data?.some((expense) => expense.currency === 'KHR') ? 'KHR' : 'USD')
+  const totals = useMemo(() => summarizeDashboardExpenses(spending.data ?? [], currency, groupBy), [spending.data, currency, groupBy])
+  const summary = { ...spending, data: totals.summary }
+  const stats = { ...spending, data: totals.categories }
+  const formatAxisTick = (value: number) => formatMoneyCompact(value, currency)
   const recent = useRecentExpenses(6)
   const recentIncome = useRecentIncome(6)
   const budgets = useBudgetUsage()
@@ -82,13 +85,13 @@ export default function DashboardPage() {
   const firstName = user?.fullName?.split(' ')[0] || user?.username || 'there'
 
   const summaryRows = summary.data ?? []
-  const totalSpend = summaryRows.reduce((sum, row) => sum + row.totalAmount, 0)
-  const totalCount = summaryRows.reduce((sum, row) => sum + row.expenseCount, 0)
-  const averageExpense = totalCount > 0 ? totalSpend / totalCount : 0
+  const totalSpend = totals.total
+  const totalCount = totals.count
+  const averageExpense = totals.average
 
   // Daily bars are the useful "compare the last two periods" signal; for
   // weekly/monthly buckets a line reads better with few points.
-  const overallBudget = budgets.data?.find((entry) => !entry.budget.categoryId)
+  const overallBudget = budgets.data?.find((entry) => !entry.budget.categoryId && (entry.budget.currency ?? 'USD') === currency)
   const budgetRemaining = overallBudget ? overallBudget.remainingAmount : null
 
   const trendData = summaryRows.map((row) => ({
@@ -104,9 +107,15 @@ export default function DashboardPage() {
     <div className="mx-auto max-w-7xl">
       <PageHeading
         title={`Welcome back, ${firstName}`}
-        description={`Spending from ${formatDate(from, 'short')} to ${formatDate(to, 'short')}`}
+        description={`Spending in ${currency} from ${formatDate(from, 'short')} to ${formatDate(to, 'short')}`}
         action={
           <div className="flex items-center gap-2">
+            <label className="text-xs text-slate-600" htmlFor="dashboard-currency">Currency</label>
+            <select id="dashboard-currency" value={currency} onChange={(event) => setChosenCurrency(event.target.value)}
+              className="rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm">
+              <option value="USD">USD ($)</option>
+              <option value="KHR">KHR (៛)</option>
+            </select>
             <div
               className="flex rounded-lg border border-slate-300 bg-white p-0.5"
               role="group"
@@ -137,13 +146,13 @@ export default function DashboardPage() {
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <StatCard
             label="Total spend"
-            value={formatMoney(totalSpend)}
+            value={spending.isPending ? 'Loading…' : spending.isError ? 'Unavailable' : formatMoney(totalSpend, currency)}
             hint={`${formatNumber(totalCount)} ${totalCount === 1 ? 'expense' : 'expenses'}`}
             icon={<Wallet className="h-5 w-5" aria-hidden />}
           />
           <StatCard
             label="Average expense"
-            value={formatMoney(averageExpense)}
+            value={spending.isPending ? 'Loading…' : spending.isError ? 'Unavailable' : formatMoney(averageExpense, currency)}
             icon={<TrendingUp className="h-5 w-5" aria-hidden />}
             tone="brand"
           />
@@ -155,11 +164,11 @@ export default function DashboardPage() {
           />
           <StatCard
             label={budgetRemaining === null ? 'Budgets' : 'Budget left'}
-            value={budgetRemaining === null ? 'Not set' : formatMoney(budgetRemaining)}
+            value={budgets.isPending ? 'Loading…' : budgets.isError ? 'Unavailable' : budgetRemaining === null ? 'Not set' : formatMoney(budgetRemaining, overallBudget?.budget.currency)}
             hint={
-              overallBudget
+              budgets.isError ? 'Could not load budget usage' : overallBudget
                 ? `${formatPercent(overallBudget.usagePercentage)} of ${formatMoney(
-                    overallBudget.budget.monthlyLimit,
+                    overallBudget.budget.monthlyLimit, overallBudget.budget.currency,
                   )} used`
                 : 'No overall budget yet'
             }
@@ -223,7 +232,7 @@ export default function DashboardPage() {
                         />
                         <Tooltip
                           cursor={{ fill: '#f1f5f9' }}
-                          content={<TrendTooltip />}
+                          content={<TrendTooltip currency={currency} />}
                         />
                         <Bar dataKey="totalAmount" fill="#4f46e5" radius={[4, 4, 0, 0]} maxBarSize={40} />
                       </BarChart>
@@ -249,7 +258,7 @@ export default function DashboardPage() {
                           width={62}
                           tickFormatter={formatAxisTick}
                         />
-                        <Tooltip content={<TrendTooltip />} />
+                        <Tooltip content={<TrendTooltip currency={currency} />} />
                         <Area
                           type="monotone"
                           dataKey="totalAmount"
@@ -268,7 +277,9 @@ export default function DashboardPage() {
           <Card>
             <CardHeader title="By category" description="Share of total spend" />
             <CardBody>
-              {stats.isPending ? (
+              {stats.isError ? (
+                <ErrorState title="Could not load the breakdown" onRetry={() => void stats.refetch()} />
+              ) : stats.isPending ? (
                 <LoadingBlock label="Loading breakdown" />
               ) : categoryData.length === 0 ? (
                 <EmptyState
@@ -297,7 +308,7 @@ export default function DashboardPage() {
                             />
                           ))}
                         </Pie>
-                        <Tooltip content={<CategoryTooltip />} />
+                        <Tooltip content={<CategoryTooltip currency={currency} />} />
                       </PieChart>
                     </ResponsiveContainer>
                   </div>
@@ -316,7 +327,7 @@ export default function DashboardPage() {
                             {entry.categoryName ?? 'Uncategorised'}
                           </span>
                           <span className="text-sm font-medium tabular-nums text-slate-900">
-                            {formatMoney(entry.totalAmount)}
+                            {formatMoney(entry.totalAmount, currency)}
                           </span>
                           <span className="w-12 shrink-0 text-right text-xs tabular-nums text-slate-500">
                             {formatPercent(entry.percentage)}
@@ -402,7 +413,9 @@ export default function DashboardPage() {
               }
             />
             <CardBody className="space-y-4">
-              {budgets.isPending ? (
+              {budgets.isError ? (
+                <ErrorState title="Could not load budgets" onRetry={() => void budgets.refetch()} />
+              ) : budgets.isPending ? (
                 <LoadingBlock label="Loading budgets" />
               ) : (budgets.data?.length ?? 0) === 0 ? (
                 <EmptyState
@@ -438,10 +451,10 @@ export default function DashboardPage() {
                               entry.exceeded ? 'text-red-600' : 'text-slate-800',
                             )}
                           >
-                            {formatMoney(entry.spentAmount)}
+                            {formatMoney(entry.spentAmount, entry.budget.currency)}
                           </span>
                           {' / '}
-                          {formatMoney(entry.budget.monthlyLimit)}
+                          {formatMoney(entry.budget.monthlyLimit, entry.budget.currency)}
                         </span>
                       </div>
                       <ProgressBar
@@ -451,8 +464,8 @@ export default function DashboardPage() {
                       />
                       <p className="mt-1 text-[11px] text-slate-500">
                         {entry.exceeded
-                          ? `Over by ${formatMoney(Math.abs(entry.remainingAmount))}`
-                          : `${formatMoney(entry.remainingAmount)} left`}
+                          ? `Over by ${formatMoney(Math.abs(entry.remainingAmount), entry.budget.currency)}`
+                          : `${formatMoney(entry.remainingAmount, entry.budget.currency)} left`}
                         {' · '}
                         {formatPercent(entry.usagePercentage)}
                       </p>
@@ -477,9 +490,11 @@ interface TooltipRow {
 }
 
 function TrendTooltip({
+  currency,
   active,
   payload,
 }: {
+  currency: string
   active?: boolean
   payload?: { payload: { periodStart: string; totalAmount: number; expenseCount: number; averageAmount: number } }[]
 }) {
@@ -487,9 +502,9 @@ function TrendTooltip({
   const row = payload[0].payload
 
   const rows: TooltipRow[] = [
-    { label: 'Total', value: formatMoney(row.totalAmount) },
+    { label: 'Total', value: formatMoney(row.totalAmount, currency) },
     { label: 'Expenses', value: formatNumber(row.expenseCount) },
-    { label: 'Average', value: formatMoney(row.averageAmount) },
+    { label: 'Average', value: formatMoney(row.averageAmount, currency) },
   ]
 
   return (
@@ -508,9 +523,11 @@ function TrendTooltip({
 }
 
 function CategoryTooltip({
+  currency,
   active,
   payload,
 }: {
+  currency: string
   active?: boolean
   payload?: { payload: { categoryName?: string; totalAmount: number; expenseCount: number; percentage: number } }[]
 }) {
@@ -526,7 +543,7 @@ function CategoryTooltip({
         <li className="flex items-center gap-3 text-xs">
           <span className="text-slate-500">Total</span>
           <span className="ml-auto font-medium tabular-nums text-slate-900">
-            {formatMoney(row.totalAmount)}
+            {formatMoney(row.totalAmount, currency)}
           </span>
         </li>
         <li className="flex items-center gap-3 text-xs">

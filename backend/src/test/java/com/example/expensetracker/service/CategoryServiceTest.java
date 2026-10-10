@@ -24,6 +24,7 @@ import com.example.expensetracker.exception.BusinessRuleException;
 import com.example.expensetracker.exception.DuplicateResourceException;
 import com.example.expensetracker.exception.ResourceNotFoundException;
 import com.example.expensetracker.mapper.CategoryMapper;
+import com.example.expensetracker.serviceImpl.CategoryServiceImpl;
 import com.example.expensetracker.support.TestFixtures;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -45,7 +46,7 @@ class CategoryServiceTest {
 
     @BeforeEach
     void setUp() {
-        categoryService = new CategoryService(categoryMapper, TestFixtures.categoryConvert());
+        categoryService = new CategoryServiceImpl(categoryMapper, TestFixtures.categoryConvert());
     }
 
     @Test

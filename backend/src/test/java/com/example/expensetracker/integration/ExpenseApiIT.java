@@ -245,7 +245,7 @@ class ExpenseApiIT extends AbstractPostgresIT {
                         .content("""
                                 {
                                   "amount": 50.00,
-                                  "currency": "EUR",
+                                  "currency": "KHR",
                                   "description": "Corrected amount",
                                   "expenseDate": "2026-01-16",
                                   "paymentMethod": "CASH"
@@ -253,7 +253,7 @@ class ExpenseApiIT extends AbstractPostgresIT {
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.amount").value(50.0))
-                .andExpect(jsonPath("$.data.currency").value("EUR"))
+                .andExpect(jsonPath("$.data.currency").value("KHR"))
                 .andExpect(jsonPath("$.data.category").doesNotExist());
 
         // delete

@@ -1,0 +1,5 @@
+*.log
+.env*
+tests
+test-results
+playwright-report

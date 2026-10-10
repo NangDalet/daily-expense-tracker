@@ -57,6 +57,7 @@ public class SecurityConfig {
 
     /** Endpoints that must stay reachable without a token. */
     private static final String[] PUBLIC_ENDPOINTS = {
+            "/api/v1/telegram/webhook",
             "/api/v1/auth/register",
             "/api/v1/auth/login",
             "/api/v1/auth/refresh",

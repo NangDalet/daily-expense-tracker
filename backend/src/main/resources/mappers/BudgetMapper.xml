@@ -25,6 +25,7 @@
         <id property="id" column="id"/>
         <result property="userId" column="user_id"/>
         <result property="categoryId" column="category_id"/>
+        <result property="currency" column="currency"/>
         <result property="monthlyLimit" column="monthly_limit"/>
         <result property="month" column="month"/>
         <result property="year" column="year"/>
@@ -38,6 +39,7 @@
       usage rows and the plain rows are guaranteed to expose the same shape.
     -->
     <resultMap id="budgetUsageMap" type="BudgetUsage">
+        <id property="budgetId" column="id"/>
         <result property="spentAmount" column="spent_amount"/>
         <result property="expenseCount" column="expense_count"/>
         <result property="remainingAmount" column="remaining_amount"/>
@@ -46,7 +48,7 @@
     </resultMap>
 
     <sql id="budgetColumns">
-        b.id, b.user_id, b.category_id, b.monthly_limit, b.month, b.year, b.created_at, b.updated_at
+        b.id, b.user_id, b.category_id, b.monthly_limit, b.currency, b.month, b.year, b.created_at, b.updated_at
     </sql>
 
     <sql id="categoryColumns">
@@ -58,8 +60,8 @@
         <selectKey keyProperty="id" resultType="java.util.UUID" order="BEFORE">
             SELECT gen_random_uuid()
         </selectKey>
-        INSERT INTO budgets (id, user_id, category_id, monthly_limit, month, year)
-        VALUES (#{id}, #{userId}, #{categoryId}, #{monthlyLimit}, #{month}, #{year})
+        INSERT INTO budgets (id, user_id, category_id, monthly_limit, month, year, currency)
+        VALUES (#{id}, #{userId}, #{categoryId}, #{monthlyLimit}, #{month}, #{year}, #{currency})
     </insert>
 
     <select id="findById" resultMap="budgetResultMap">
@@ -93,6 +95,7 @@
         WHERE b.user_id = #{userId}
         AND b.year = #{year}
         AND b.month = #{month}
+        AND b.currency = #{currency}
         <choose>
             <when test="categoryId != null">
                 AND b.category_id = #{categoryId}
@@ -106,6 +109,7 @@
     <update id="update" parameterType="Budget">
         UPDATE budgets
         <set>
+            <if test="currency != null">currency = #{currency},</if>
             <if test="monthlyLimit != null">monthly_limit = #{monthlyLimit},</if>
             <if test="month != null">month = #{month},</if>
             <if test="year != null">year = #{year},</if>
@@ -142,6 +146,7 @@
                                            COUNT(*) AS expense_count
                                     FROM expenses e
                                     WHERE e.user_id = b.user_id
+                                      AND e.currency = b.currency
                                       AND EXTRACT(YEAR FROM e.expense_date) = b.year
                                       AND EXTRACT(MONTH FROM e.expense_date) = b.month
                                       AND (b.category_id IS NULL OR e.category_id = b.category_id)

@@ -6,11 +6,8 @@ import { Input, Select, Textarea } from '@/components/ui/Field'
 import { useCategories, useCreateExpense, useUpdateExpense } from '@/hooks/queries'
 import { ApiError } from '@/lib/api/client'
 import type { ExpenseRequest, ExpenseResponse, PaymentMethod } from '@/lib/api/types'
-import { PAYMENT_METHODS } from '@/lib/api/types'
-import { paymentMethodLabel, resolveColor, todayIso } from '@/lib/utils'
-
-/** Common ISO-4217 codes; the backend accepts any 3-letter code. */
-const CURRENCIES = ['USD', 'EUR', 'GBP', 'JPY', 'VND', 'CAD', 'AUD', 'INR'] as const
+import { CURRENCIES, PAYMENT_METHODS } from '@/lib/api/types'
+import { formatMoney, paymentMethodLabel, resolveColor, todayIso } from '@/lib/utils'
 
 interface ExpenseFormValues {
   amount: string
@@ -95,7 +92,7 @@ export function ExpenseForm({ expense, onSuccess, onCancel }: ExpenseFormProps) 
   const parsedAmount = Number.parseFloat(amount)
   const amountPreview =
     Number.isFinite(parsedAmount) && parsedAmount > 0
-      ? new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(parsedAmount)
+      ? formatMoney(parsedAmount, currency)
       : null
 
   const onSubmit = handleSubmit(async (values) => {
@@ -184,7 +181,10 @@ export function ExpenseForm({ expense, onSuccess, onCancel }: ExpenseFormProps) 
         <Select
           label="Currency"
           options={CURRENCIES.map((code) => ({ value: code, label: code }))}
-          {...register('currency', { required: true })}
+          {...register('currency', {
+            required: 'Currency is required',
+            validate: (value) => CURRENCIES.some((code) => code === value) || 'Currency must be USD or KHR',
+          })}
           error={errors.currency?.message}
         />
       </div>

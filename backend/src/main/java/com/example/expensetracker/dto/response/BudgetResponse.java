@@ -25,6 +25,8 @@ public class BudgetResponse {
 
     private CategoryResponse category;
 
+    private String currency;
+
     private BigDecimal monthlyLimit;
 
     @Schema(description = "1-12", example = "1")

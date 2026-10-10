@@ -14,16 +14,10 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-/**
- * Per-currency fraction digits. Only the currencies the app can realistically
- * see are listed; anything else falls back to 2.
- */
+/** Display locales for the supported currencies. */
 const CURRENCY_LOCALE: Record<string, string> = {
   USD: 'en-US',
-  EUR: 'de-DE',
-  GBP: 'en-GB',
-  JPY: 'ja-JP',
-  VND: 'vi-VN',
+  KHR: 'km-KH',
 }
 
 export function formatMoney(amount: number, currency = 'USD'): string {

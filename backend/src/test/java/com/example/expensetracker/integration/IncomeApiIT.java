@@ -103,7 +103,7 @@ class IncomeApiIT extends AbstractPostgresIT {
     @Test
     void summariesAndCategoryStatsKeepCurrenciesSeparate() throws Exception {
         create("USD", "2500");
-        create("EUR", "1000");
+        create("KHR", "1000");
         create("USD", "500");
         MvcResult result = mvc.perform(get("/api/v1/incomes/summary")
                 .header("Authorization", "Bearer " + token).param("groupBy", "monthly")

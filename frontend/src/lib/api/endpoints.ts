@@ -57,10 +57,11 @@ function toExpenseQuery(filter: ExpenseFilterParams = {}): QueryParams {
 }
 
 export const expenseApi = {
-  async list(filter: ExpenseFilterParams = {}): Promise<Page<ExpenseResponse>> {
+  async list(filter: ExpenseFilterParams = {}, signal?: AbortSignal): Promise<Page<ExpenseResponse>> {
     const envelope = await http.getEnvelope<ExpenseResponse[]>(
       '/expenses',
       toExpenseQuery(filter),
+      signal,
     )
     return {
       items: envelope.data ?? [],
@@ -154,4 +155,11 @@ export const userApi = {
   resetPassword: (id: string, password: string) =>
     http.put<void>(`/users/${id}/password`, { password }),
   remove: (id: string) => http.delete<void>(`/users/${id}`),
+}
+
+
+export const telegramApi = {
+  status: () => http.get<{ available: boolean; connected: boolean }>('/telegram'),
+  link: () => http.post<{ url: string; expiresInSeconds: number }>('/telegram/link', {}),
+  disconnect: () => http.delete<void>('/telegram'),
 }

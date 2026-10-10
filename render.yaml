@@ -25,3 +25,13 @@ services:
         sync: false
       - key: JWT_SECRET
         generateValue: true
+      - key: TELEGRAM_ENABLED
+        value: "true"
+      - key: TELEGRAM_UPDATES_MODE
+        value: webhook
+      - key: TELEGRAM_BOT_USERNAME
+        value: MSGPortfolioBot
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: TELEGRAM_WEBHOOK_SECRET
+        sync: false

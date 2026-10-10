@@ -11,6 +11,7 @@ const DashboardPage = lazy(() => import('@/pages/DashboardPage'))
 const ExpensesPage = lazy(() => import('@/pages/ExpensesPage'))
 const IncomePage = lazy(() => import('@/pages/IncomePage'))
 const CategoriesPage = lazy(() => import('@/pages/CategoriesPage'))
+const TelegramPage = lazy(() => import('@/pages/TelegramPage'))
 const BudgetsPage = lazy(() => import('@/pages/BudgetsPage'))
 const AdminUsersPage = lazy(() => import('@/pages/AdminUsersPage'))
 const LoginPage = lazy(() => import('@/pages/LoginPage'))
@@ -55,6 +56,7 @@ export function App() {
                   <Route path="incomes" element={<IncomePage />} />
                   <Route path="categories" element={<CategoriesPage />} />
                   <Route path="budgets" element={<BudgetsPage />} />
+                  <Route path="telegram" element={<TelegramPage />} />
                   <Route element={<RequireAdmin />}>
                     <Route path="users" element={<AdminUsersPage />} />
                   </Route>

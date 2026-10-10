@@ -32,6 +32,7 @@ import com.example.expensetracker.mapper.CategoryMapper;
 import com.example.expensetracker.mapper.UserMapper;
 import com.example.expensetracker.security.JwtProperties;
 import com.example.expensetracker.security.JwtTokenService;
+import com.example.expensetracker.serviceImpl.AuthServiceImpl;
 import com.example.expensetracker.support.TestFixtures;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -80,7 +81,7 @@ class AuthServiceTest {
         jwtProperties.setIssuer("daily-expense-tracker-test");
         jwtProperties.setAccessTokenTtl(java.time.Duration.ofMinutes(30));
 
-        authService = new AuthService(userMapper, TestFixtures.userConvert(), passwordEncoder,
+        authService = new AuthServiceImpl(userMapper, TestFixtures.userConvert(), passwordEncoder,
                 jwtTokenService, jwtDecoder, jwtProperties, TestFixtures.defaultCategorySeeder(categoryMapper));
 
         when(jwtTokenService.createAccessToken(any()))

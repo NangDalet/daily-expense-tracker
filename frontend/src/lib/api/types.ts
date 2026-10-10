@@ -7,6 +7,8 @@
  * therefore declared with `?` rather than `| null`.
  */
 
+export const CURRENCIES = ['USD', 'KHR'] as const
+
 /** Envelope returned by every successful backend response. */
 export interface ApiResponse<T> {
   data: T
@@ -150,6 +152,7 @@ export interface ExpenseResponse {
 }
 
 export interface BudgetResponse {
+  currency: string
   id: string
   /** Absent for the overall budget of the month. */
   categoryId?: string
@@ -224,6 +227,7 @@ export interface CategoryRequest {
 }
 
 export interface BudgetRequest {
+  currency: string
   categoryId?: string | null
   monthlyLimit: number
   month: number

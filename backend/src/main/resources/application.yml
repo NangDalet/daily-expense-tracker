@@ -66,6 +66,12 @@ mybatis:
 # Application specific settings
 # ------------------------------------------------------------------------------
 app:
+  telegram:
+    enabled: ${TELEGRAM_ENABLED:false}
+    updates-mode: ${TELEGRAM_UPDATES_MODE:webhook}
+    bot-token: ${TELEGRAM_BOT_TOKEN:}
+    bot-username: ${TELEGRAM_BOT_USERNAME:}
+    webhook-secret: ${TELEGRAM_WEBHOOK_SECRET:}
   security:
     jwt:
       # When non-blank the resource server validates tokens against the

@@ -21,13 +21,14 @@ public interface BudgetMapper {
                                       @Param("month") int month);
 
     /**
-     * Looks up the single budget for a user/category/period. Handles the
+     * Looks up the single budget for a user/category/period/currency. Handles the
      * {@code category_id IS NULL} "overall budget" case through {@code <choose>}.
      */
     Budget findByUserIdCategoryAndPeriod(@Param("userId") UUID userId,
                                         @Param("categoryId") UUID categoryId,
                                         @Param("year") int year,
-                                        @Param("month") int month);
+                                        @Param("month") int month,
+                                        @Param("currency") String currency);
 
     int update(Budget budget);
 

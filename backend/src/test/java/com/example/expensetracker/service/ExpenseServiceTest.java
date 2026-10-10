@@ -34,6 +34,8 @@ import com.example.expensetracker.exception.ErrorCode;
 import com.example.expensetracker.exception.ResourceNotFoundException;
 import com.example.expensetracker.mapper.CategoryMapper;
 import com.example.expensetracker.mapper.ExpenseMapper;
+import com.example.expensetracker.service.SpendingNotificationService;
+import com.example.expensetracker.serviceImpl.ExpenseServiceImpl;
 import com.example.expensetracker.support.TestFixtures;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -57,13 +59,16 @@ class ExpenseServiceTest {
     private CategoryMapper categoryMapper;
 
     private PaginationProperties paginationProperties;
+    @Mock
+    private SpendingNotificationService notifications;
+
     private ExpenseService expenseService;
 
     @BeforeEach
     void setUp() {
         paginationProperties = new PaginationProperties();
-        expenseService = new ExpenseService(expenseMapper, categoryMapper, TestFixtures.expenseConvert(),
-                paginationProperties);
+        expenseService = new ExpenseServiceImpl(expenseMapper, categoryMapper, TestFixtures.expenseConvert(),
+                paginationProperties, notifications);
     }
 
     @Nested

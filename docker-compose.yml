@@ -37,6 +37,9 @@
       context: ./backend
       dockerfile: Dockerfile
     container_name: expense-tracker-backend
+    env_file:
+      - path: ./backend/.env.telegram
+        required: false
     depends_on:
       postgres:
         condition: service_healthy

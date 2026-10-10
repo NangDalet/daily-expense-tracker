@@ -19,6 +19,9 @@ import type {
   UserResponse,
 } from '@/lib/api/types'
 import type { Page } from '@/lib/api/endpoints'
+import { fetchDashboardExpenses } from '@/lib/dashboardSpending'
+import { calculateBudgetUsage } from '@/lib/budgetUsage'
+import { toIsoDate } from '@/lib/utils'
 
 export const queryKeys = {
   expenses: (filter: ExpenseFilterParams) => ['expenses', 'list', filter] as const,
@@ -108,6 +111,13 @@ export function useExpenseSummary(params: SummaryParams) {
   })
 }
 
+export function useDashboardExpenses(from: string, to: string) {
+  return useQuery({
+    queryKey: ['expenses', 'dashboard', { from, to }],
+    queryFn: ({ signal }) => fetchDashboardExpenses(from, to, signal),
+  })
+}
+
 export function useCategoryStats(from?: string, to?: string) {
   return useQuery({
     queryKey: queryKeys.categoryStats(from, to),
@@ -155,9 +165,19 @@ function invalidateExpenseDerived(client: ReturnType<typeof useQueryClient>) {
 /* -------------------------------------------------------------------------- */
 
 export function useBudgetUsage(year?: number, month?: number) {
+  const now = new Date()
+  const budgetYear = year ?? now.getFullYear()
+  const budgetMonth = month ?? now.getMonth() + 1
   return useQuery({
-    queryKey: queryKeys.budgetUsage(year, month),
-    queryFn: () => budgetApi.usage(year, month),
+    queryKey: queryKeys.budgetUsage(budgetYear, budgetMonth),
+    queryFn: async ({ signal }) => {
+      const usage = await budgetApi.usage(budgetYear, budgetMonth)
+      if (!usage.length) return []
+      const from = toIsoDate(new Date(budgetYear, budgetMonth - 1, 1))
+      const to = toIsoDate(new Date(budgetYear, budgetMonth, 0))
+      const expenses = await fetchDashboardExpenses(from, to, signal)
+      return calculateBudgetUsage(usage, expenses)
+    },
   })
 }
 

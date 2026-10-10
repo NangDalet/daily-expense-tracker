@@ -3,6 +3,7 @@ package com.example.expensetracker.util;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.Currency;
+import java.util.Locale;
 import java.util.Set;
 import java.util.regex.Pattern;
 
@@ -14,8 +15,9 @@ public final class MoneyUtils {
 
     private static final Pattern ISO_CODE = Pattern.compile("^[A-Z]{3}$");
 
-    private static final Set<String> SUPPORTED_CURRENCIES = Set.of(
-            "USD", "EUR", "GBP", "VND", "JPY", "AUD", "CAD", "CHF", "SGD", "KRW", "CNY", "INR", "THB", "PHP");
+    public static final String SUPPORTED_CURRENCY_PATTERN = "^(USD|KHR)$";
+
+    private static final Set<String> SUPPORTED_CURRENCIES = Set.of("USD", "KHR");
 
     private MoneyUtils() {
     }
@@ -35,21 +37,21 @@ public final class MoneyUtils {
 
     /** {@code true} when the code is a well-formed ISO-4217 alphabetic code. */
     public static boolean isValidIsoCode(String currency) {
-        return currency != null && ISO_CODE.matcher(currency.toUpperCase()).matches();
+        return currency != null && ISO_CODE.matcher(currency.toUpperCase(Locale.ROOT)).matches();
     }
 
-    /** {@code true} when the currency is one the UI knows how to format. */
+    /** {@code true} when the currency is USD or KHR. */
     public static boolean isSupported(String currency) {
-        return currency != null && SUPPORTED_CURRENCIES.contains(currency.toUpperCase());
+        return currency != null && SUPPORTED_CURRENCIES.contains(currency.toUpperCase(Locale.ROOT));
     }
 
-    /** Falls back to USD when the currency is unknown to the JVM. */
+    /** Falls back to USD when the currency is unsupported. */
     public static Currency toCurrency(String code) {
-        if (!isValidIsoCode(code)) {
+        if (!isSupported(code)) {
             return Currency.getInstance("USD");
         }
         try {
-            return Currency.getInstance(code.toUpperCase());
+            return Currency.getInstance(code.toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException ex) {
             return Currency.getInstance("USD");
         }

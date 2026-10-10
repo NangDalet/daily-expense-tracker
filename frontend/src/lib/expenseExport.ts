@@ -1,5 +1,6 @@
 import { expenseApi } from '@/lib/api/endpoints'
 import type { ExpenseFilterParams, ExpenseResponse } from '@/lib/api/types'
+import type { ContentText, CustomTableLayout, TableCell, TDocumentDefinitions } from 'pdfmake/interfaces'
 import { paymentMethodLabel, todayIso } from '@/lib/utils'
 
 export type ExpenseExportFormat = 'pdf' | 'xlsx'
@@ -117,8 +118,14 @@ async function createExcel(expenses: ExpenseResponse[], filters: string): Promis
   summary.getColumn(2).alignment = { wrapText: true }
 
   for (const worksheet of [sheet, summary]) {
+    // Excel stores Unicode strings; select a font with Khmer and Latin glyphs.
+    worksheet.eachRow((row) => {
+      row.font = { name: 'Khmer OS', size: 11 }
+      row.alignment = { vertical: 'top', wrapText: true }
+    })
+    worksheet.properties.defaultRowHeight = 28
     const header = worksheet.getRow(1)
-    header.font = { bold: true, color: { argb: 'FFFFFFFF' } }
+    header.font = { name: 'Khmer OS', size: 11, bold: true, color: { argb: 'FFFFFFFF' } }
     header.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4F46E5' } }
     header.height = 24
   }
@@ -128,58 +135,93 @@ async function createExcel(expenses: ExpenseResponse[], filters: string): Promis
   })
 }
 
-async function createPdf(expenses: ExpenseResponse[], filters: string): Promise<Blob> {
-  const [{ jsPDF }, { autoTable }] = await Promise.all([import('jspdf'), import('jspdf-autotable')])
-  const doc = new jsPDF({ orientation: 'landscape', format: 'a4' })
-  const width = doc.internal.pageSize.getWidth()
-  doc.setProperties({ title: 'Expense report', creator: 'Daily Expense Tracker' })
-  doc.setFontSize(18)
-  doc.text('Expense report', 14, 16)
-  doc.setFontSize(9)
-  doc.setTextColor(71, 85, 105)
-  doc.text('Exported: ' + new Date().toLocaleString() + ' | ' + expenses.length + ' expenses', 14, 23)
-  const filterLines: string[] = doc.splitTextToSize('Filters: ' + filters, width - 28)
-  doc.text(filterLines, 14, 29)
-
-  autoTable(doc, {
-    startY: 32 + filterLines.length * 4,
-    margin: { top: 14, right: 14, bottom: 18, left: 14 },
-    head: [['Date', 'Description', 'Category', 'Payment method', 'Amount', 'Currency', 'Tags']],
-    body: expenses.map((expense) => [
-      expense.expenseDate,
-      expense.description ?? '',
-      expense.category?.name ?? 'Uncategorised',
-      paymentMethodLabel(expense.paymentMethod),
-      expense.amount.toFixed(2),
-      expense.currency,
-      (expense.tags ?? []).join(', '),
-    ]),
-    styles: { fontSize: 8, cellPadding: 2.5, overflow: 'linebreak' },
-    headStyles: { fillColor: [79, 70, 229] },
-    alternateRowStyles: { fillColor: [248, 250, 252] },
-    columnStyles: { 0: { cellWidth: 24 }, 2: { cellWidth: 35 }, 3: { cellWidth: 32 }, 4: { cellWidth: 26, halign: 'right' }, 5: { cellWidth: 18 }, 6: { cellWidth: 38 } },
-  })
-
-  const tableEnd = (doc as typeof doc & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? 40
-  autoTable(doc, {
-    startY: tableEnd + 8,
-    margin: { top: 14, right: 14, bottom: 18, left: 14 },
-    tableWidth: 100,
-    head: [['Currency', 'Expense count', 'Total amount']],
-    body: totalsByCurrency(expenses).map((total) => [total.currency, total.count, total.amount.toFixed(2)]),
-    styles: { fontSize: 9, cellPadding: 2.5 },
-    headStyles: { fillColor: [79, 70, 229] },
-    columnStyles: { 2: { halign: 'right' } },
-  })
-
-  const pages = doc.getNumberOfPages()
-  for (let page = 1; page <= pages; page += 1) {
-    doc.setPage(page)
-    doc.setFontSize(8)
-    doc.setTextColor(100, 116, 139)
-    doc.text('Page ' + page + ' of ' + pages, width - 14, doc.internal.pageSize.getHeight() - 8, { align: 'right' })
+/** Separate scripts so Latin prefixes do not disable Khmer's OpenType shaping. */
+function pdfText(text: string): ContentText {
+  return {
+    text: text.split(/([\u1780-\u17ff\u19e0-\u19ff\u200b-\u200d]+)/u)
+      .filter(Boolean)
+      .map((part) => ({ text: part, font: /[\u1780-\u17ff\u19e0-\u19ff]/u.test(part) ? 'NotoSansKhmer' : 'Roboto' })),
   }
-  return doc.output('blob')
+}
+
+async function createPdf(expenses: ExpenseResponse[], filters: string): Promise<Blob> {
+  const [{ default: pdfMake }, { default: latinFonts }] = await Promise.all([
+    import('pdfmake/build/pdfmake'),
+    import('pdfmake/build/vfs_fonts'),
+  ])
+  pdfMake.addVirtualFileSystem(latinFonts)
+  const fontUrl = (name: string) => new URL(import.meta.env.BASE_URL + 'fonts/' + name, window.location.origin).href
+  pdfMake.addFonts({
+    NotoSansKhmer: {
+      normal: fontUrl('NotoSansKhmer-Regular.ttf'),
+      bold: fontUrl('NotoSansKhmer-Bold.ttf'),
+      italics: fontUrl('NotoSansKhmer-Regular.ttf'),
+      bolditalics: fontUrl('NotoSansKhmer-Bold.ttf'),
+    },
+  })
+
+  const header = (labels: string[]): TableCell[] => labels.map((text) => ({
+    text, bold: true, color: '#ffffff', fillColor: '#4f46e5',
+  }))
+  const layout: CustomTableLayout = {
+    hLineWidth: () => 0,
+    vLineWidth: () => 0,
+    paddingLeft: () => 7,
+    paddingRight: () => 7,
+    paddingTop: () => 7,
+    paddingBottom: () => 7,
+    fillColor: (row) => row > 0 && row % 2 === 0 ? '#f8fafc' : null,
+  }
+  const definition: TDocumentDefinitions = {
+    pageSize: 'A4',
+    pageOrientation: 'landscape',
+    pageMargins: [40, 40, 40, 42],
+    info: { title: 'Expense report', creator: 'Daily Expense Tracker' },
+    defaultStyle: { font: 'Roboto', fontSize: 8, color: '#334155', lineHeight: 1.25 },
+    content: [
+      { text: 'Expense report', fontSize: 18, bold: true, margin: [0, 0, 0, 8] },
+      { text: 'Exported: ' + new Date().toLocaleString() + ' | ' + expenses.length + ' expenses', fontSize: 9, margin: [0, 0, 0, 6] },
+      { ...pdfText('Filters: ' + filters), fontSize: 9, margin: [0, 0, 0, 12] },
+      {
+        table: {
+          headerRows: 1,
+          widths: [60, '*', 85, 76, 58, 40, 90],
+          body: [
+            header(['Date', 'Description', 'Category', 'Payment method', 'Amount', 'Currency', 'Tags']),
+            ...expenses.map((expense): TableCell[] => [
+              expense.expenseDate,
+              pdfText(expense.description ?? ''),
+              pdfText(expense.category?.name ?? 'Uncategorised'),
+              paymentMethodLabel(expense.paymentMethod),
+              { text: expense.amount.toFixed(2), alignment: 'right' },
+              expense.currency,
+              pdfText((expense.tags ?? []).join(', ')),
+            ]),
+          ],
+        },
+        layout,
+      },
+      {
+        margin: [0, 20, 0, 0],
+        table: {
+          headerRows: 1,
+          widths: [72, 92, 92],
+          body: [
+            header(['Currency', 'Expense count', 'Total amount']),
+            ...totalsByCurrency(expenses).map((total): TableCell[] => [
+              total.currency, String(total.count), { text: total.amount.toFixed(2), alignment: 'right' },
+            ]),
+          ],
+        },
+        layout,
+      },
+    ],
+    footer: (page, pages) => ({
+      text: 'Page ' + page + ' of ' + pages,
+      alignment: 'right', fontSize: 8, color: '#64748b', margin: [40, 12, 40, 0],
+    }),
+  }
+  return pdfMake.createPdf(definition).getBlob()
 }
 
 export async function downloadExpenseExport(

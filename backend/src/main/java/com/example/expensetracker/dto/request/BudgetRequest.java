@@ -1,6 +1,8 @@
 package com.example.expensetracker.dto.request;
 
 import java.math.BigDecimal;
+import com.example.expensetracker.util.MoneyUtils;
+import jakarta.validation.constraints.Pattern;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.DecimalMax;
@@ -32,6 +34,12 @@ public class BudgetRequest {
     @DecimalMax(value = "9999999999999.99", message = "monthlyLimit exceeds the maximum supported value")
     @Schema(example = "400.00", requiredMode = Schema.RequiredMode.REQUIRED)
     private BigDecimal monthlyLimit;
+
+    @NotNull(message = "currency is required")
+    @Pattern(regexp = MoneyUtils.SUPPORTED_CURRENCY_PATTERN, message = "currency must be USD or KHR")
+    @Schema(example = "USD", allowableValues = {"USD", "KHR"})
+    @Builder.Default
+    private String currency = "USD";
 
     @NotNull(message = "month is required")
     @Min(value = 1, message = "month must be between 1 and 12")

@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.expensetracker.mapper.TelegramMapper">
+  <select id="find" resultType="TelegramConnection">
+    SELECT user_id, chat_id, enabled FROM telegram_connections WHERE user_id = #{userId}
+  </select>
+  <select id="lockUser" resultType="java.util.UUID">
+    SELECT id FROM users WHERE id = #{userId} FOR UPDATE
+  </select>
+  <insert id="setLink">
+    INSERT INTO telegram_connections(user_id, link_hash, link_expires_at)
+    VALUES (#{userId}, #{hash}, now() + interval '10 minutes')
+    ON CONFLICT(user_id) DO UPDATE SET link_hash = EXCLUDED.link_hash, link_expires_at = EXCLUDED.link_expires_at
+  </insert>
+  <select id="connect" resultType="TelegramConnection" affectData="true" flushCache="true">
+    UPDATE telegram_connections SET chat_id = #{chatId}, enabled = true, link_hash = NULL, link_expires_at = NULL
+    WHERE link_hash = #{hash} AND link_expires_at > now()
+      AND NOT EXISTS (SELECT 1 FROM telegram_connections c WHERE c.chat_id = #{chatId} AND c.link_hash IS DISTINCT FROM #{hash})
+    RETURNING user_id, chat_id, enabled
+  </select>
+  <update id="disconnect">
+    UPDATE telegram_connections SET chat_id = NULL, enabled = false, link_hash = NULL, link_expires_at = NULL
+    WHERE user_id = #{userId}
+  </update>
+  <delete id="clearPending">
+    DELETE FROM telegram_notifications WHERE user_id = #{userId} AND status IN ('pending', 'sending')
+  </delete>
+  <insert id="enqueue">
+    INSERT INTO telegram_notifications(user_id, chat_id, event_key, message)
+    VALUES (#{userId}, #{chatId}, #{eventKey}, #{message}) ON CONFLICT(event_key) DO NOTHING
+  </insert>
+  <select id="claim" resultType="TelegramNotification" affectData="true" flushCache="true">
+    WITH candidate AS (
+      SELECT n.id FROM telegram_notifications n
+      JOIN telegram_connections c ON c.user_id = n.user_id AND c.chat_id = n.chat_id AND c.enabled = true
+      JOIN users u ON u.id = n.user_id AND u.enabled = true
+      WHERE (n.status = 'pending' AND n.next_attempt_at &lt;= now())
+         OR (n.status = 'sending' AND n.claimed_at &lt; now() - interval '2 minutes')
+      ORDER BY n.created_at LIMIT 1 FOR UPDATE OF n SKIP LOCKED
+    )
+    UPDATE telegram_notifications n SET status = 'sending', claimed_at = now(), attempts = attempts + 1
+    FROM candidate WHERE n.id = candidate.id RETURNING n.id, n.user_id, n.chat_id, n.message, n.attempts
+  </select>
+  <update id="sent">UPDATE telegram_notifications SET status = 'sent' WHERE id = #{id}</update>
+  <update id="retry">
+    UPDATE telegram_notifications SET status = CASE WHEN attempts >= 10 THEN 'failed' ELSE 'pending' END,
+      next_attempt_at = now() + make_interval(secs => LEAST(3600, 30 * attempts * attempts)) WHERE id = #{id}
+  </update>
+</mapper>

@@ -1,6 +1,11 @@
 # ==============================================================================
 # dev profile - local development on localhost
 # ==============================================================================
+spring:
+  config:
+    # Private settings work when launched from the backend or repository directory.
+    import: "optional:file:./.env.telegram[.properties],optional:file:./backend/.env.telegram[.properties]"
+
 mybatis:
   configuration:
     # Pretty-print SQL + bind parameters so dynamic <if>/<foreach> output is visible

@@ -14,7 +14,7 @@ import lombok.NoArgsConstructor;
  * <p>
  * A {@code null} {@code categoryId} represents the user's overall budget for
  * the month; otherwise the limit applies to a single category. The pair
- * (user, category, month, year) is unique - see
+ * (user, category, month, year, currency) is unique - see
  * {@code uq_budgets_user_category_period}.
  */
 @Data
@@ -31,6 +31,9 @@ public class Budget {
 
     /** Nested projection - populated by {@code getBudgetUsage}. */
     private Category category;
+
+    @Builder.Default
+    private String currency = "USD";
 
     private BigDecimal monthlyLimit;
 

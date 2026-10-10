@@ -34,6 +34,7 @@ import com.example.expensetracker.exception.ErrorCode;
 import com.example.expensetracker.exception.ResourceNotFoundException;
 import com.example.expensetracker.mapper.CategoryMapper;
 import com.example.expensetracker.mapper.IncomeMapper;
+import com.example.expensetracker.serviceImpl.IncomeServiceImpl;
 import com.example.expensetracker.support.TestFixtures;
 import com.example.expensetracker.support.IncomeFixtures;
 
@@ -63,7 +64,7 @@ class IncomeServiceTest {
     @BeforeEach
     void setUp() {
         paginationProperties = new PaginationProperties();
-        incomeService = new IncomeService(incomeMapper, categoryMapper, IncomeFixtures.incomeConvert(),
+        incomeService = new IncomeServiceImpl(incomeMapper, categoryMapper, IncomeFixtures.incomeConvert(),
                 paginationProperties);
     }
 

@@ -17,6 +17,9 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class BudgetUsage {
 
+    /** Distinguishes equal usage totals for different budgets in the nested MyBatis result map. */
+    private java.util.UUID budgetId;
+
     private Budget budget;
 
     private BigDecimal spentAmount;
