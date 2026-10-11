@@ -1,5 +1,11 @@
 export type ConstructionLanguage = 'en' | 'km'
 export const constructionKhmer: Record<string, string> = {
+  'Project start date': 'ថ្ងៃចាប់ផ្តើមគម្រោង',
+  'Project end date': 'ថ្ងៃបញ្ចប់គម្រោង',
+  'Duration': 'រយៈពេល',
+  'Planned amount (KHR)': 'ទឹកប្រាក់គ្រោងទុក (រៀល)',
+  'Not set': 'មិនទាន់កំណត់',
+  'Optional: choose both dates. Duration includes the start and end dates. The planned amount is the project budget in KHR.': 'មិនចាំបាច់៖ ជ្រើសរើសកាលបរិច្ឆេទទាំងពីរ។ រយៈពេលរាប់បញ្ចូលថ្ងៃចាប់ផ្តើម និងថ្ងៃបញ្ចប់។ ទឹកប្រាក់គ្រោងទុកជាថវិកាគម្រោងគិតជារៀល។',
   'Worker photo': 'រូបថតកម្មករ',
   'Worker photo preview': 'មើលរូបថតកម្មករ',
   'Remove photo': 'លុបរូបថត',

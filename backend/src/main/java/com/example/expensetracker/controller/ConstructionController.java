@@ -43,7 +43,7 @@ public class ConstructionController {
     @GetMapping("/projects") @PreAuthorize("@constructionAccess.allowed(authentication)")
     public ApiResponse<List<Project>> projects(Authentication auth) {
         var rows=service.projects();
-        if(!access.manager(auth)) { var sites=access.sites(auth); rows=rows.stream().filter(p -> sites.contains(p.getId())).toList(); }
+        if(!access.manager(auth)) { var sites=access.sites(auth); rows=rows.stream().filter(p -> sites.contains(p.getId())).peek(p -> p.setPlannedAmount(null)).toList(); }
         return ApiResponse.of(rows);
     }
     @PostMapping("/projects") public ApiResponse<Project> createProject(@Valid @RequestBody ProjectRequest r) { return ApiResponse.of(service.saveProject(null,r)); }

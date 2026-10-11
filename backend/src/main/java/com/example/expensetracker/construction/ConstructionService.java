@@ -81,8 +81,10 @@ public class ConstructionService {
         return w;
     }
     public Project saveProject(UUID id, ProjectRequest r) {
+        if(r.startDate()!=null || r.endDate()!=null) dateRange(r.startDate(),r.endDate());
         Project p=id==null ? new Project() : found(mapper.project(id)); p.setId(id==null ? UUID.randomUUID() : id);
         p.setName(r.name().trim()); p.setSite(r.site().trim()); p.setActive(r.active());
+        p.setStartDate(r.startDate()); p.setEndDate(r.endDate()); p.setPlannedAmount(r.plannedAmount());
         if(id==null) mapper.insertProject(p); else mapper.updateProject(p); return p;
     }
     public static void dateRange(LocalDate from, LocalDate to) {

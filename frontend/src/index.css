@@ -123,3 +123,7 @@ html[data-theme='dark'] .recharts-default-tooltip { background-color: #162235 !i
     transition-duration: 0.01ms !important;
   }
 }
+
+.app-calendar-input::-webkit-calendar-picker-indicator {
+  display: none;
+}

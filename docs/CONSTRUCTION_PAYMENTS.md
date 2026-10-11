@@ -16,7 +16,7 @@ Server authorization checks the enabled account, construction role and site assi
 
 ## Setup and attendance
 
-1. In **Projects**, create a project and construction site. Each project record has one site; multiple projects can share a site.
+1. In **Projects**, create a project and construction site. Each project record has one site; multiple projects can share a site. Optionally enter both the project start and end dates and a nonnegative planned amount in KHR. Duration includes both dates. These values appear in the project list and can be edited or cleared; the project budget is visible to managers only.
 2. In **Workers**, choose the assigned site and add a unique worker ID, full name, phone, position, start date, wage basis, rate, overtime rate, and regular hours per day. Currency is fixed to KHR.
 3. In **Attendance**, select the worker, project/site and work date. Choose full day, half day, or hourly work, and enter overtime hours.
 4. Use the top date, worker, and project/site filters to review attendance totals or payment history.

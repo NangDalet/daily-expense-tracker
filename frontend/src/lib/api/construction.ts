@@ -5,7 +5,7 @@ export interface Worker {
   currency: 'KHR'; startDate: string; active: boolean; photoDataUrl?: string
   projectId?: string | null; idCardDataUrl?: string | null; hasIdCard?: boolean
 }
-export interface Project { id: string; name: string; site: string; active: boolean }
+export interface Project { id: string; name: string; site: string; active: boolean; startDate?: string | null; endDate?: string | null; plannedAmount?: number | null }
 export interface Attendance {
   id: string; workerId: string; projectId: string; workDate: string; kind: string; workdays: number
   hours: number; overtimeHours: number; baseWages: number; overtime: number; payrollId?: string

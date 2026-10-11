@@ -25,6 +25,29 @@ class ConstructionApiIT extends AbstractPostgresIT {
     private JsonNode postData(String path,String body,String token) throws Exception {
         return data(mvc.perform(post("/api/v1/construction"+path).header("Authorization","Bearer "+token).contentType(MediaType.APPLICATION_JSON).content(body)).andExpect(status().isOk()).andReturn());
     }
+    @Test void projectPlanningPersistsValidatesAndClearsOptionalFields() throws Exception {
+        String token=data(mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
+            .content("{\"username\":\"root\",\"password\":\"Root@123\"}")).andExpect(status().isOk()).andReturn()).path("accessToken").asText();
+        String body="""
+            {"name":"Planned site","site":"A1","active":true,"startDate":"2026-10-11","endDate":"2026-11-10","plannedAmount":1250000.50}
+            """;
+        JsonNode created=postData("/projects",body,token);
+        String id=created.path("id").asText();
+        mvc.perform(get("/api/v1/construction/projects").header("Authorization","Bearer "+token)).andExpect(status().isOk())
+            .andExpect(jsonPath("$.data[?(@.id == '"+id+"')].startDate").value(org.hamcrest.Matchers.hasItem("2026-10-11")))
+            .andExpect(jsonPath("$.data[?(@.id == '"+id+"')].plannedAmount").value(org.hamcrest.Matchers.hasItem(1250000.50)));
+        for(String invalid:java.util.List.of(body.replace("2026-11-10","2026-10-10"),body.replace("\"2026-11-10\"","null")))
+            mvc.perform(post("/api/v1/construction/projects").header("Authorization","Bearer "+token).contentType(MediaType.APPLICATION_JSON).content(invalid))
+                .andExpect(status().isUnprocessableEntity());
+        mvc.perform(post("/api/v1/construction/projects").header("Authorization","Bearer "+token).contentType(MediaType.APPLICATION_JSON)
+            .content(body.replace("1250000.50","-1"))).andExpect(status().isBadRequest());
+        mvc.perform(put("/api/v1/construction/projects/"+id).header("Authorization","Bearer "+token).contentType(MediaType.APPLICATION_JSON)
+            .content(body.replace("1250000.50","2500000"))).andExpect(status().isOk()).andExpect(jsonPath("$.data.plannedAmount").value(2500000));
+        mvc.perform(put("/api/v1/construction/projects/"+id).header("Authorization","Bearer "+token).contentType(MediaType.APPLICATION_JSON)
+            .content("{\"name\":\"Planned site\",\"site\":\"A1\",\"active\":true}")).andExpect(status().isOk());
+        org.assertj.core.api.Assertions.assertThat(jdbc.queryForMap("SELECT start_date,end_date,planned_amount FROM construction_projects WHERE id=?",UUID.fromString(id)).values())
+            .containsOnlyNulls();
+    }
     @Test void managersDelegateOnlyForemanAttendanceAtAssignedSites() throws Exception {
         String root=data(mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
             .content("{\"username\":\"root\",\"password\":\"Root@123\"}")).andExpect(status().isOk()).andReturn()).path("accessToken").asText();
@@ -41,12 +64,14 @@ class ConstructionApiIT extends AbstractPostgresIT {
         JsonNode registered=data(mvc.perform(post("/api/v1/auth/register").contentType(MediaType.APPLICATION_JSON)
             .content("{\"username\":\"site-foreman\",\"email\":\"site-foreman@example.com\",\"password\":\"Foreman-pass-123!\"}")).andExpect(status().isCreated()).andReturn());
         String foreman=registered.path("accessToken").asText(), foremanId=registered.path("user").path("id").asText();
-        String site=postData("/projects","{\"name\":\"Assigned project\",\"site\":\"A1\",\"active\":true}",manager).path("id").asText();
+        String site=postData("/projects","{\"name\":\"Assigned project\",\"site\":\"A1\",\"active\":true,\"plannedAmount\":100000}",manager).path("id").asText();
         String otherSite=postData("/projects","{\"name\":\"Other project\",\"site\":\"B2\",\"active\":true}",manager).path("id").asText();
         String assignment="{\"granted\":true,\"constructionRole\":\"FOREMAN\",\"siteIds\":[\"%s\"]}".formatted(site);
         mvc.perform(put("/api/v1/construction/grants/"+foremanId).header("Authorization","Bearer "+manager).contentType(MediaType.APPLICATION_JSON)
             .content("{\"granted\":true,\"constructionRole\":\"FOREMAN\",\"siteIds\":[]}")).andExpect(status().isUnprocessableEntity());
         mvc.perform(put("/api/v1/construction/grants/"+foremanId).header("Authorization","Bearer "+manager).contentType(MediaType.APPLICATION_JSON).content(assignment)).andExpect(status().isOk());
+        mvc.perform(get("/api/v1/construction/projects").header("Authorization","Bearer "+foreman)).andExpect(status().isOk())
+            .andExpect(jsonPath("$.data[0].plannedAmount").doesNotExist());
         mvc.perform(put("/api/v1/construction/grants/"+foremanId).header("Authorization","Bearer "+manager).contentType(MediaType.APPLICATION_JSON)
             .content("{\"granted\":true,\"constructionRole\":\"MANAGER\"}")).andExpect(status().isForbidden());
         mvc.perform(put("/api/v1/construction/grants/"+managerId).header("Authorization","Bearer "+manager).contentType(MediaType.APPLICATION_JSON).content(assignment)).andExpect(status().isForbidden());

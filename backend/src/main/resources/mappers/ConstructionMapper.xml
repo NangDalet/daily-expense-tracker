@@ -25,12 +25,12 @@
   <select id="worker" resultType="com.example.expensetracker.construction.ConstructionModels$Worker">SELECT <include refid="workerColumns"/>, id_card_data_url FROM construction_workers WHERE id=#{id}<if test="lock"> FOR UPDATE</if></select>
   <insert id="insertWorker">INSERT INTO construction_workers(id,worker_code,full_name,phone,position,rate_type,rate,overtime_rate,hours_per_day,currency,start_date,active,photo_data_url,project_id,id_card_data_url) VALUES(#{id},#{workerCode},#{fullName},#{phone},#{position},#{rateType},#{rate},#{overtimeRate},#{hoursPerDay},#{currency},#{startDate},#{active},#{photoDataUrl},#{projectId},#{idCardDataUrl})</insert>
   <update id="updateWorker">UPDATE construction_workers SET worker_code=#{workerCode},full_name=#{fullName},phone=#{phone},position=#{position},rate_type=#{rateType},rate=#{rate},overtime_rate=#{overtimeRate},hours_per_day=#{hoursPerDay},start_date=#{startDate},active=#{active},photo_data_url=#{photoDataUrl},project_id=#{projectId},id_card_data_url=#{idCardDataUrl} WHERE id=#{id}</update>
-  <select id="projects" resultType="com.example.expensetracker.construction.ConstructionModels$Project">SELECT id,name,site,active FROM construction_projects ORDER BY name, site</select>
+  <select id="projects" resultType="com.example.expensetracker.construction.ConstructionModels$Project">SELECT id,name,site,active,start_date,end_date,planned_amount FROM construction_projects ORDER BY name, site</select>
   <select id="hasAttendance" resultType="boolean">SELECT EXISTS(SELECT 1 FROM construction_attendance WHERE worker_id=#{workerId})</select>
   <select id="attendanceBefore" resultType="boolean">SELECT EXISTS(SELECT 1 FROM construction_attendance WHERE worker_id=#{workerId} AND work_date &lt; #{startDate})</select>
-  <select id="project" resultType="com.example.expensetracker.construction.ConstructionModels$Project">SELECT id,name,site,active FROM construction_projects WHERE id=#{id}</select>
-  <insert id="insertProject">INSERT INTO construction_projects(id,name,site,active) VALUES(#{id},#{name},#{site},#{active})</insert>
-  <update id="updateProject">UPDATE construction_projects SET name=#{name},site=#{site},active=#{active} WHERE id=#{id}</update>
+  <select id="project" resultType="com.example.expensetracker.construction.ConstructionModels$Project">SELECT id,name,site,active,start_date,end_date,planned_amount FROM construction_projects WHERE id=#{id}</select>
+  <insert id="insertProject">INSERT INTO construction_projects(id,name,site,active,start_date,end_date,planned_amount) VALUES(#{id},#{name},#{site},#{active},#{startDate},#{endDate},#{plannedAmount})</insert>
+  <update id="updateProject">UPDATE construction_projects SET name=#{name},site=#{site},active=#{active},start_date=#{startDate},end_date=#{endDate},planned_amount=#{plannedAmount} WHERE id=#{id}</update>
   <sql id="attendanceColumns">id,worker_id,project_id,work_date,kind,workdays,hours,overtime_hours,base_wages,overtime,payroll_id,recorded_by</sql>
   <select id="attendance" resultType="com.example.expensetracker.construction.ConstructionModels$Attendance">
     SELECT <include refid="attendanceColumns"/> FROM construction_attendance WHERE work_date BETWEEN #{from} AND #{to}

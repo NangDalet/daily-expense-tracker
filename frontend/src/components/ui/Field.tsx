@@ -3,6 +3,7 @@ import type { InputHTMLAttributes, ReactNode, TextareaHTMLAttributes } from 'rea
 import { cn } from '@/lib/utils'
 import { t } from '@/lib/language'
 import { useLanguage } from '@/context/LanguageContext'
+import { CalendarInput } from './CalendarInput'
 
 interface FieldShellProps {
   label?: string
@@ -66,6 +67,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
 ) {
   const generatedId = useId()
   const fieldId = id ?? generatedId
+  const Control = props.type === 'date' || props.type === 'month' ? CalendarInput : 'input'
 
   return (
     <Field label={label} hint={hint} error={error} required={required} id={fieldId} className={className}>
@@ -75,7 +77,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
             {prefix}
           </span>
         )}
-        <input
+        <Control
           ref={ref}
           id={fieldId}
           required={required}

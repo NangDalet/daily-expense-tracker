@@ -17,7 +17,9 @@ public final class ConstructionRequests {
         @NotNull @Pattern(regexp="KHR", message="Construction payments use KHR only") String currency, @NotNull LocalDate startDate, boolean active,
         @Size(max=350000) String photoDataUrl, UUID projectId,
         @Size(max=2000000) String idCardDataUrl) {}
-    public record ProjectRequest(@NotBlank @Size(max=120) String name, @NotBlank @Size(max=160) String site, boolean active) {}
+    public record ProjectRequest(@NotBlank @Size(max=120) String name, @NotBlank @Size(max=160) String site, boolean active,
+        LocalDate startDate, LocalDate endDate,
+        @DecimalMin("0") @Digits(integer=14,fraction=2) BigDecimal plannedAmount) {}
     public record AttendanceRequest(@NotNull UUID workerId, @NotNull UUID projectId, @NotNull LocalDate workDate,
         @NotNull @Pattern(regexp="FULL|HALF|HOURLY") String kind,
         @DecimalMin("0.01") @DecimalMax("24") @Digits(integer=2,fraction=2) BigDecimal hours,
