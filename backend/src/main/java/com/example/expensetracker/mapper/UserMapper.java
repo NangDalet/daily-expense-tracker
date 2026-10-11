@@ -32,6 +32,10 @@ public interface UserMapper {
 
     int deleteById(@Param("id") UUID id);
 
+    boolean hasConstructionHistory(@Param("id") UUID id);
+
+    int archiveById(@Param("id") UUID id);
+
     /**
      * Admin listing, optionally filtered by a case-insensitive username / email
      * search. Paged with LIMIT/OFFSET so no extra interceptor is required.

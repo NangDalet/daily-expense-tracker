@@ -1,6 +1,7 @@
 import { test, expect, type Page } from '@playwright/test'
 
 async function login(page: Page) {
+  await page.route('**/api/v1/construction/access', route => route.fulfill({ json: { data: { allowed: false, superAdmin: false, manager: false, siteIds: [] } } }))
   await page.addInitScript(() => {
     localStorage.setItem('expense-tracker.accessToken', 'test-access')
     localStorage.setItem('expense-tracker.refreshToken', 'test-refresh')

@@ -1,3 +1,5 @@
+import { t } from '@/lib/language'
+import { useLanguage } from '@/context/LanguageContext'
 import { ArrowUpDown, ExternalLink, Pencil, Receipt, Trash2 } from 'lucide-react'
 import type { IncomeResponse } from '@/lib/api/types'
 import { Badge } from '@/components/ui/Badge'
@@ -15,6 +17,7 @@ interface IncomeListProps {
 }
 
 export function IncomeList({ incomes, onEdit, onDelete, compact = false, className }: IncomeListProps) {
+  useLanguage()
   if (incomes.length === 0) return null
 
   return (
@@ -29,7 +32,7 @@ export function IncomeList({ incomes, onEdit, onDelete, compact = false, classNa
 
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium text-slate-900">
-                {income.description || 'No description'}
+                {income.description || t("No description")}
               </p>
               <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-500">
                 <span>{formatDate(income.incomeDate, 'short')}</span>
@@ -66,12 +69,11 @@ export function IncomeList({ incomes, onEdit, onDelete, compact = false, classNa
                   href={income.receiptUrl}
                   target="_blank"
                   rel="noreferrer noopener"
-                  title="Open receipt"
+                  title={t("Open receipt")}
                   onClick={(event) => event.stopPropagation()}
                   className="mt-0.5 inline-flex items-center gap-0.5 text-[11px] text-slate-400 hover:text-brand-600"
                 >
-                  Receipt
-                  <ExternalLink className="h-3 w-3" aria-hidden />
+                  {t("Receipt")}<ExternalLink className="h-3 w-3" aria-hidden />
                 </a>
               )}
             </div>
@@ -82,7 +84,7 @@ export function IncomeList({ incomes, onEdit, onDelete, compact = false, classNa
                   <button
                     type="button"
                     onClick={() => onEdit(income)}
-                    aria-label={`Edit ${income.description || 'income'}`}
+                    aria-label={t("Edit {0}", [income.description || 'income'])}
                     className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
                   >
                     <Pencil className="h-4 w-4" />
@@ -92,7 +94,7 @@ export function IncomeList({ incomes, onEdit, onDelete, compact = false, classNa
                   <button
                     type="button"
                     onClick={() => onDelete(income)}
-                    aria-label={`Delete ${income.description || 'income'}`}
+                    aria-label={t("Delete {0}", [income.description || 'income'])}
                     className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600"
                   >
                     <Trash2 className="h-4 w-4" />
@@ -128,6 +130,7 @@ interface SortableHeaderProps {
  * the whitelist documented on the backend list endpoint.
  */
 export function SortableHeader({ field, label, sort, onSortChange, className }: SortableHeaderProps) {
+  useLanguage()
   const [currentField, currentDir] = sort.split(',')
   const isActive = currentField === field
   const nextDir = isActive && currentDir === 'asc' ? 'desc' : 'asc'

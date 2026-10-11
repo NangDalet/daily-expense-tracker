@@ -116,7 +116,7 @@ public class UserController {
 
     @DeleteMapping("/{id}")
     @Operation(summary = "Delete a user",
-            description = "Cascades to the categories, expenses and budgets of the account. "
+            description = "Accounts with construction audit history are disabled and removed from account listings while retaining attribution. Other accounts are deleted with their categories, expenses and budgets. "
                     + "Nobody can delete their own account (422), and an administrator cannot delete another "
                     + "administrator (403).")
     public ApiResponse<Void> delete(@AuthenticationPrincipal Jwt jwt,

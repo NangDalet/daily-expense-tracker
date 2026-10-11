@@ -259,6 +259,7 @@ export interface CreateUserRequest {
   fullName?: string
   roles?: Role[]
   enabled?: boolean
+  constructionRole?: 'MANAGER' | ''
 }
 
 /** Super administrators only - `PUT /users/{id}/password`. */

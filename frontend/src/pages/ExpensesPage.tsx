@@ -1,3 +1,5 @@
+import { t } from '@/lib/language'
+import { useLanguage } from '@/context/LanguageContext'
 import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { FileDown, FileSpreadsheet, Plus, Receipt } from 'lucide-react'
@@ -20,7 +22,7 @@ import {
 import { useCategories, useDeleteExpense, useExpenses } from '@/hooks/queries'
 import { ApiError } from '@/lib/api/client'
 import type { ExpenseResponse } from '@/lib/api/types'
-import { formatMoney, formatNumber } from '@/lib/utils'
+import { formatMoney, formatNumber, paymentMethodLabel } from '@/lib/utils'
 import {
   describeExportFilters,
   downloadExpenseExport,
@@ -32,6 +34,7 @@ const DEFAULT_SORT = 'expenseDate,desc'
 const DEFAULT_SIZE = 20
 
 export default function ExpensesPage() {
+  useLanguage()
   const [searchParams, setSearchParams] = useSearchParams()
   const [filters, setFilters] = useState<ExpenseFilterState>(EMPTY_FILTERS)
   const [page, setPage] = useState(0)
@@ -52,18 +55,18 @@ export default function ExpensesPage() {
     if (exporting) return
     setExporting(format)
     setExportError(null)
-    setExportStatus('Preparing export...')
+    setExportStatus(t("Preparing export..."))
     const selectedFilters = toFilterParams(filters, 0, 100, sort)
     const categoryName = categories?.find((category) => category.id === selectedFilters.categoryId)?.name
     try {
       const expenses = await fetchExpensesForExport(selectedFilters, (loaded, total) => {
-        setExportStatus('Preparing ' + formatNumber(loaded) + ' of ' + formatNumber(total) + ' expenses...')
+        setExportStatus(t("Preparing ") + formatNumber(loaded) + t(" of ") + formatNumber(total) + t(" expenses..."))
       })
       await downloadExpenseExport(format, expenses, describeExportFilters(selectedFilters, categoryName))
-      setExportStatus('Downloaded ' + formatNumber(expenses.length) + ' expenses as ' + (format === 'xlsx' ? 'Excel' : 'PDF') + '.')
+      setExportStatus(t("Downloaded ") + formatNumber(expenses.length) + t(" expenses as ") + (format === 'xlsx' ? 'Excel' : 'PDF') + '.')
     } catch (error) {
       setExportStatus('')
-      setExportError(error instanceof Error ? error.message : 'Please try again.')
+      setExportError(error instanceof Error ? error.message : t("Please try again."))
     } finally {
       setExporting(null)
     }
@@ -125,11 +128,11 @@ export default function ExpensesPage() {
   return (
     <div className="mx-auto max-w-7xl">
       <PageHeading
-        title="Expenses"
+        title={t("Expenses")}
         description={
           isPending && !data
-            ? 'Loading your expenses...'
-            : `${formatNumber(pageTotal)} ${pageTotal === 1 ? 'expense' : 'expenses'} recorded`
+            ? t("Loading your expenses...")
+            : t("{0} {1} recorded", [formatNumber(pageTotal), pageTotal === 1 ? t("expense") : t("expenses")])
         }
         action={
           <div className="flex flex-wrap items-center gap-2">
@@ -138,31 +141,28 @@ export default function ExpensesPage() {
               onClick={() => void handleExport('pdf')}
               disabled={Boolean(exporting) || isPending || isError || pageTotal === 0}
               isLoading={exporting === 'pdf'}
-              title="Export all expenses matching the current filters"
+              title={t("Export all expenses matching the current filters")}
             >
               <FileDown className="h-4 w-4" aria-hidden />
-              Export PDF
-            </Button>
+              {t("Export PDF")}</Button>
             <Button
               variant="outline"
               onClick={() => void handleExport('xlsx')}
               disabled={Boolean(exporting) || isPending || isError || pageTotal === 0}
               isLoading={exporting === 'xlsx'}
-              title="Export all expenses matching the current filters"
+              title={t("Export all expenses matching the current filters")}
             >
               <FileSpreadsheet className="h-4 w-4" aria-hidden />
-              Export Excel
-            </Button>
+              {t("Export Excel")}</Button>
             <Button onClick={openCreate}>
               <Plus className="h-4 w-4" aria-hidden />
-              Add expense
-            </Button>
+              {t("Add expense")}</Button>
           </div>
         }
       />
 
       <div className="space-y-4">
-        {exportError && <Alert tone="error" title="Could not export expenses">{exportError}</Alert>}
+        {exportError && <Alert tone="error" title={t("Could not export expenses")}>{exportError}</Alert>}
         {exportStatus && <p role="status" aria-live="polite" className="text-sm text-slate-600">{exportStatus}</p>}
         <ExpenseFilters
           value={filters}
@@ -173,33 +173,31 @@ export default function ExpensesPage() {
         <Card className="overflow-hidden">
           {isError ? (
             <ErrorState
-              title="Could not load expenses"
+              title={t("Could not load expenses")}
               message={error instanceof ApiError ? error.message : undefined}
               onRetry={() => void refetch()}
             />
           ) : isPending && !data ? (
-            <LoadingBlock label="Loading expenses" />
+            <LoadingBlock label={t("Loading expenses")} />
           ) : showOutOfRange ? (
             <EmptyState
               icon={<Receipt className="h-6 w-6" aria-hidden />}
-              title="No expenses on this page"
-              description="The result set shrank while you were viewing it."
+              title={t("No expenses on this page")}
+              description={t("The result set shrank while you were viewing it.")}
               action={
                 <Button variant="outline" size="sm" onClick={() => setPage(0)}>
-                  Back to first page
-                </Button>
+                  {t("Back to first page")}</Button>
               }
             />
           ) : (data?.items.length ?? 0) === 0 ? (
             <EmptyState
               icon={<Receipt className="h-6 w-6" aria-hidden />}
-              title="No expenses found"
-              description="Record your first expense or loosen the filters."
+              title={t("No expenses found")}
+              description={t("Record your first expense or loosen the filters.")}
               action={
                 <Button size="sm" onClick={openCreate}>
                   <Plus className="h-4 w-4" aria-hidden />
-                  Add expense
-                </Button>
+                  {t("Add expense")}</Button>
               }
             />
           ) : (
@@ -211,7 +209,7 @@ export default function ExpensesPage() {
                     <tr>
                       <SortableHeader
                         field="expenseDate"
-                        label="Date"
+                        label={t("Date")}
                         sort={sort}
                         onSortChange={handleSortChange}
                       />
@@ -219,29 +217,27 @@ export default function ExpensesPage() {
                         scope="col"
                         className="px-4 py-3 text-left text-sm font-medium text-slate-500"
                       >
-                        Description
-                      </th>
+                        {t("Description")}</th>
                       <th
                         scope="col"
                         className="px-4 py-3 text-left text-sm font-medium text-slate-500"
                       >
-                        Category
-                      </th>
+                        {t("Category")}</th>
                       <SortableHeader
                         field="paymentMethod"
-                        label="Payment"
+                        label={t("Payment")}
                         sort={sort}
                         onSortChange={handleSortChange}
                       />
                       <SortableHeader
                         field="amount"
-                        label="Amount"
+                        label={t("Amount")}
                         sort={sort}
                         onSortChange={handleSortChange}
                         className="text-right"
                       />
                       <th scope="col" className="w-20 px-4 py-3">
-                        <span className="sr-only">Actions</span>
+                        <span className="sr-only">{t("Actions")}</span>
                       </th>
                     </tr>
                   </thead>
@@ -256,13 +252,13 @@ export default function ExpensesPage() {
                           {expense.expenseDate}
                         </td>
                         <td className="max-w-xs px-4 py-3 text-sm font-medium text-slate-900">
-                          <span className="line-clamp-1">{expense.description || 'No description'}</span>
+                          <span className="line-clamp-1">{expense.description || t("No description")}</span>
                         </td>
                         <td className="px-4 py-3 text-sm text-slate-600">
-                          {expense.category?.name ?? <span className="text-slate-400">None</span>}
+                          {expense.category?.name ?? <span className="text-slate-400">{t("None")}</span>}
                         </td>
                         <td className="whitespace-nowrap px-4 py-3 text-sm text-slate-600">
-                          {expense.paymentMethod.replace(/_/g, ' ')}
+                          {paymentMethodLabel(expense.paymentMethod)}
                         </td>
                         <td className="whitespace-nowrap px-4 py-3 text-right text-sm font-semibold tabular-nums text-slate-900">
                           {formatMoney(expense.amount, expense.currency)}
@@ -273,19 +269,17 @@ export default function ExpensesPage() {
                               variant="ghost"
                               size="sm"
                               onClick={() => openEdit(expense)}
-                              aria-label={`Edit ${expense.description || 'expense'}`}
+                              aria-label={t("Edit {0}", [expense.description || 'expense'])}
                             >
-                              Edit
-                            </Button>
+                              {t("Edit")}</Button>
                             <Button
                               variant="ghost"
                               size="sm"
                               className="text-slate-400 hover:text-red-600"
                               onClick={() => setDeletingExpense(expense)}
-                              aria-label={`Delete ${expense.description || 'expense'}`}
+                              aria-label={t("Delete {0}", [expense.description || 'expense'])}
                             >
-                              Delete
-                            </Button>
+                              {t("Delete")}</Button>
                           </div>
                         </td>
                       </tr>
@@ -320,8 +314,8 @@ export default function ExpensesPage() {
       <Modal
         open={isFormOpen}
         onClose={() => setIsFormOpen(false)}
-        title={editingExpense ? 'Edit expense' : 'Add expense'}
-        description={editingExpense ? undefined : 'Record a new outgoing payment.'}
+        title={editingExpense ? t("Edit expense") : t("Add expense")}
+        description={editingExpense ? undefined : t("Record a new outgoing payment.")}
         size="md"
       >
         <ExpenseForm
@@ -334,10 +328,8 @@ export default function ExpensesPage() {
 
       <ConfirmDialog
         open={deletingExpense !== null}
-        title="Delete expense"
-        description={`This permanently removes "${
-          deletingExpense?.description || 'this expense'
-        }" (${formatMoney(deletingExpense?.amount ?? 0, deletingExpense?.currency)}). This cannot be undone.`}
+        title={t("Delete expense")}
+        description={t("This permanently removes \"{0}\" ({1}). This cannot be undone.", [deletingExpense?.description || t("this expense"), formatMoney(deletingExpense?.amount ?? 0, deletingExpense?.currency)])}
         isPending={deleteExpense.isPending}
         error={deleteExpense.error instanceof ApiError ? deleteExpense.error : null}
         onConfirm={handleDelete}

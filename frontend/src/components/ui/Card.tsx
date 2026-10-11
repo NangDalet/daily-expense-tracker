@@ -1,5 +1,7 @@
 import type { HTMLAttributes, ReactNode } from 'react'
 import { cn } from '@/lib/utils'
+import { t } from '@/lib/language'
+import { useLanguage } from '@/context/LanguageContext'
 
 export function Card({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
   return <div className={cn('card', className)} {...props} />
@@ -13,11 +15,12 @@ interface CardHeaderProps {
 }
 
 export function CardHeader({ title, description, action, className }: CardHeaderProps) {
+  useLanguage()
   return (
     <div className={cn('flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-4', className)}>
       <div className="min-w-0">
-        <h2 className="truncate text-sm font-semibold text-slate-900">{title}</h2>
-        {description && <p className="mt-0.5 text-xs text-slate-500">{description}</p>}
+        <h2 className="truncate text-sm font-semibold text-slate-900">{typeof title === 'string' ? t(title) : title}</h2>
+        {description && <p className="mt-0.5 text-xs text-slate-500">{typeof description === 'string' ? t(description) : description}</p>}
       </div>
       {action && <div className="shrink-0">{action}</div>}
     </div>

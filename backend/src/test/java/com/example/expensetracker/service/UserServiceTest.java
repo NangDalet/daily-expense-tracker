@@ -67,7 +67,7 @@ class UserServiceTest {
     @BeforeEach
     void setUp() {
         userService = new UserServiceImpl(userMapper, TestFixtures.userConvert(), new PaginationProperties(),
-                passwordEncoder, TestFixtures.defaultCategorySeeder(categoryMapper));
+                passwordEncoder, TestFixtures.defaultCategorySeeder(categoryMapper), org.mockito.Mockito.mock(com.example.expensetracker.mapper.ConstructionMapper.class));
     }
 
     // ===================== Listing =====================
@@ -490,5 +490,17 @@ class UserServiceTest {
         userService.delete(TARGET_ID, ADMIN);
 
         verify(userMapper).deleteById(TARGET_ID);
+    }
+
+    @Test
+    @DisplayName("archives an operator account without deleting payment attribution")
+    void archivesAccountWithConstructionHistory() {
+        when(userMapper.findById(TARGET_ID)).thenReturn(user(TARGET_ID, "operator"));
+        when(userMapper.hasConstructionHistory(TARGET_ID)).thenReturn(true);
+
+        userService.delete(TARGET_ID, ADMIN);
+
+        verify(userMapper).archiveById(TARGET_ID);
+        verify(userMapper, never()).deleteById(TARGET_ID);
     }
 }

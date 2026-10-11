@@ -1,12 +1,15 @@
+import { t } from '@/lib/language'
+import { useLanguage } from '@/context/LanguageContext'
 import { lazy, Suspense } from 'react'
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AuthProvider } from '@/context/AuthContext'
 import { ThemeProvider } from '@/context/ThemeContext'
+import { LanguageProvider } from '@/context/LanguageContext'
 import { ApiError } from '@/lib/api/client'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { LoadingBlock } from '@/components/ui/States'
-import { RedirectIfAuthenticated, RequireAdmin, RequireAuth } from './routeGuards'
+import { RedirectIfAuthenticated, RequireAdmin, RequireAuth, RequireConstruction } from './routeGuards'
 
 const DashboardPage = lazy(() => import('@/pages/DashboardPage'))
 const ExpensesPage = lazy(() => import('@/pages/ExpensesPage'))
@@ -17,6 +20,7 @@ const ProfilePage = lazy(() => import('@/pages/ProfilePage'))
 const MonthlyPage = lazy(() => import('@/pages/MonthlyPage'))
 const BudgetsPage = lazy(() => import('@/pages/BudgetsPage'))
 const AdminUsersPage = lazy(() => import('@/pages/AdminUsersPage'))
+const ConstructionPage = lazy(() => import('@/pages/ConstructionPage'))
 const LoginPage = lazy(() => import('@/pages/LoginPage'))
 const RegisterPage = lazy(() => import('@/pages/RegisterPage'))
 const NotFoundPage = lazy(() => import('@/pages/NotFoundPage'))
@@ -41,11 +45,12 @@ const queryClient = new QueryClient({
 })
 
 export function App() {
+  useLanguage()
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <ThemeProvider><AuthProvider>
-          <Suspense fallback={<LoadingBlock label="Loading" />}>
+        <LanguageProvider><ThemeProvider><AuthProvider>
+          <Suspense fallback={<LoadingBlock label={t("Loading")} />}>
             <Routes>
               <Route element={<RedirectIfAuthenticated />}>
                 <Route path="/login" element={<LoginPage />} />
@@ -62,6 +67,9 @@ export function App() {
                   <Route path="telegram" element={<TelegramPage />} />
                   <Route path="profile" element={<ProfilePage />} />
                   <Route path="monthly" element={<MonthlyPage />} />
+                  <Route element={<RequireConstruction />}>
+                    <Route path="construction" element={<ConstructionPage />} />
+                  </Route>
                   <Route element={<RequireAdmin />}>
                     <Route path="users" element={<AdminUsersPage />} />
                   </Route>
@@ -71,7 +79,7 @@ export function App() {
               <Route path="*" element={<NotFoundPage />} />
             </Routes>
           </Suspense>
-        </AuthProvider></ThemeProvider>
+        </AuthProvider></ThemeProvider></LanguageProvider>
       </BrowserRouter>
     </QueryClientProvider>
   )

@@ -2,6 +2,7 @@ import { expect, test, type Page } from '@playwright/test'
 
 const initialUser = { id: 'test-user', username: 'nang', fullName: 'Nang Dalet', email: 'nang@example.com', roles: ['USER'], enabled: true }
 async function session(page: Page) {
+  await page.route('**/api/v1/construction/access', route => route.fulfill({ json: { data: { allowed: false, superAdmin: false, manager: false, siteIds: [] } } }))
   await page.clock.setFixedTime(new Date('2026-10-10T05:00:00Z'))
   await page.emulateMedia({ colorScheme: 'light' })
   await page.addInitScript((user) => {

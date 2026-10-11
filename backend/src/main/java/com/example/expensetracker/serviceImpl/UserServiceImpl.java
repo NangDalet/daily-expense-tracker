@@ -60,6 +60,7 @@ public class UserServiceImpl implements UserService {
     private final PaginationProperties paginationProperties;
     private final PasswordEncoder passwordEncoder;
     private final DefaultCategorySeeder defaultCategorySeeder;
+    private final com.example.expensetracker.mapper.ConstructionMapper constructionMapper;
 
     // ===================== Read =====================
 
@@ -122,6 +123,13 @@ public class UserServiceImpl implements UserService {
 
         userMapper.insert(user);
         defaultCategorySeeder.seed(user.getId());
+        if (request.getConstructionRole() != null) {
+            if (!"MANAGER".equals(request.getConstructionRole())) {
+                throw new ApiException(ErrorCode.FORBIDDEN, "Only Construction Site Manager can be assigned during user creation");
+            }
+            constructionMapper.grantRole(user.getId(), actor.id(), "MANAGER");
+            constructionMapper.roleHistory(user.getId(), actor.id(), true, "MANAGER", List.of());
+        }
 
         log.info("Super administrator {} created user {} with roles {}", actor.id(), username, roles);
         return userConvert.toResponse(requireExisting(user.getId()));
@@ -195,7 +203,7 @@ public class UserServiceImpl implements UserService {
 
     // ===================== Delete =====================
 
-    /** Deleting an account cascades to its categories, expenses and budgets. */
+    /** Remove a login account; retain operator identities referenced by construction history. */
     @Override
     @Transactional
     public void delete(UUID id, CurrentUser actor) {
@@ -206,7 +214,12 @@ public class UserServiceImpl implements UserService {
         requireManages(actor, user, "delete");
         requireNotLastSuperAdmin(Role.highestOf(user.getRoles()), id, null, false, "deleted");
 
-        userMapper.deleteById(id);
+        if (userMapper.hasConstructionHistory(id)) {
+            // Disable and hide the login while keeping the original payment processor identity.
+            userMapper.archiveById(id);
+        } else {
+            userMapper.deleteById(id);
+        }
         log.info("User {} deleted by {} ({})", id, actor.id(), actor.highestRole());
     }
 

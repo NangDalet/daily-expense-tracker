@@ -1,3 +1,5 @@
+import { t } from '@/lib/language'
+import { useLanguage } from '@/context/LanguageContext'
 import { useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
@@ -14,6 +16,7 @@ interface LocationState {
 }
 
 export default function LoginPage() {
+  useLanguage()
   const { login } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
@@ -38,14 +41,13 @@ export default function LoginPage() {
 
   return (
     <AuthLayout
-      title="Welcome back"
-      subtitle="Sign in to continue tracking your spending."
+      title={t("Welcome back")}
+      subtitle={t("Sign in to continue tracking your spending.")}
       footer={
         <>
-          Don&apos;t have an account?{' '}
+          {t("Don't have an account?")}{' '}
           <Link to="/register" className="font-medium text-brand-600 hover:text-brand-700">
-            Create one
-          </Link>
+            {t("Create one")}</Link>
         </>
       }
     >
@@ -53,34 +55,33 @@ export default function LoginPage() {
         {serverError && (
           <Alert tone="error" title={serverError.message}>
             {serverError.code === 'INVALID_CREDENTIALS' && (
-              <p>Check your username and password, then try again.</p>
+              <p>{t("Check your username and password, then try again.")}</p>
             )}
-            {serverError.code === 'FORBIDDEN' && <p>This account has been disabled.</p>}
+            {serverError.code === 'FORBIDDEN' && <p>{t("This account has been disabled.")}</p>}
             <FieldErrorList details={serverError.details} />
           </Alert>
         )}
 
         <Input
-          label="Username or e-mail"
-          placeholder="Enter your username"
+          label={t("Username or e-mail")}
+          placeholder={t("Enter your username")}
           autoComplete="username"
           autoFocus
-          {...register('username', { required: 'Username is required' })}
+          {...register('username', { required: "Username is required" })}
           error={errors.username?.message}
         />
 
         <Input
-          label="Password"
+          label={t("Password")}
           type="password"
-          placeholder="Enter your password"
+          placeholder={t("Enter your password")}
           autoComplete="current-password"
-          {...register('password', { required: 'Password is required' })}
+          {...register('password', { required: "Password is required" })}
           error={errors.password?.message}
         />
 
         <Button type="submit" className="w-full" size="lg" isLoading={isSubmitting}>
-          Sign in
-        </Button>
+          {t("Sign in")}</Button>
       </form>
 
     </AuthLayout>

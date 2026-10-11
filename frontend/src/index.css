@@ -38,6 +38,14 @@
     font-family: var(--font-sans);
   }
 
+  html[lang='km'] body {
+    line-height: 1.75;
+  }
+
+  html[lang='km'] .tracking-tight {
+    letter-spacing: normal;
+  }
+
   /* Keyboard focus stays visible everywhere; pointer focus does not add a ring. */
   :focus-visible {
     @apply outline-2 outline-offset-2 outline-brand-600;
@@ -54,6 +62,18 @@
 .recharts-wrapper:focus,
 .recharts-surface:focus {
   outline: none;
+}
+
+/* Native option popups do not reliably inherit the select's background. */
+select option,
+select optgroup {
+  background-color: #fff;
+  color: var(--color-slate-900);
+}
+
+html[data-theme='dark'] select option,
+html[data-theme='dark'] select optgroup {
+  background-color: #162235;
 }
 
 html[data-theme='dark'] {

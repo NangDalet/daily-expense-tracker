@@ -1,3 +1,5 @@
+import { t } from '@/lib/language'
+import { useLanguage } from '@/context/LanguageContext'
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
@@ -15,6 +17,7 @@ interface RegisterForm extends RegisterRequest {
 }
 
 export default function RegisterPage() {
+  useLanguage()
   const { register: createAccount } = useAuth()
   const navigate = useNavigate()
   const [serverError, setServerError] = useState<ApiError | null>(null)
@@ -44,14 +47,13 @@ export default function RegisterPage() {
 
   return (
     <AuthLayout
-      title="Create your account"
-      subtitle="Start tracking your expenses in under a minute."
+      title={t("Create your account")}
+      subtitle={t("Start tracking your expenses in under a minute.")}
       footer={
         <>
-          Already have an account?{' '}
+          {t("Already have an account?")}{' '}
           <Link to="/login" className="font-medium text-brand-600 hover:text-brand-700">
-            Sign in
-          </Link>
+            {t("Sign in")}</Link>
         </>
       }
     >
@@ -59,81 +61,80 @@ export default function RegisterPage() {
         {serverError && (
           <Alert tone="error" title={serverError.message}>
             {serverError.code === 'DUPLICATE_RESOURCE' && (
-              <p>That username or e-mail address is already registered.</p>
+              <p>{t("That username or e-mail address is already registered.")}</p>
             )}
             <FieldErrorList details={serverError.details} />
           </Alert>
         )}
 
         <Input
-          label="Username"
+          label={t("Username")}
           placeholder="dana"
           autoComplete="username"
           autoFocus
           {...register('username', {
-            required: 'Username is required',
-            minLength: { value: 3, message: 'Must be at least 3 characters' },
-            maxLength: { value: 50, message: 'Must be at most 50 characters' },
+            required: "Username is required",
+            minLength: { value: 3, message: "Must be at least 3 characters" },
+            maxLength: { value: 50, message: "Must be at most 50 characters" },
             pattern: {
               value: /^[A-Za-z0-9._-]+$/,
-              message: 'Only letters, digits, dot, underscore and dash',
+              message: "Only letters, digits, dot, underscore and dash",
             },
           })}
           error={errors.username?.message}
-          hint="Letters, digits, dot, underscore and dash"
+          hint={t("Letters, digits, dot, underscore and dash")}
         />
 
         <Input
-          label="E-mail"
+          label={t("E-mail")}
           type="email"
           placeholder="dana@example.com"
           autoComplete="email"
           {...register('email', {
-            required: 'E-mail is required',
-            maxLength: { value: 255, message: 'Must be at most 255 characters' },
-            pattern: { value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: 'Enter a valid e-mail address' },
+            required: "E-mail is required",
+            maxLength: { value: 255, message: "Must be at most 255 characters" },
+            pattern: { value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: "Enter a valid e-mail address" },
           })}
           error={errors.email?.message}
         />
 
         <Input
-          label="Password"
+          label={t("Password")}
           type="password"
           placeholder="S3cret-pass!"
           autoComplete="new-password"
           {...register('password', {
-            required: 'Password is required',
-            minLength: { value: 8, message: 'Must be at least 8 characters' },
-            maxLength: { value: 72, message: 'Must be at most 72 characters' },
+            required: "Password is required",
+            minLength: { value: 8, message: "Must be at least 8 characters" },
+            maxLength: { value: 72, message: "Must be at most 72 characters" },
           })}
           error={errors.password?.message}
-          hint="At least 8 characters"
+          hint={t("At least 8 characters")}
         />
 
         <Input
-          label="Full name"
+          label={t("Full name")}
           placeholder="Dana Doe"
           autoComplete="name"
-          {...register('fullName', { maxLength: { value: 120, message: 'Must be at most 120 characters' } })}
+          {...register('fullName', { maxLength: { value: 120, message: "Must be at most 120 characters" } })}
           error={errors.fullName?.message}
-          hint="Optional"
+          hint={t("Optional")}
         />
 
         <Input
-          label="Confirm password"
+          label={t("Confirm password")}
           type="password"
           placeholder="S3cret-pass!"
           autoComplete="new-password"
           {...register('confirmPassword', {
-            required: 'Please confirm your password',
+            required: "Please confirm your password",
             validate: (value) => value === getValues('password') || 'Passwords do not match',
           })}
           error={errors.confirmPassword?.message}
         />
 
         <Button type="submit" className="w-full" size="lg" isLoading={isSubmitting}>
-          Create account
-        </Button>
+          {t("Create account")}</Button>
       </form>
     </AuthLayout>
   )

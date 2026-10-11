@@ -1,5 +1,7 @@
 import { AlertCircle, CheckCircle2, Info } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { t } from '@/lib/language'
+import { useLanguage } from '@/context/LanguageContext'
 
 export type AlertTone = 'error' | 'success' | 'info'
 
@@ -26,6 +28,7 @@ interface AlertProps {
 }
 
 export function Alert({ tone = 'error', title, children, className }: AlertProps) {
+  useLanguage()
   const { wrap, icon } = TONES[tone]
 
   return (
@@ -35,8 +38,8 @@ export function Alert({ tone = 'error', title, children, className }: AlertProps
     >
       {icon}
       <div className="min-w-0 flex-1">
-        {title && <p className="font-medium">{title}</p>}
-        {children && <div className={cn(title && 'mt-0.5', 'break-words')}>{children}</div>}
+        {title && <p className="font-medium">{t(title)}</p>}
+        {children && <div className={cn(title && 'mt-0.5', 'break-words')}>{typeof children === 'string' ? t(children) : children}</div>}
       </div>
     </div>
   )
@@ -50,14 +53,15 @@ export function FieldErrorList({
   details?: { field: string; message: string }[]
   className?: string
 }) {
+  useLanguage()
   if (!details || details.length === 0) return null
 
   return (
     <ul className={cn('mt-1.5 space-y-0.5 text-xs', className)}>
       {details.map((detail) => (
         <li key={detail.field}>
-          <span className="font-medium">{detail.field}</span>
-          <span className="text-red-700"> {detail.message}</span>
+          <span className="font-medium">{t(detail.field)}</span>
+          <span className="text-red-700"> {t(detail.message)}</span>
         </li>
       ))}
     </ul>

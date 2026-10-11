@@ -9,6 +9,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import type { PaymentMethod } from './api/types'
+import { getLanguage, getLocale, t } from './language'
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -21,7 +22,7 @@ const CURRENCY_LOCALE: Record<string, string> = {
 }
 
 export function formatMoney(amount: number, currency = 'USD'): string {
-  const locale = CURRENCY_LOCALE[currency] ?? 'en-US'
+  const locale = getLanguage() === 'km' ? getLocale() : (CURRENCY_LOCALE[currency] ?? 'en-US')
   try {
     return new Intl.NumberFormat(locale, {
       style: 'currency',
@@ -35,7 +36,7 @@ export function formatMoney(amount: number, currency = 'USD'): string {
 
 /** Compact form for chart axes, where horizontal space is tight. */
 export function formatMoneyCompact(amount: number, currency = 'USD'): string {
-  const locale = CURRENCY_LOCALE[currency] ?? 'en-US'
+  const locale = getLanguage() === 'km' ? getLocale() : (CURRENCY_LOCALE[currency] ?? 'en-US')
   try {
     return new Intl.NumberFormat(locale, {
       style: 'currency',
@@ -49,7 +50,7 @@ export function formatMoneyCompact(amount: number, currency = 'USD'): string {
 }
 
 export function formatNumber(value: number): string {
-  return new Intl.NumberFormat('en-US').format(value)
+  return new Intl.NumberFormat(getLocale()).format(value)
 }
 
 export function formatPercent(value: number): string {
@@ -60,7 +61,7 @@ export function formatPercent(value: number): string {
 export function formatDate(isoDate: string, style: 'short' | 'medium' = 'medium'): string {
   const date = parseIsoDate(isoDate)
   if (!date) return isoDate
-  return date.toLocaleDateString('en-US', {
+  return date.toLocaleDateString(getLocale(), {
     month: style === 'short' ? 'short' : 'long',
     day: 'numeric',
     ...(style === 'medium' ? { year: 'numeric' } : {}),
@@ -71,7 +72,7 @@ export function formatDateTime(isoDateTime?: string): string {
   if (!isoDateTime) return '-'
   const date = new Date(isoDateTime)
   if (Number.isNaN(date.getTime())) return isoDateTime
-  return date.toLocaleString('en-US', {
+  return date.toLocaleString(getLocale(), {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
@@ -114,7 +115,7 @@ export const MONTH_NAMES = [
 ] as const
 
 export function formatMonthYear(year: number, month: number): string {
-  return `${MONTH_NAMES[month - 1]} ${year}`
+  return `${t(MONTH_NAMES[month - 1])} ${year}`
 }
 
 export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
@@ -136,7 +137,7 @@ export const PAYMENT_METHOD_ICONS: Record<PaymentMethod, LucideIcon> = {
 }
 
 export function paymentMethodLabel(method: PaymentMethod): string {
-  return PAYMENT_METHOD_LABELS[method] ?? method
+  return t(PAYMENT_METHOD_LABELS[method] ?? method)
 }
 
 /**

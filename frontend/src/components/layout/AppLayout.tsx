@@ -1,3 +1,5 @@
+import { t } from '@/lib/language'
+import { useLanguage } from '@/context/LanguageContext'
 import { useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import {
@@ -17,11 +19,14 @@ import {
   Calculator,
   Moon,
   Sun,
+  HardHat,
 } from 'lucide-react'
+import { useConstructionAccess } from '@/hooks/construction'
 import { useAuth } from '@/context/AuthContext'
 import { useTheme } from '@/context/ThemeContext'
 import { Button } from '@/components/ui/Button'
 import { Avatar } from '@/components/layout/Avatar'
+import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher'
 import { cn } from '@/lib/utils'
 
 interface NavItem {
@@ -29,6 +34,7 @@ interface NavItem {
   label: string
   icon: typeof LayoutDashboard
   adminOnly?: boolean
+  constructionOnly?: boolean
 }
 
 const NAV_ITEMS: NavItem[] = [
@@ -41,6 +47,7 @@ const NAV_ITEMS: NavItem[] = [
   { to: '/telegram', label: 'Telegram alerts', icon: Bell },
   { to: '/profile', label: 'My profile', icon: UserRound },
   { to: '/users', label: 'Users', icon: Shield, adminOnly: true },
+  { to: '/construction', label: 'Construction payments', icon: HardHat, constructionOnly: true },
 ]
 
 /** Longest-prefix match so `/expenses` and `/categories` both resolve. */
@@ -54,15 +61,19 @@ function useActiveItem(items: NavItem[]) {
 }
 
 function Breadcrumbs() {
+  useLanguage()
   const { isAdmin } = useAuth()
-  const active = useActiveItem(NAV_ITEMS.filter((item) => !item.adminOnly || isAdmin))
+  const access = useConstructionAccess()
+  const active = useActiveItem(NAV_ITEMS.filter((item) => (!item.adminOnly || isAdmin) && (!item.constructionOnly || access.data?.allowed)))
 
   return (
-    <h1 className="truncate text-sm font-semibold text-slate-900">{active?.label ?? 'Dashboard'}</h1>
+    <h1 className="truncate text-sm font-semibold text-slate-900">{t(active?.label ?? 'Dashboard')}</h1>
   )
 }
 
 export function AppLayout() {
+  useLanguage()
+  const access = useConstructionAccess()
   const { user, isAdmin, isSuperAdmin, logout } = useAuth()
   const { theme, toggleTheme } = useTheme()
   const navigate = useNavigate()
@@ -70,8 +81,8 @@ export function AppLayout() {
   const isIncomePage = pathname.startsWith('/incomes')
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
 
-  const visibleItems = NAV_ITEMS.filter((item) => !item.adminOnly || isAdmin)
-  const roleLabel = isSuperAdmin ? 'Super administrator' : isAdmin ? 'Administrator' : 'Member'
+  const visibleItems = NAV_ITEMS.filter((item) => (!item.adminOnly || isAdmin) && (!item.constructionOnly || access.data?.allowed))
+  const roleLabel = isSuperAdmin ? t("Super administrator") : isAdmin ? t("Administrator") : t("Member")
 
   function handleLogout() {
     logout()
@@ -102,21 +113,21 @@ export function AppLayout() {
               <Wallet className="h-5 w-5" aria-hidden />
             </span>
             <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-slate-900">Expense Tracker</p>
-              <p className="truncate text-xs text-slate-500">Daily spending</p>
+              <p className="truncate text-sm font-semibold text-slate-900">{t("Expense Tracker")}</p>
+              <p className="truncate text-xs text-slate-500">{t("Daily spending")}</p>
             </div>
           </div>
           <button
             type="button"
             onClick={() => setIsSidebarOpen(false)}
             className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 lg:hidden"
-            aria-label="Close navigation"
+            aria-label={t("Close navigation")}
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
-        <nav className="flex-1 space-y-1 overflow-y-auto p-3" aria-label="Main">
+        <nav className="flex-1 space-y-1 overflow-y-auto p-3" aria-label={t("Main")}>
           {visibleItems.map((item) => (
             <NavLink
               key={item.to}
@@ -133,14 +144,14 @@ export function AppLayout() {
               }
             >
               <item.icon className="h-4.5 w-4.5 shrink-0" aria-hidden />
-              <span className="truncate">{item.label}</span>
+              <span className="truncate">{t(item.label)}</span>
             </NavLink>
           ))}
         </nav>
 
         <div className="border-t border-slate-200 p-3">
           <div className="flex items-center gap-3 rounded-lg px-2 py-2">
-            <NavLink to="/profile" aria-label="Edit my profile"><Avatar name={user?.fullName || user?.username} src={user?.avatarUrl} /></NavLink>
+            <NavLink to="/profile" aria-label={t("Edit my profile")}><Avatar name={user?.fullName || user?.username} src={user?.avatarUrl} /></NavLink>
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium text-slate-900">
                 {user?.fullName || user?.username}
@@ -150,8 +161,8 @@ export function AppLayout() {
             <button
               type="button"
               onClick={handleLogout}
-              aria-label="Sign out"
-              title="Sign out"
+              aria-label={t("Sign out")}
+              title={t("Sign out")}
               className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-red-600"
             >
               <LogOut className="h-4.5 w-4.5" />
@@ -166,7 +177,7 @@ export function AppLayout() {
             type="button"
             onClick={() => setIsSidebarOpen(true)}
             className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 lg:hidden"
-            aria-label="Open navigation"
+            aria-label={t("Open navigation")}
           >
             <Menu className="h-5 w-5" />
           </button>
@@ -175,13 +186,14 @@ export function AppLayout() {
             <Breadcrumbs />
           </div>
 
-          <button type="button" onClick={toggleTheme} aria-label={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
-            title={theme === 'light' ? 'Dark mode' : 'Light mode'} className="rounded-lg p-2 text-slate-600 hover:bg-slate-100">
+          <LanguageSwitcher />
+          <button type="button" onClick={toggleTheme} aria-label={theme === 'light' ? t("Switch to dark mode") : t("Switch to light mode")}
+            title={theme === 'light' ? t("Dark mode") : t("Light mode")} className="rounded-lg p-2 text-slate-600 hover:bg-slate-100">
             {theme === 'light' ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
           </button>
           <Button size="sm" onClick={() => navigate(isIncomePage ? '/incomes?new=1' : '/expenses?new=1')}>
             <Plus className="h-4 w-4" aria-hidden />
-            <span className="hidden sm:inline">{isIncomePage ? 'Add income' : 'Add expense'}</span>
+            <span className="hidden sm:inline">{isIncomePage ? t("Add income") : t("Add expense")}</span>
           </Button>
         </header>
 
@@ -202,11 +214,12 @@ export function PageHeading({
   description?: string
   action?: React.ReactNode
 }) {
+  useLanguage()
   return (
     <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
       <div>
-        <h1 className="text-xl font-semibold tracking-tight text-slate-900">{title}</h1>
-        {description && <p className="mt-1 text-sm text-slate-500">{description}</p>}
+        <h1 className="text-xl font-semibold tracking-tight text-slate-900">{t(title)}</h1>
+        {description && <p className="mt-1 text-sm text-slate-500">{t(description)}</p>}
       </div>
       {action}
     </div>

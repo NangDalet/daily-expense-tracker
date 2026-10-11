@@ -1,9 +1,22 @@
+import { t } from '@/lib/language'
+import { useLanguage } from '@/context/LanguageContext'
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
 import { Spinner } from '@/components/ui/States'
+import { useConstructionAccess } from '@/hooks/construction'
+
+export function RequireConstruction() {
+  useLanguage()
+  const access = useConstructionAccess()
+  if (access.isPending) return <div className="p-6"><Spinner /></div>
+  if (access.isError) return <p role="alert" className="p-6">{t("Unable to check construction access.")}{' '}<button onClick={() => void access.refetch()}>{t("Retry")}</button></p>
+  if (!access.data?.allowed) return <Navigate to="/" replace />
+  return <Outlet />
+}
 
 /** Requires an authenticated session; remembers the attempted location. */
 export function RequireAuth() {
+  useLanguage()
   const { isAuthenticated, isInitialising } = useAuth()
   const location = useLocation()
 
@@ -29,6 +42,7 @@ export function RequireAuth() {
  * /api/v1/users. A super administrator passes because they outrank ADMIN.
  */
 export function RequireAdmin() {
+  useLanguage()
   const { isAdmin } = useAuth()
   if (!isAdmin) return <Navigate to="/" replace />
   return <Outlet />
@@ -36,6 +50,7 @@ export function RequireAdmin() {
 
 /** Keeps a signed-in user away from the auth screens. */
 export function RedirectIfAuthenticated() {
+  useLanguage()
   const { isAuthenticated, isInitialising } = useAuth()
 
   if (isInitialising) {

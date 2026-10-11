@@ -1,6 +1,8 @@
 import { forwardRef, useId } from 'react'
 import type { InputHTMLAttributes, ReactNode, TextareaHTMLAttributes } from 'react'
 import { cn } from '@/lib/utils'
+import { t } from '@/lib/language'
+import { useLanguage } from '@/context/LanguageContext'
 
 interface FieldShellProps {
   label?: string
@@ -21,22 +23,23 @@ export function Field({
   children,
   className,
 }: FieldShellProps) {
+  useLanguage()
   return (
     <div className={cn('space-y-1.5', className)}>
       {label && (
         <label htmlFor={id} className="block text-sm font-medium text-slate-700">
-          {label}
+          {t(label)}
           {required && <span className="ml-0.5 text-red-500">*</span>}
         </label>
       )}
       {children}
       {error ? (
         <p id={`${id}-error`} role="alert" className="text-xs text-red-600">
-          {error}
+          {t(error)}
         </p>
       ) : hint ? (
         <p id={`${id}-hint`} className="text-xs text-slate-500">
-          {hint}
+          {t(hint)}
         </p>
       ) : null}
     </div>

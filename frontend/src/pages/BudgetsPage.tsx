@@ -1,3 +1,5 @@
+import { t } from '@/lib/language'
+import { useLanguage } from '@/context/LanguageContext'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { ChevronLeft, ChevronRight, Pencil, Plus, Target, Trash2, Wallet } from 'lucide-react'
@@ -40,6 +42,7 @@ function currentPeriod() {
 }
 
 export default function BudgetsPage() {
+  useLanguage()
   const { year, month } = currentPeriod()
   const [period, setPeriod] = useState({ year, month })
   const [deletingUsage, setDeletingUsage] = useState<BudgetUsageResponse | null>(null)
@@ -87,22 +90,20 @@ export default function BudgetsPage() {
   const categorySummary = CURRENCIES.map((currency) => {
     const entries = perCategory.filter((entry) => entry.budget.currency === currency)
     if (!entries.length) return null
-    return `${formatMoney(entries.reduce((sum, entry) => sum + entry.spentAmount, 0), currency)} spent of ${formatMoney(entries.reduce((sum, entry) => sum + entry.budget.monthlyLimit, 0), currency)}`
+    return t("{0} spent of {1}", [formatMoney(entries.reduce((sum, entry) => sum + entry.spentAmount, 0), currency), formatMoney(entries.reduce((sum, entry) => sum + entry.budget.monthlyLimit, 0), currency)])
   }).filter(Boolean).join(' | ')
 
   return (
     <div className="mx-auto max-w-5xl">
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-xl font-semibold tracking-tight text-slate-900">Budgets</h1>
+          <h1 className="text-xl font-semibold tracking-tight text-slate-900">{t("Budgets")}</h1>
           <p className="mt-1 text-sm text-slate-500">
-            Monthly limits overall and per category.
-          </p>
+            {t("Monthly limits overall and per category.")}</p>
         </div>
         <Button onClick={openCreate}>
           <Plus className="h-4 w-4" aria-hidden />
-          Set budget
-        </Button>
+          {t("Set budget")}</Button>
       </div>
 
       <div className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
@@ -110,17 +111,17 @@ export default function BudgetsPage() {
           variant="outline"
           size="sm"
           onClick={() => shiftPeriod(-1)}
-          aria-label="Previous month"
+          aria-label={t("Previous month")}
         >
           <ChevronLeft className="h-4 w-4" aria-hidden />
-          <span className="hidden sm:inline">Previous</span>
+          <span className="hidden sm:inline">{t("Previous")}</span>
         </Button>
 
         <div className="flex items-center gap-2">
           <span className="text-sm font-semibold text-slate-900">
             {formatMonthYear(period.year, period.month)}
           </span>
-          {isCurrentMonth && <Badge tone="brand">Current</Badge>}
+          {isCurrentMonth && <Badge tone="brand">{t("Current")}</Badge>}
         </div>
 
         <Button
@@ -128,9 +129,9 @@ export default function BudgetsPage() {
           size="sm"
           onClick={() => shiftPeriod(1)}
           disabled={period.year >= YEAR_CEIL && period.month === 12}
-          aria-label="Next month"
+          aria-label={t("Next month")}
         >
-          <span className="hidden sm:inline">Next</span>
+          <span className="hidden sm:inline">{t("Next")}</span>
           <ChevronRight className="h-4 w-4" aria-hidden />
         </Button>
       </div>
@@ -138,26 +139,25 @@ export default function BudgetsPage() {
       {isError ? (
         <Card>
           <ErrorState
-            title="Could not load budgets"
+            title={t("Could not load budgets")}
             message={error instanceof Error ? error.message : undefined}
             onRetry={() => void refetch()}
           />
         </Card>
       ) : isPending ? (
         <Card>
-          <LoadingBlock label="Loading budgets" />
+          <LoadingBlock label={t("Loading budgets")} />
         </Card>
       ) : (usage?.length ?? 0) === 0 ? (
         <Card>
           <EmptyState
             icon={<Target className="h-6 w-6" aria-hidden />}
-            title={`No budgets for ${formatMonthYear(period.year, period.month)}`}
-            description="Set an overall limit or a per-category limit to start tracking."
+            title={t("No budgets for {0}", [formatMonthYear(period.year, period.month)])}
+            description={t("Set an overall limit or a per-category limit to start tracking.")}
             action={
               <Button size="sm" onClick={openCreate}>
                 <Plus className="h-4 w-4" aria-hidden />
-                Set budget
-              </Button>
+                {t("Set budget")}</Button>
             }
           />
         </Card>
@@ -169,19 +169,18 @@ export default function BudgetsPage() {
                 title={
                   <span className="flex items-center gap-2">
                     <Wallet className="h-4 w-4 text-slate-400" aria-hidden />
-                    Overall budget
-                  </span>
+                    {t("Overall budget")}</span>
                 }
-                description={`${formatMoney(overall.spentAmount, overall.budget.currency)} spent of ${formatMoney(
+                description={t("{0} spent of {1} across {2} expenses", [formatMoney(overall.spentAmount, overall.budget.currency), formatMoney(
                   overall.budget.monthlyLimit, overall.budget.currency,
-                )} across ${formatNumber(overall.expenseCount)} expenses`}
+                ), formatNumber(overall.expenseCount)])}
                 action={
                   <div className="flex items-center gap-1">
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => openEdit(overall)}
-                      aria-label="Edit overall budget"
+                      aria-label={t("Edit overall budget")}
                     >
                       <Pencil className="h-4 w-4" />
                     </Button>
@@ -190,7 +189,7 @@ export default function BudgetsPage() {
                       size="sm"
                       className="text-slate-400 hover:text-red-600"
                       onClick={() => setDeletingUsage(overall)}
-                      aria-label="Delete overall budget"
+                      aria-label={t("Delete overall budget")}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -200,7 +199,7 @@ export default function BudgetsPage() {
               <CardBody className="space-y-2">
                 <ProgressBar
                   percentage={overall.usagePercentage}
-                  label="Overall budget usage"
+                  label={t("Overall budget usage")}
                   className="h-2.5"
                 />
                 <div className="flex items-center justify-between text-xs">
@@ -211,8 +210,8 @@ export default function BudgetsPage() {
                     )}
                   >
                     {overall.exceeded
-                      ? `Over budget by ${formatMoney(Math.abs(overall.remainingAmount), overall.budget.currency)}`
-                      : `${formatMoney(overall.remainingAmount, overall.budget.currency)} remaining`}
+                      ? t("Over budget by {0}", [formatMoney(Math.abs(overall.remainingAmount), overall.budget.currency)])
+                      : t("{0} remaining", [formatMoney(overall.remainingAmount, overall.budget.currency)])}
                   </span>
                   <span className="tabular-nums text-slate-500">
                     {formatPercent(overall.usagePercentage)}
@@ -225,7 +224,7 @@ export default function BudgetsPage() {
           {perCategory.length > 0 && (
             <Card>
               <CardHeader
-                title="Category budgets"
+                title={t("Category budgets")}
                 description={categorySummary}
               />
               <ul className="divide-y divide-slate-100">
@@ -243,7 +242,7 @@ export default function BudgetsPage() {
                         <div className="min-w-0 flex-1">
                           <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
                             <span className="truncate text-sm font-medium text-slate-900">
-                              {entry.budget.category?.name ?? 'Unknown category'}
+                              {entry.budget.category?.name ?? t("Unknown category")}
                             </span>
                             <span className="text-xs tabular-nums text-slate-500">
                               <span
@@ -261,20 +260,19 @@ export default function BudgetsPage() {
 
                           <ProgressBar
                             percentage={entry.usagePercentage}
-                            label={`${entry.budget.category?.name ?? 'Category'} usage`}
+                            label={t("{0} usage", [entry.budget.category?.name ?? 'Category'])}
                             className="mt-2"
                           />
 
                           <div className="mt-1.5 flex items-center justify-between text-[11px] text-slate-500">
                             <span>
                               {formatNumber(entry.expenseCount)}{' '}
-                              {entry.expenseCount === 1 ? 'expense' : 'expenses'} ·{' '}
-                              {formatPercent(entry.usagePercentage)} used
-                            </span>
+                              {entry.expenseCount === 1 ? t("expense") : t("expenses")} ·{' '}
+                              {formatPercent(entry.usagePercentage)} {t("used")}</span>
                             <span className={cn(entry.exceeded && 'font-medium text-red-600')}>
                               {entry.exceeded
-                                ? `${formatMoney(Math.abs(entry.remainingAmount), entry.budget.currency)} over`
-                                : `${formatMoney(entry.remainingAmount, entry.budget.currency)} left`}
+                                ? t("{0} over", [formatMoney(Math.abs(entry.remainingAmount), entry.budget.currency)])
+                                : t("{0} left", [formatMoney(entry.remainingAmount, entry.budget.currency)])}
                             </span>
                           </div>
                         </div>
@@ -283,7 +281,7 @@ export default function BudgetsPage() {
                           <button
                             type="button"
                             onClick={() => openEdit(entry)}
-                            aria-label={`Edit ${entry.budget.category?.name ?? 'category'} budget`}
+                            aria-label={t("Edit {0} budget", [entry.budget.category?.name ?? 'category'])}
                             className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
                           >
                             <Pencil className="h-4 w-4" />
@@ -291,7 +289,7 @@ export default function BudgetsPage() {
                           <button
                             type="button"
                             onClick={() => setDeletingUsage(entry)}
-                            aria-label={`Delete ${entry.budget.category?.name ?? 'category'} budget`}
+                            aria-label={t("Delete {0} budget", [entry.budget.category?.name ?? 'category'])}
                             className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600"
                           >
                             <Trash2 className="h-4 w-4" />
@@ -310,11 +308,11 @@ export default function BudgetsPage() {
       <Modal
         open={isFormOpen}
         onClose={() => setIsFormOpen(false)}
-        title={formSeed ? 'Edit budget' : 'Set a budget'}
+        title={formSeed ? t("Edit budget") : t("Set a budget")}
         description={
           formSeed
-            ? 'The category of an existing budget is immutable; the currency, limit and period can change.'
-            : 'Pick a category, or leave it empty for the overall limit.'
+            ? t("The category of an existing budget is immutable; the currency, limit and period can change.")
+            : t("Pick a category, or leave it empty for the overall limit.")
         }
         size="md"
       >
@@ -346,13 +344,11 @@ export default function BudgetsPage() {
 
       <ConfirmDialog
         open={deletingUsage !== null}
-        title="Delete budget"
-        description={`The ${formatMonthYear(
+        title={t("Delete budget")}
+        description={t("The {0} budget for {1} will be removed. Recorded expenses are not affected.", [formatMonthYear(
           deletingUsage?.budget.year ?? period.year,
           deletingUsage?.budget.month ?? period.month,
-        )} budget for ${
-          deletingUsage?.budget.category?.name ?? 'the overall limit'
-        } will be removed. Recorded expenses are not affected.`}
+        ), deletingUsage?.budget.category?.name ?? t("the overall limit")])}
         isPending={deleteBudget.isPending}
         error={deleteBudget.error instanceof ApiError ? deleteBudget.error : null}
         onConfirm={handleDelete}
@@ -390,6 +386,7 @@ function BudgetForm({
   onSubmit,
   onCancel,
 }: BudgetFormProps) {
+  useLanguage()
   const isEditing = Boolean(seed)
   const {
     register,
@@ -430,8 +427,8 @@ function BudgetForm({
       )}
 
       <Select
-        label="Category"
-        placeholder="Overall budget (no category)"
+        label={t("Category")}
+        placeholder={t("Overall budget (no category)")}
         options={(categories ?? []).map((category) => ({
           value: category.id,
           label: category.name,
@@ -439,18 +436,18 @@ function BudgetForm({
         disabled={isEditing}
         {...register('categoryId')}
         error={errors.categoryId?.message}
-        hint={isEditing ? 'The category of an existing budget cannot be changed.' : undefined}
+        hint={isEditing ? t("The category of an existing budget cannot be changed.") : undefined}
       />
 
       <Select
-        label="Currency"
+        label={t("Currency")}
         options={CURRENCIES.map((code) => ({ value: code, label: code }))}
         {...register('currency', { required: true })}
-        hint="Only spending in this currency counts toward this budget."
+        hint={t("Only spending in this currency counts toward this budget.")}
       />
 
       <Input
-        label="Monthly limit"
+        label={t("Monthly limit")}
         type="number"
         step="0.01"
         min="0.01"
@@ -459,11 +456,11 @@ function BudgetForm({
         required
         autoFocus={!isEditing}
         {...register('monthlyLimit', {
-          required: 'A monthly limit is required',
+          required: "A monthly limit is required",
           validate: (value) => {
             const parsed = Number(value)
-            if (!Number.isFinite(parsed)) return 'Enter a valid amount'
-            if (parsed <= 0) return 'The limit must be greater than 0'
+            if (!Number.isFinite(parsed)) return t("Enter a valid amount")
+            if (parsed <= 0) return t("The limit must be greater than 0")
             return true
           },
         })}
@@ -472,13 +469,13 @@ function BudgetForm({
 
       <div className="grid gap-4 sm:grid-cols-2">
         <Select
-          label="Month"
-          options={MONTH_NAMES.map((name, index) => ({ value: String(index + 1), label: name }))}
+          label={t("Month")}
+          options={MONTH_NAMES.map((name, index) => ({ value: String(index + 1), label: t(name) }))}
           {...register('month', { required: true })}
           error={errors.month?.message}
         />
         <Select
-          label="Year"
+          label={t("Year")}
           options={years.map((value) => ({ value: String(value), label: String(value) }))}
           {...register('year', { required: true })}
           error={errors.year?.message}
@@ -487,10 +484,9 @@ function BudgetForm({
 
       <div className="flex items-center justify-end gap-2 border-t border-slate-200 pt-4">
         <Button type="button" variant="ghost" onClick={onCancel} disabled={isPending}>
-          Cancel
-        </Button>
+          {t("Cancel")}</Button>
         <Button type="submit" isLoading={isPending}>
-          {isEditing ? 'Save changes' : 'Save budget'}
+          {isEditing ? t("Save changes") : t("Save budget")}
         </Button>
       </div>
     </form>

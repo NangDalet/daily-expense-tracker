@@ -1,3 +1,5 @@
+import { t } from '@/lib/language'
+import { useLanguage } from '@/context/LanguageContext'
 import { useEffect, useMemo } from 'react'
 import { useForm } from 'react-hook-form'
 import { Alert, FieldErrorList } from '@/components/ui/Alert'
@@ -41,6 +43,7 @@ interface IncomeFormProps {
 }
 
 export function IncomeForm({ income, onSuccess, onCancel }: IncomeFormProps) {
+  useLanguage()
   const isEditing = Boolean(income)
   const { data: categories } = useCategories()
   const createIncome = useCreateIncome()
@@ -143,14 +146,14 @@ export function IncomeForm({ income, onSuccess, onCancel }: IncomeFormProps) {
     <form onSubmit={onSubmit} noValidate className="space-y-4">
       {error && (
         <Alert tone="error" title={error.message}>
-          {error.code === 'NOT_FOUND' && <p>That category no longer exists. Pick another one.</p>}
+          {error.code === 'NOT_FOUND' && <p>{t("That category no longer exists. Pick another one.")}</p>}
           <FieldErrorList details={error.details} />
         </Alert>
       )}
 
       <div className="grid gap-4 sm:grid-cols-2">
         <Input
-          label="Amount"
+          label={t("Amount")}
           type="number"
           step="0.01"
           min="0.01"
@@ -159,7 +162,7 @@ export function IncomeForm({ income, onSuccess, onCancel }: IncomeFormProps) {
           required
           autoFocus
           {...register('amount', {
-            required: 'Amount is required',
+            required: "Amount is required",
             validate: (value) => {
               const parsed = Number.parseFloat(value)
               if (!Number.isFinite(parsed)) return 'Enter a valid amount'
@@ -172,10 +175,10 @@ export function IncomeForm({ income, onSuccess, onCancel }: IncomeFormProps) {
         />
 
         <Select
-          label="Currency"
+          label={t("Currency")}
           options={CURRENCIES.map((code) => ({ value: code, label: code }))}
           {...register('currency', {
-            required: 'Currency is required',
+            required: "Currency is required",
             validate: (value) => CURRENCIES.some((code) => code === value) || 'Currency must be USD or KHR',
           })}
           error={errors.currency?.message}
@@ -184,15 +187,15 @@ export function IncomeForm({ income, onSuccess, onCancel }: IncomeFormProps) {
 
       <div className="grid gap-4 sm:grid-cols-2">
         <Input
-          label="Date"
+          label={t("Date")}
           type="date"
           required
-          {...register('incomeDate', { required: 'Date is required' })}
+          {...register('incomeDate', { required: "Date is required" })}
           error={errors.incomeDate?.message}
         />
 
         <Select
-          label="Payment method"
+          label={t("Payment method")}
           options={PAYMENT_METHODS.map((method) => ({
             value: method,
             label: paymentMethodLabel(method),
@@ -203,42 +206,42 @@ export function IncomeForm({ income, onSuccess, onCancel }: IncomeFormProps) {
       </div>
 
       <Select
-        label="Category"
-        placeholder="No category"
+        label={t("Category")}
+        placeholder={t("No category")}
         options={categoryOptions}
         {...register('categoryId')}
         error={errors.categoryId?.message}
         hint={
           selectedCategory
-            ? `Colour ${resolveColor(selectedCategory.colorHex, selectedCategory.id)}`
-            : 'Income may exist without a category'
+            ? t("Colour {0}", [resolveColor(selectedCategory.colorHex, selectedCategory.id)])
+            : t("Income may exist without a category")
         }
       />
 
       <Textarea
-        label="Description"
-        placeholder="Monthly salary"
-        {...register('description', { maxLength: { value: 500, message: 'Must be at most 500 characters' } })}
+        label={t("Description")}
+        placeholder={t("Monthly salary")}
+        {...register('description', { maxLength: { value: 500, message: "Must be at most 500 characters" } })}
         error={errors.description?.message}
       />
 
       <Input
-        label="Tags"
-        placeholder="recurring, shared"
+        label={t("Tags")}
+        placeholder={t("recurring, shared")}
         {...register('tags')}
         error={errors.tags?.message}
-        hint="Comma separated, up to 20 tags"
+        hint={t("Comma separated, up to 20 tags")}
       />
 
       <Input
-        label="Receipt URL"
+        label={t("Receipt URL")}
         type="url"
         placeholder="https://..."
         {...register('receiptUrl', {
-          maxLength: { value: 500, message: 'Must be at most 500 characters' },
+          maxLength: { value: 500, message: "Must be at most 500 characters" },
           pattern: {
             value: /^$|^https?:\/\/\S+$/,
-            message: 'Enter a valid http(s) URL',
+            message: "Enter a valid http(s) URL",
           },
         })}
         error={errors.receiptUrl?.message}
@@ -247,11 +250,10 @@ export function IncomeForm({ income, onSuccess, onCancel }: IncomeFormProps) {
       <div className="flex items-center justify-end gap-2 border-t border-slate-200 pt-4">
         {onCancel && (
           <Button type="button" variant="ghost" onClick={onCancel} disabled={isSubmitting}>
-            Cancel
-          </Button>
+            {t("Cancel")}</Button>
         )}
         <Button type="submit" isLoading={isSubmitting}>
-          {isEditing ? 'Save changes' : 'Add income'}
+          {isEditing ? t("Save changes") : t("Add income")}
         </Button>
       </div>
     </form>

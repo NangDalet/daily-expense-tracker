@@ -1,3 +1,5 @@
+import { t } from '@/lib/language'
+import { useLanguage } from '@/context/LanguageContext'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { Button } from './Button'
 import { formatNumber } from '@/lib/utils'
@@ -21,6 +23,7 @@ export function Pagination({
   onPageChange,
   onPageSizeChange,
 }: PaginationProps) {
+  useLanguage()
   if (totalElements === 0) return null
 
   const firstRow = page * pageSize + 1
@@ -30,11 +33,11 @@ export function Pagination({
     <div className="flex flex-col items-center justify-between gap-3 border-t border-slate-200 px-4 py-3 sm:flex-row">
       <div className="flex items-center gap-3 text-xs text-slate-500">
         <span className="tabular-nums">
-          {formatNumber(firstRow)}-{formatNumber(lastRow)} of {formatNumber(totalElements)}
+          {formatNumber(firstRow)}-{formatNumber(lastRow)} {' '}{t("of")}{' '}{formatNumber(totalElements)}
         </span>
         {onPageSizeChange && (
           <label className="flex items-center gap-1.5">
-            <span className="sr-only sm:not-sr-only">Rows</span>
+            <span className="sr-only sm:not-sr-only">{t("Rows")}</span>
             <select
               value={pageSize}
               onChange={(event) => onPageSizeChange(Number(event.target.value))}
@@ -58,10 +61,9 @@ export function Pagination({
           onClick={() => onPageChange(page - 1)}
         >
           <ChevronLeft className="h-4 w-4" aria-hidden />
-          Previous
-        </Button>
+          {t("Previous")}</Button>
         <span className="text-xs tabular-nums text-slate-600">
-          Page {page + 1} of {Math.max(totalPages, 1)}
+          {t("Page")}{' '}{page + 1} {' '}{t("of")}{' '}{Math.max(totalPages, 1)}
         </span>
         <Button
           variant="outline"
@@ -69,8 +71,7 @@ export function Pagination({
           disabled={page + 1 >= totalPages}
           onClick={() => onPageChange(page + 1)}
         >
-          Next
-          <ChevronRight className="h-4 w-4" aria-hidden />
+          {t("Next")}<ChevronRight className="h-4 w-4" aria-hidden />
         </Button>
       </div>
     </div>

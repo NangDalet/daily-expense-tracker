@@ -1,3 +1,4 @@
+import { t, getLocale, getLanguage } from '@/lib/language'
 import { expenseApi } from '@/lib/api/endpoints'
 import type { ExpenseFilterParams, ExpenseResponse } from '@/lib/api/types'
 import type { ContentText, CustomTableLayout, TableCell, TDocumentDefinitions } from 'pdfmake/interfaces'
@@ -27,14 +28,14 @@ function totalsByCurrency(expenses: ExpenseResponse[]): CurrencyTotal[] {
 
 export function describeExportFilters(filter: ExpenseFilterParams, categoryName?: string): string {
   const labels: string[] = []
-  if (filter.search) labels.push('Search: ' + filter.search)
-  if (filter.categoryId) labels.push('Category: ' + (categoryName ?? 'Selected category'))
-  if (filter.fromDate) labels.push('From: ' + filter.fromDate)
-  if (filter.toDate) labels.push('To: ' + filter.toDate)
-  if (filter.minAmount !== undefined) labels.push('Minimum amount: ' + filter.minAmount)
-  if (filter.maxAmount !== undefined) labels.push('Maximum amount: ' + filter.maxAmount)
-  if (filter.paymentMethods?.length) labels.push('Payment: ' + filter.paymentMethods.map(paymentMethodLabel).join(', '))
-  return labels.length ? labels.join(' | ') : 'All expenses'
+  if (filter.search) labels.push(t("Search: ") + filter.search)
+  if (filter.categoryId) labels.push(t("Category: ") + (categoryName ?? t("Selected category")))
+  if (filter.fromDate) labels.push(t("From: ") + filter.fromDate)
+  if (filter.toDate) labels.push(t("To: ") + filter.toDate)
+  if (filter.minAmount !== undefined) labels.push(t("Minimum amount: ") + filter.minAmount)
+  if (filter.maxAmount !== undefined) labels.push(t("Maximum amount: ") + filter.maxAmount)
+  if (filter.paymentMethods?.length) labels.push(t("Payment: ") + filter.paymentMethods.map(paymentMethodLabel).join(', '))
+  return labels.length ? labels.join(' | ') : t("All expenses")
 }
 
 /** Fetch every matching page using the same authenticated API as the expense list. */
@@ -75,23 +76,23 @@ async function createExcel(expenses: ExpenseResponse[], filters: string): Promis
   workbook.creator = 'Daily Expense Tracker'
   workbook.created = new Date()
 
-  const sheet = workbook.addWorksheet('Expenses', { views: [{ state: 'frozen', ySplit: 1 }] })
+  const sheet = workbook.addWorksheet(t("Expenses"), { views: [{ state: 'frozen', ySplit: 1 }] })
   sheet.columns = [
-    { header: 'Date', key: 'date', width: 14 },
-    { header: 'Description', key: 'description', width: 45 },
-    { header: 'Category', key: 'category', width: 24 },
-    { header: 'Payment method', key: 'payment', width: 22 },
-    { header: 'Amount', key: 'amount', width: 18 },
-    { header: 'Currency', key: 'currency', width: 12 },
-    { header: 'Tags', key: 'tags', width: 30 },
-    { header: 'Receipt URL', key: 'receipt', width: 45 },
+    { header: t("Date"), key: 'date', width: 14 },
+    { header: t("Description"), key: 'description', width: 45 },
+    { header: t("Category"), key: 'category', width: 24 },
+    { header: t("Payment method"), key: 'payment', width: 22 },
+    { header: t("Amount"), key: 'amount', width: 18 },
+    { header: t("Currency"), key: 'currency', width: 12 },
+    { header: t("Tags"), key: 'tags', width: 30 },
+    { header: t("Receipt URL"), key: 'receipt', width: 45 },
   ]
   for (const expense of expenses) {
     // String cells stay plain text, including descriptions beginning with "=".
     sheet.addRow({
       date: new Date(expense.expenseDate + 'T00:00:00.000Z'),
       description: expense.description ?? '',
-      category: expense.category?.name ?? 'Uncategorised',
+      category: expense.category?.name ?? t("Uncategorised"),
       payment: paymentMethodLabel(expense.paymentMethod),
       amount: expense.amount,
       currency: expense.currency,
@@ -104,17 +105,17 @@ async function createExcel(expenses: ExpenseResponse[], filters: string): Promis
   sheet.getColumn('description').alignment = { vertical: 'top', wrapText: true }
   sheet.autoFilter = { from: 'A1', to: 'H' + sheet.rowCount }
 
-  const summary = workbook.addWorksheet('Summary')
+  const summary = workbook.addWorksheet(t("Summary"))
   summary.columns = [
-    { header: 'Currency', key: 'currency', width: 18 },
-    { header: 'Expense count', key: 'count', width: 20 },
-    { header: 'Total amount', key: 'amount', width: 24 },
+    { header: t("Currency"), key: 'currency', width: 18 },
+    { header: t("Expense count"), key: 'count', width: 20 },
+    { header: t("Total amount"), key: 'amount', width: 24 },
   ]
   summary.addRows(totalsByCurrency(expenses))
   summary.getColumn('amount').numFmt = '#,##0.00'
   summary.addRow([])
-  summary.addRow(['Exported', new Date().toISOString()])
-  summary.addRow(['Filters', filters])
+  summary.addRow([t("Exported"), new Date().toISOString()])
+  summary.addRow([t("Filters"), filters])
   summary.getColumn(2).alignment = { wrapText: true }
 
   for (const worksheet of [sheet, summary]) {
@@ -161,7 +162,7 @@ async function createPdf(expenses: ExpenseResponse[], filters: string): Promise<
   })
 
   const header = (labels: string[]): TableCell[] => labels.map((text) => ({
-    text, bold: true, color: '#ffffff', fillColor: '#4f46e5',
+    ...pdfText(text), bold: true, color: '#ffffff', fillColor: '#4f46e5',
   }))
   const layout: CustomTableLayout = {
     hLineWidth: () => 0,
@@ -176,23 +177,23 @@ async function createPdf(expenses: ExpenseResponse[], filters: string): Promise<
     pageSize: 'A4',
     pageOrientation: 'landscape',
     pageMargins: [40, 40, 40, 42],
-    info: { title: 'Expense report', creator: 'Daily Expense Tracker' },
-    defaultStyle: { font: 'Roboto', fontSize: 8, color: '#334155', lineHeight: 1.25 },
+    info: { title: t("Expense report"), creator: 'Daily Expense Tracker' },
+    defaultStyle: { font: getLanguage() === 'km' ? 'NotoSansKhmer' : 'Roboto', fontSize: 8, color: '#334155', lineHeight: 1.25 },
     content: [
-      { text: 'Expense report', fontSize: 18, bold: true, margin: [0, 0, 0, 8] },
-      { text: 'Exported: ' + new Date().toLocaleString() + ' | ' + expenses.length + ' expenses', fontSize: 9, margin: [0, 0, 0, 6] },
-      { ...pdfText('Filters: ' + filters), fontSize: 9, margin: [0, 0, 0, 12] },
+      { ...pdfText(t("Expense report")), fontSize: 18, bold: true, margin: [0, 0, 0, 8] },
+      { ...pdfText(t("Exported: ") + new Date().toLocaleString(getLocale()) + ' | ' + expenses.length + t(" expenses")), fontSize: 9, margin: [0, 0, 0, 6] },
+      { ...pdfText(t("Filters: ") + filters), fontSize: 9, margin: [0, 0, 0, 12] },
       {
         table: {
           headerRows: 1,
           widths: [60, '*', 85, 76, 58, 40, 90],
           body: [
-            header(['Date', 'Description', 'Category', 'Payment method', 'Amount', 'Currency', 'Tags']),
+            header([t("Date"), t("Description"), t("Category"), t("Payment method"), t("Amount"), t("Currency"), t("Tags")]),
             ...expenses.map((expense): TableCell[] => [
               expense.expenseDate,
               pdfText(expense.description ?? ''),
-              pdfText(expense.category?.name ?? 'Uncategorised'),
-              paymentMethodLabel(expense.paymentMethod),
+              pdfText(expense.category?.name ?? t("Uncategorised")),
+              pdfText(paymentMethodLabel(expense.paymentMethod)),
               { text: expense.amount.toFixed(2), alignment: 'right' },
               expense.currency,
               pdfText((expense.tags ?? []).join(', ')),
@@ -207,7 +208,7 @@ async function createPdf(expenses: ExpenseResponse[], filters: string): Promise<
           headerRows: 1,
           widths: [72, 92, 92],
           body: [
-            header(['Currency', 'Expense count', 'Total amount']),
+            header([t("Currency"), t("Expense count"), t("Total amount")]),
             ...totalsByCurrency(expenses).map((total): TableCell[] => [
               total.currency, String(total.count), { text: total.amount.toFixed(2), alignment: 'right' },
             ]),
@@ -217,7 +218,7 @@ async function createPdf(expenses: ExpenseResponse[], filters: string): Promise<
       },
     ],
     footer: (page, pages) => ({
-      text: 'Page ' + page + ' of ' + pages,
+      text: t("Page ") + page + t(" of ") + pages,
       alignment: 'right', fontSize: 8, color: '#64748b', margin: [40, 12, 40, 0],
     }),
   }

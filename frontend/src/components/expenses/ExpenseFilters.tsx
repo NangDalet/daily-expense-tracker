@@ -1,3 +1,5 @@
+import { t } from '@/lib/language'
+import { useLanguage } from '@/context/LanguageContext'
 import { useEffect, useState } from 'react'
 import { Filter, RotateCcw, Search } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
@@ -67,6 +69,7 @@ interface ExpenseFiltersProps {
 }
 
 export function ExpenseFilters({ value, onChange, onReset }: ExpenseFiltersProps) {
+  useLanguage()
   const { data: categories } = useCategories()
   const [isExpanded, setIsExpanded] = useState(false)
   const [searchDraft, setSearchDraft] = useState(value.search)
@@ -106,8 +109,8 @@ export function ExpenseFilters({ value, onChange, onReset }: ExpenseFiltersProps
             type="search"
             value={searchDraft}
             onChange={(event) => setSearchDraft(event.target.value)}
-            placeholder="Search descriptions or amounts"
-            aria-label="Search expenses"
+            placeholder={t("Search descriptions or amounts")}
+            aria-label={t("Search expenses")}
             className="h-10 w-full rounded-lg border border-slate-300 bg-white pr-3 pl-9 text-sm text-slate-900 placeholder:text-slate-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/40 focus:outline-none"
           />
         </div>
@@ -119,8 +122,7 @@ export function ExpenseFilters({ value, onChange, onReset }: ExpenseFiltersProps
             aria-expanded={isExpanded}
           >
             <Filter className="h-4 w-4" aria-hidden />
-            Filters
-            {activeCount > 0 && (
+            {t("Filters")}{activeCount > 0 && (
               <span className="ml-0.5 rounded-full bg-brand-600 px-1.5 text-[11px] leading-4 font-semibold text-white">
                 {activeCount}
               </span>
@@ -130,8 +132,7 @@ export function ExpenseFilters({ value, onChange, onReset }: ExpenseFiltersProps
           {activeCount > 0 && (
             <Button variant="ghost" onClick={onReset}>
               <RotateCcw className="h-4 w-4" aria-hidden />
-              Clear
-            </Button>
+              {t("Clear")}</Button>
           )}
         </div>
       </div>
@@ -140,8 +141,8 @@ export function ExpenseFilters({ value, onChange, onReset }: ExpenseFiltersProps
         <div className="mt-4 space-y-4 border-t border-slate-200 pt-4">
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <Select
-              label="Category"
-              placeholder="All categories"
+              label={t("Category")}
+              placeholder={t("All categories")}
               value={value.categoryId}
               onChange={(event) => onChange({ ...value, categoryId: event.target.value })}
               options={(categories ?? []).map((category) => ({
@@ -150,24 +151,24 @@ export function ExpenseFilters({ value, onChange, onReset }: ExpenseFiltersProps
               }))}
             />
             <Input
-              label="From date"
+              label={t("From date")}
               type="date"
               value={value.fromDate}
               onChange={(event) => onChange({ ...value, fromDate: event.target.value })}
             />
             <Input
-              label="To date"
+              label={t("To date")}
               type="date"
               value={value.toDate}
               onChange={(event) => onChange({ ...value, toDate: event.target.value })}
               error={
                 value.fromDate && value.toDate && value.toDate < value.fromDate
-                  ? 'Must not be earlier than the from date'
+                  ? t("Must not be earlier than the from date")
                   : undefined
               }
             />
             <Input
-              label="Min amount"
+              label={t("Min amount")}
               type="number"
               step="0.01"
               min="0"
@@ -177,7 +178,7 @@ export function ExpenseFilters({ value, onChange, onReset }: ExpenseFiltersProps
               onChange={(event) => onChange({ ...value, minAmount: event.target.value })}
             />
             <Input
-              label="Max amount"
+              label={t("Max amount")}
               type="number"
               step="0.01"
               min="0"
@@ -189,7 +190,7 @@ export function ExpenseFilters({ value, onChange, onReset }: ExpenseFiltersProps
           </div>
 
           <fieldset>
-            <legend className="mb-2 text-sm font-medium text-slate-700">Payment methods</legend>
+            <legend className="mb-2 text-sm font-medium text-slate-700">{t("Payment methods")}</legend>
             <div className="flex flex-wrap gap-2">
               {PAYMENT_METHODS.map((method) => {
                 const active = value.paymentMethods.includes(method)
@@ -199,11 +200,9 @@ export function ExpenseFilters({ value, onChange, onReset }: ExpenseFiltersProps
                     type="button"
                     aria-pressed={active}
                     onClick={() => togglePaymentMethod(method)}
-                    className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
-                      active
+                    className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${active
                         ? 'border-brand-600 bg-brand-50 text-brand-700'
-                        : 'border-slate-300 bg-white text-slate-600 hover:bg-slate-50'
-                    }`}
+                        : 'border-slate-300 bg-white text-slate-600 hover:bg-slate-50'}`}
                   >
                     {paymentMethodLabel(method)}
                   </button>

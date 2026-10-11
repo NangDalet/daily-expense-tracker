@@ -1,3 +1,5 @@
+import { t } from '@/lib/language'
+import { useLanguage } from '@/context/LanguageContext'
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
@@ -59,6 +61,7 @@ function trendWindow(groupBy: SummaryGroupBy): number {
 }
 
 export default function DashboardPage() {
+  useLanguage()
   const { user } = useAuth()
   const [groupBy, setGroupBy] = useState<SummaryGroupBy>('daily')
   const [chosenCurrency, setChosenCurrency] = useState<string>()
@@ -106,20 +109,20 @@ export default function DashboardPage() {
   return (
     <div className="mx-auto max-w-7xl">
       <PageHeading
-        title={`Welcome back, ${firstName}`}
-        description={`Spending in ${currency} from ${formatDate(from, 'short')} to ${formatDate(to, 'short')}`}
+        title={t("Welcome back, {0}", [firstName])}
+        description={t("Spending in {0} from {1} to {2}", [currency, formatDate(from, 'short'), formatDate(to, 'short')])}
         action={
           <div className="flex items-center gap-2">
-            <label className="text-xs text-slate-600" htmlFor="dashboard-currency">Currency</label>
+            <label className="text-xs text-slate-600" htmlFor="dashboard-currency">{t("Currency")}</label>
             <select id="dashboard-currency" value={currency} onChange={(event) => setChosenCurrency(event.target.value)}
               className="rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm">
-              <option value="USD">USD ($)</option>
-              <option value="KHR">KHR (៛)</option>
+              <option value="USD">{t("USD ($)")}</option>
+              <option value="KHR">{t("KHR (៛)")}</option>
             </select>
             <div
               className="flex rounded-lg border border-slate-300 bg-white p-0.5"
               role="group"
-              aria-label="Chart grouping"
+              aria-label={t("Chart grouping")}
             >
               {GROUP_BY_OPTIONS.map((option) => (
                 <button
@@ -134,7 +137,7 @@ export default function DashboardPage() {
                       : 'text-slate-600 hover:bg-slate-100',
                   )}
                 >
-                  {option.label}
+                  {t(option.label)}
                 </button>
               ))}
             </div>
@@ -145,32 +148,32 @@ export default function DashboardPage() {
       <div className="space-y-4">
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <StatCard
-            label="Total spend"
-            value={spending.isPending ? 'Loading…' : spending.isError ? 'Unavailable' : formatMoney(totalSpend, currency)}
-            hint={`${formatNumber(totalCount)} ${totalCount === 1 ? 'expense' : 'expenses'}`}
+            label={t("Total spend")}
+            value={spending.isPending ? t("Loading…") : spending.isError ? t("Unavailable") : formatMoney(totalSpend, currency)}
+            hint={`${formatNumber(totalCount)} ${totalCount === 1 ? t("expense") : t("expenses")}`}
             icon={<Wallet className="h-5 w-5" aria-hidden />}
           />
           <StatCard
-            label="Average expense"
-            value={spending.isPending ? 'Loading…' : spending.isError ? 'Unavailable' : formatMoney(averageExpense, currency)}
+            label={t("Average expense")}
+            value={spending.isPending ? t("Loading…") : spending.isError ? t("Unavailable") : formatMoney(averageExpense, currency)}
             icon={<TrendingUp className="h-5 w-5" aria-hidden />}
             tone="brand"
           />
           <StatCard
-            label="Categories used"
+            label={t("Categories used")}
             value={formatNumber(categoryData.length)}
-            hint={`of ${formatNumber(categories?.length ?? 0)} available`}
+            hint={t("of {0} available", [formatNumber(categories?.length ?? 0)])}
             icon={<Tags className="h-5 w-5" aria-hidden />}
           />
           <StatCard
-            label={budgetRemaining === null ? 'Budgets' : 'Budget left'}
-            value={budgets.isPending ? 'Loading…' : budgets.isError ? 'Unavailable' : budgetRemaining === null ? 'Not set' : formatMoney(budgetRemaining, overallBudget?.budget.currency)}
+            label={budgetRemaining === null ? t("Budgets") : t("Budget left")}
+            value={budgets.isPending ? t("Loading…") : budgets.isError ? t("Unavailable") : budgetRemaining === null ? t("Not set") : formatMoney(budgetRemaining, overallBudget?.budget.currency)}
             hint={
-              budgets.isError ? 'Could not load budget usage' : overallBudget
-                ? `${formatPercent(overallBudget.usagePercentage)} of ${formatMoney(
+              budgets.isError ? t("Could not load budget usage") : overallBudget
+                ? t("{0} of {1} used", [formatPercent(overallBudget.usagePercentage), formatMoney(
                     overallBudget.budget.monthlyLimit, overallBudget.budget.currency,
-                  )} used`
-                : 'No overall budget yet'
+                  )])
+                : t("No overall budget yet")
             }
             icon={<Target className="h-5 w-5" aria-hidden />}
             tone={
@@ -182,32 +185,31 @@ export default function DashboardPage() {
         <div className="grid gap-4 lg:grid-cols-3">
           <Card className="lg:col-span-2">
             <CardHeader
-              title="Spending trend"
-              description={`Grouped by ${groupBy.replace('ly', '')}`}
+              title={t("Spending trend")}
+              description={t("Grouped by {0}", [t(GROUP_BY_OPTIONS.find(option => option.value === groupBy)?.label ?? groupBy)])}
               action={
                 <Link
                   to="/expenses"
                   className="inline-flex items-center gap-1 text-xs font-medium text-brand-600 hover:text-brand-700"
                 >
-                  View all
-                  <ArrowRight className="h-3.5 w-3.5" aria-hidden />
+                  {t("View all")}<ArrowRight className="h-3.5 w-3.5" aria-hidden />
                 </Link>
               }
             />
             <CardBody className="pb-2">
               {summary.isError ? (
                 <ErrorState
-                  title="Could not load the trend"
+                  title={t("Could not load the trend")}
                   message={summary.error instanceof Error ? summary.error.message : undefined}
                   onRetry={() => void summary.refetch()}
                   className="py-10"
                 />
               ) : summary.isPending ? (
-                <LoadingBlock label="Loading trend" />
+                <LoadingBlock label={t("Loading trend")} />
               ) : trendData.length === 0 ? (
                 <EmptyState
-                  title="No spending in this window"
-                  description="Add an expense to start building your trend."
+                  title={t("No spending in this window")}
+                  description={t("Add an expense to start building your trend.")}
                   className="py-10"
                 />
               ) : (
@@ -275,16 +277,16 @@ export default function DashboardPage() {
           </Card>
 
           <Card>
-            <CardHeader title="By category" description="Share of total spend" />
+            <CardHeader title={t("By category")} description={t("Share of total spend")} />
             <CardBody>
               {stats.isError ? (
-                <ErrorState title="Could not load the breakdown" onRetry={() => void stats.refetch()} />
+                <ErrorState title={t("Could not load the breakdown")} onRetry={() => void stats.refetch()} />
               ) : stats.isPending ? (
-                <LoadingBlock label="Loading breakdown" />
+                <LoadingBlock label={t("Loading breakdown")} />
               ) : categoryData.length === 0 ? (
                 <EmptyState
-                  title="No categorised spend"
-                  description="Category totals appear once you tag expenses."
+                  title={t("No categorised spend")}
+                  description={t("Category totals appear once you tag expenses.")}
                   className="py-10"
                 />
               ) : (
@@ -343,16 +345,16 @@ export default function DashboardPage() {
         </div>
 
         <Card>
-          <CardHeader title="Recent income" action={
-            <Link to="/incomes" className="text-xs font-medium text-brand-600 hover:text-brand-700">View all</Link>
+          <CardHeader title={t("Recent income")} action={
+            <Link to="/incomes" className="text-xs font-medium text-brand-600 hover:text-brand-700">{t("View all")}</Link>
           } />
           {recentIncome.isError ? (
-            <ErrorState title="Could not load income" onRetry={() => void recentIncome.refetch()} />
+            <ErrorState title={t("Could not load income")} onRetry={() => void recentIncome.refetch()} />
           ) : recentIncome.isPending ? (
-            <LoadingBlock label="Loading income" />
+            <LoadingBlock label={t("Loading income")} />
           ) : (recentIncome.data?.length ?? 0) === 0 ? (
-            <EmptyState title="No income recorded" description="Record salary, freelance payments or other income." action={
-              <Link to="/incomes?new=1"><Button size="sm">Add income</Button></Link>
+            <EmptyState title={t("No income recorded")} description={t("Record salary, freelance payments or other income.")} action={
+              <Link to="/incomes?new=1"><Button size="sm">{t("Add income")}</Button></Link>
             } />
           ) : (
             <IncomeList incomes={recentIncome.data ?? []} />
@@ -362,30 +364,28 @@ export default function DashboardPage() {
         <div className="grid gap-4 lg:grid-cols-2">
           <Card>
             <CardHeader
-              title="Recent expenses"
+              title={t("Recent expenses")}
               action={
                 <Link
                   to="/expenses"
                   className="inline-flex items-center gap-1 text-xs font-medium text-brand-600 hover:text-brand-700"
                 >
-                  View all
-                  <ArrowRight className="h-3.5 w-3.5" aria-hidden />
+                  {t("View all")}<ArrowRight className="h-3.5 w-3.5" aria-hidden />
                 </Link>
               }
             />
             {recent.isPending ? (
-              <LoadingBlock label="Loading expenses" />
+              <LoadingBlock label={t("Loading expenses")} />
             ) : (recent.data?.length ?? 0) === 0 ? (
               <EmptyState
                 icon={<Receipt className="h-6 w-6" aria-hidden />}
-                title="Nothing logged yet"
-                description="Your six most recent expenses will show up here."
+                title={t("Nothing logged yet")}
+                description={t("Your six most recent expenses will show up here.")}
                   action={
                     <Link to="/expenses">
                       <Button size="sm">
                         <Plus className="h-4 w-4" aria-hidden />
-                        Add your first expense
-                      </Button>
+                        {t("Add your first expense")}</Button>
                     </Link>
                   }
                 />
@@ -396,10 +396,10 @@ export default function DashboardPage() {
 
           <Card>
             <CardHeader
-              title="Budget status"
+              title={t("Budget status")}
               description={
                 budgets.data?.[0]
-                  ? `${MONTH_NAMES[budgets.data[0].budget.month - 1]} ${budgets.data[0].budget.year}`
+                  ? `${t(MONTH_NAMES[budgets.data[0].budget.month - 1])} ${budgets.data[0].budget.year}`
                   : undefined
               }
               action={
@@ -407,26 +407,24 @@ export default function DashboardPage() {
                   to="/budgets"
                   className="inline-flex items-center gap-1 text-xs font-medium text-brand-600 hover:text-brand-700"
                 >
-                  Manage
-                  <ArrowRight className="h-3.5 w-3.5" aria-hidden />
+                  {t("Manage")}<ArrowRight className="h-3.5 w-3.5" aria-hidden />
                 </Link>
               }
             />
             <CardBody className="space-y-4">
               {budgets.isError ? (
-                <ErrorState title="Could not load budgets" onRetry={() => void budgets.refetch()} />
+                <ErrorState title={t("Could not load budgets")} onRetry={() => void budgets.refetch()} />
               ) : budgets.isPending ? (
-                <LoadingBlock label="Loading budgets" />
+                <LoadingBlock label={t("Loading budgets")} />
               ) : (budgets.data?.length ?? 0) === 0 ? (
                 <EmptyState
                   icon={<Target className="h-6 w-6" aria-hidden />}
-                  title="No budgets this month"
-                  description="Set a limit to track how much is left."
+                  title={t("No budgets this month")}
+                  description={t("Set a limit to track how much is left.")}
                   action={
                     <Link to="/budgets">
                       <Button size="sm" variant="outline">
-                        Set a budget
-                      </Button>
+                        {t("Set a budget")}</Button>
                     </Link>
                   }
                   className="py-8"
@@ -441,7 +439,7 @@ export default function DashboardPage() {
                             <Wallet className="h-3.5 w-3.5 shrink-0 text-slate-400" aria-hidden />
                           )}
                           <span className="truncate">
-                            {entry.budget.category?.name ?? 'Overall budget'}
+                            {entry.budget.category?.name ?? t("Overall budget")}
                           </span>
                         </span>
                         <span className="shrink-0 text-xs tabular-nums text-slate-500">
@@ -459,13 +457,13 @@ export default function DashboardPage() {
                       </div>
                       <ProgressBar
                         percentage={entry.usagePercentage}
-                        label={`${entry.budget.category?.name ?? 'Overall budget'} usage`}
+                        label={t("{0} usage", [entry.budget.category?.name ?? t("Overall budget")])}
                         className="h-1.5"
                       />
                       <p className="mt-1 text-[11px] text-slate-500">
                         {entry.exceeded
-                          ? `Over by ${formatMoney(Math.abs(entry.remainingAmount), entry.budget.currency)}`
-                          : `${formatMoney(entry.remainingAmount, entry.budget.currency)} left`}
+                          ? t("Over by {0}", [formatMoney(Math.abs(entry.remainingAmount), entry.budget.currency)])
+                          : t("{0} left", [formatMoney(entry.remainingAmount, entry.budget.currency)])}
                         {' · '}
                         {formatPercent(entry.usagePercentage)}
                       </p>
@@ -498,13 +496,14 @@ function TrendTooltip({
   active?: boolean
   payload?: { payload: { periodStart: string; totalAmount: number; expenseCount: number; averageAmount: number } }[]
 }) {
+  useLanguage()
   if (!active || !payload?.length) return null
   const row = payload[0].payload
 
   const rows: TooltipRow[] = [
-    { label: 'Total', value: formatMoney(row.totalAmount, currency) },
-    { label: 'Expenses', value: formatNumber(row.expenseCount) },
-    { label: 'Average', value: formatMoney(row.averageAmount, currency) },
+    { label: t("Total"), value: formatMoney(row.totalAmount, currency) },
+    { label: t("Expenses"), value: formatNumber(row.expenseCount) },
+    { label: t("Average"), value: formatMoney(row.averageAmount, currency) },
   ]
 
   return (
@@ -531,6 +530,7 @@ function CategoryTooltip({
   active?: boolean
   payload?: { payload: { categoryName?: string; totalAmount: number; expenseCount: number; percentage: number } }[]
 }) {
+  useLanguage()
   if (!active || !payload?.length) return null
   const row = payload[0].payload
 
@@ -541,13 +541,13 @@ function CategoryTooltip({
       </p>
       <ul className="mt-1 space-y-0.5">
         <li className="flex items-center gap-3 text-xs">
-          <span className="text-slate-500">Total</span>
+          <span className="text-slate-500">{t("Total")}</span>
           <span className="ml-auto font-medium tabular-nums text-slate-900">
             {formatMoney(row.totalAmount, currency)}
           </span>
         </li>
         <li className="flex items-center gap-3 text-xs">
-          <span className="text-slate-500">Share</span>
+          <span className="text-slate-500">{t("Share")}</span>
           <span className="ml-auto font-medium tabular-nums text-slate-900">
             {formatPercent(row.percentage)}
           </span>

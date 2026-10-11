@@ -1,3 +1,5 @@
+import { t } from '@/lib/language'
+import { useLanguage } from '@/context/LanguageContext'
 import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Plus, Receipt } from 'lucide-react'
@@ -19,12 +21,13 @@ import {
 import { useDeleteIncome, useIncomes, useIncomeSummary } from '@/hooks/queries'
 import { ApiError } from '@/lib/api/client'
 import type { IncomeResponse } from '@/lib/api/types'
-import { formatMoney, formatNumber, todayIso } from '@/lib/utils'
+import { formatMoney, formatNumber, todayIso, paymentMethodLabel } from '@/lib/utils'
 
 const DEFAULT_SORT = 'incomeDate,desc'
 const DEFAULT_SIZE = 20
 
 export default function IncomePage() {
+  useLanguage()
   const [searchParams, setSearchParams] = useSearchParams()
   const [filters, setFilters] = useState<IncomeFilterState>(EMPTY_FILTERS)
   const [page, setPage] = useState(0)
@@ -95,35 +98,34 @@ export default function IncomePage() {
   return (
     <div className="mx-auto max-w-7xl">
       <PageHeading
-        title="Income"
+        title={t("Income")}
         description={
           isPending && !data
-            ? 'Loading your income...'
-            : `${formatNumber(pageTotal)} ${pageTotal === 1 ? 'income record' : 'income records'} recorded`
+            ? t("Loading your income...")
+            : t("{0} {1} recorded", [formatNumber(pageTotal), pageTotal === 1 ? t("income record") : t("income records")])
         }
         action={
           <Button onClick={openCreate}>
             <Plus className="h-4 w-4" aria-hidden />
-            Add income
-          </Button>
+            {t("Add income")}</Button>
         }
       />
 
       <div className="space-y-4">
         <Card className="p-4">
-          <h2 className="text-sm font-semibold text-slate-900">Income this month</h2>
+          <h2 className="text-sm font-semibold text-slate-900">{t("Income this month")}</h2>
           {monthlySummary.isError ? (
-            <ErrorState title="Could not load income totals" onRetry={() => void monthlySummary.refetch()} />
+            <ErrorState title={t("Could not load income totals")} onRetry={() => void monthlySummary.refetch()} />
           ) : monthlySummary.isPending ? (
-            <LoadingBlock label="Loading income totals" />
+            <LoadingBlock label={t("Loading income totals")} />
           ) : monthlySummary.data.length === 0 ? (
-            <p className="mt-2 text-sm text-slate-500">No income recorded this month.</p>
+            <p className="mt-2 text-sm text-slate-500">{t("No income recorded this month.")}</p>
           ) : (
             <div className="mt-3 flex flex-wrap gap-6">
               {monthlySummary.data.map((row) => (
                 <div key={row.currency}>
                   <p className="text-xl font-semibold tabular-nums text-emerald-700">{formatMoney(row.totalAmount, row.currency)}</p>
-                  <p className="mt-1 text-xs text-slate-500">{formatNumber(row.incomeCount)} records &middot; {row.currency}</p>
+                  <p className="mt-1 text-xs text-slate-500">{formatNumber(row.incomeCount)} {' '}{t("records ·")}{' '}{row.currency}</p>
                 </div>
               ))}
             </div>
@@ -138,33 +140,31 @@ export default function IncomePage() {
         <Card className="overflow-hidden">
           {isError ? (
             <ErrorState
-              title="Could not load income"
+              title={t("Could not load income")}
               message={error instanceof ApiError ? error.message : undefined}
               onRetry={() => void refetch()}
             />
           ) : isPending && !data ? (
-            <LoadingBlock label="Loading income" />
+            <LoadingBlock label={t("Loading income")} />
           ) : showOutOfRange ? (
             <EmptyState
               icon={<Receipt className="h-6 w-6" aria-hidden />}
-              title="No income on this page"
-              description="The result set shrank while you were viewing it."
+              title={t("No income on this page")}
+              description={t("The result set shrank while you were viewing it.")}
               action={
                 <Button variant="outline" size="sm" onClick={() => setPage(0)}>
-                  Back to first page
-                </Button>
+                  {t("Back to first page")}</Button>
               }
             />
           ) : (data?.items.length ?? 0) === 0 ? (
             <EmptyState
               icon={<Receipt className="h-6 w-6" aria-hidden />}
-              title="No income found"
-              description="Record your first income or loosen the filters."
+              title={t("No income found")}
+              description={t("Record your first income or loosen the filters.")}
               action={
                 <Button size="sm" onClick={openCreate}>
                   <Plus className="h-4 w-4" aria-hidden />
-                  Add income
-                </Button>
+                  {t("Add income")}</Button>
               }
             />
           ) : (
@@ -176,7 +176,7 @@ export default function IncomePage() {
                     <tr>
                       <SortableHeader
                         field="incomeDate"
-                        label="Date"
+                        label={t("Date")}
                         sort={sort}
                         onSortChange={handleSortChange}
                       />
@@ -184,29 +184,27 @@ export default function IncomePage() {
                         scope="col"
                         className="px-4 py-3 text-left text-sm font-medium text-slate-500"
                       >
-                        Description
-                      </th>
+                        {t("Description")}</th>
                       <th
                         scope="col"
                         className="px-4 py-3 text-left text-sm font-medium text-slate-500"
                       >
-                        Category
-                      </th>
+                        {t("Category")}</th>
                       <SortableHeader
                         field="paymentMethod"
-                        label="Payment"
+                        label={t("Payment")}
                         sort={sort}
                         onSortChange={handleSortChange}
                       />
                       <SortableHeader
                         field="amount"
-                        label="Amount"
+                        label={t("Amount")}
                         sort={sort}
                         onSortChange={handleSortChange}
                         className="text-right"
                       />
                       <th scope="col" className="w-20 px-4 py-3">
-                        <span className="sr-only">Actions</span>
+                        <span className="sr-only">{t("Actions")}</span>
                       </th>
                     </tr>
                   </thead>
@@ -221,13 +219,13 @@ export default function IncomePage() {
                           {income.incomeDate}
                         </td>
                         <td className="max-w-xs px-4 py-3 text-sm font-medium text-slate-900">
-                          <span className="line-clamp-1">{income.description || 'No description'}</span>
+                          <span className="line-clamp-1">{income.description || t("No description")}</span>
                         </td>
                         <td className="px-4 py-3 text-sm text-slate-600">
-                          {income.category?.name ?? <span className="text-slate-400">None</span>}
+                          {income.category?.name ?? <span className="text-slate-400">{t("None")}</span>}
                         </td>
                         <td className="whitespace-nowrap px-4 py-3 text-sm text-slate-600">
-                          {income.paymentMethod.replace(/_/g, ' ')}
+                          {paymentMethodLabel(income.paymentMethod)}
                         </td>
                         <td className="whitespace-nowrap px-4 py-3 text-right text-sm font-semibold tabular-nums text-slate-900">
                           {formatMoney(income.amount, income.currency)}
@@ -238,19 +236,17 @@ export default function IncomePage() {
                               variant="ghost"
                               size="sm"
                               onClick={() => openEdit(income)}
-                              aria-label={`Edit ${income.description || 'income'}`}
+                              aria-label={t("Edit {0}", [income.description || 'income'])}
                             >
-                              Edit
-                            </Button>
+                              {t("Edit")}</Button>
                             <Button
                               variant="ghost"
                               size="sm"
                               className="text-slate-400 hover:text-red-600"
                               onClick={() => setDeletingIncome(income)}
-                              aria-label={`Delete ${income.description || 'income'}`}
+                              aria-label={t("Delete {0}", [income.description || 'income'])}
                             >
-                              Delete
-                            </Button>
+                              {t("Delete")}</Button>
                           </div>
                         </td>
                       </tr>
@@ -285,8 +281,8 @@ export default function IncomePage() {
       <Modal
         open={isFormOpen}
         onClose={() => setIsFormOpen(false)}
-        title={editingIncome ? 'Edit income' : 'Add income'}
-        description={editingIncome ? undefined : 'Record a new incoming payment.'}
+        title={editingIncome ? t("Edit income") : t("Add income")}
+        description={editingIncome ? undefined : t("Record a new incoming payment.")}
         size="md"
       >
         <IncomeForm
@@ -299,10 +295,8 @@ export default function IncomePage() {
 
       <ConfirmDialog
         open={deletingIncome !== null}
-        title="Delete income"
-        description={`This permanently removes "${
-          deletingIncome?.description || 'this income'
-        }" (${formatMoney(deletingIncome?.amount ?? 0, deletingIncome?.currency)}). This cannot be undone.`}
+        title={t("Delete income")}
+        description={t("This permanently removes \"{0}\" ({1}). This cannot be undone.", [deletingIncome?.description || t("this income"), formatMoney(deletingIncome?.amount ?? 0, deletingIncome?.currency)])}
         isPending={deleteIncome.isPending}
         error={deleteIncome.error instanceof ApiError ? deleteIncome.error : null}
         onConfirm={handleDelete}

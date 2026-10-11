@@ -1,8 +1,11 @@
+import { t } from '@/lib/language'
+import { useLanguage } from '@/context/LanguageContext'
 import { useEffect, useRef } from 'react'
 import type { ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher'
 
 interface ModalProps {
   open: boolean
@@ -24,6 +27,7 @@ const FOCUSABLE =
   'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
 
 export function Modal({ open, onClose, title, description, children, footer, size = 'md' }: ModalProps) {
+  useLanguage()
   const panelRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -101,10 +105,11 @@ export function Modal({ open, onClose, title, description, children, footer, siz
             <h2 className="text-base font-semibold text-slate-900">{title}</h2>
             {description && <p className="mt-0.5 text-sm text-slate-500">{description}</p>}
           </div>
+          <div className="ml-auto"><LanguageSwitcher /></div>
           <button
             type="button"
             onClick={onClose}
-            aria-label="Close dialog"
+            aria-label={t("Close dialog")}
             className="-mt-1 -mr-1 rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
           >
             <X className="h-5 w-5" />

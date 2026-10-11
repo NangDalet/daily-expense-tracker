@@ -1,3 +1,5 @@
+import { t } from '@/lib/language'
+import { useLanguage } from '@/context/LanguageContext'
 import { AlertTriangle } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
@@ -24,6 +26,7 @@ export function ConfirmDialog({
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
+  useLanguage()
   return (
     <Modal
       open={open}
@@ -33,10 +36,9 @@ export function ConfirmDialog({
       footer={
         <>
           <Button variant="ghost" onClick={onCancel} disabled={isPending}>
-            Cancel
-          </Button>
+            {t("Cancel")}</Button>
           <Button variant="danger" onClick={onConfirm} isLoading={isPending}>
-            {confirmLabel}
+            {t(confirmLabel)}
           </Button>
         </>
       }
@@ -51,7 +53,7 @@ export function ConfirmDialog({
 
         {error && (
           <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
-            {error.message}
+            {t(error.message)}
           </p>
         )}
       </div>

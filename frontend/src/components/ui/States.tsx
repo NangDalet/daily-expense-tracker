@@ -1,17 +1,21 @@
+import { t } from '@/lib/language'
+import { useLanguage } from '@/context/LanguageContext'
 import type { ReactNode } from 'react'
 import { AlertCircle, Inbox, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from './Button'
 
 export function Spinner({ className }: { className?: string }) {
+  useLanguage()
   return <Loader2 className={cn('h-5 w-5 animate-spin text-slate-400', className)} aria-hidden />
 }
 
 export function LoadingBlock({ label = 'Loading' }: { label?: string }) {
+  useLanguage()
   return (
     <div className="flex flex-col items-center justify-center gap-3 py-16 text-slate-500" role="status">
       <Spinner className="h-6 w-6" />
-      <p className="text-sm">{label}...</p>
+      <p className="text-sm">{t(label)}...</p>
     </div>
   )
 }
@@ -25,13 +29,14 @@ interface EmptyStateProps {
 }
 
 export function EmptyState({ title, description, icon, action, className }: EmptyStateProps) {
+  useLanguage()
   return (
     <div className={cn('flex flex-col items-center justify-center gap-3 px-6 py-14 text-center', className)}>
       <span className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
         {icon ?? <Inbox className="h-6 w-6" aria-hidden />}
       </span>
       <div>
-        <p className="text-sm font-medium text-slate-900">{title}</p>
+        <p className="text-sm font-medium text-slate-900">{t(title)}</p>
         {description && <p className="mt-1 text-sm text-slate-500">{description}</p>}
       </div>
       {action}
@@ -52,6 +57,7 @@ export function ErrorState({
   onRetry,
   className,
 }: ErrorStateProps) {
+  useLanguage()
   return (
     <div
       role="alert"
@@ -61,13 +67,12 @@ export function ErrorState({
         <AlertCircle className="h-6 w-6" aria-hidden />
       </span>
       <div>
-        <p className="text-sm font-medium text-slate-900">{title}</p>
-        {message && <p className="mt-1 max-w-md text-sm text-slate-500">{message}</p>}
+        <p className="text-sm font-medium text-slate-900">{t(title)}</p>
+        {message && <p className="mt-1 max-w-md text-sm text-slate-500">{t(message)}</p>}
       </div>
       {onRetry && (
         <Button variant="outline" size="sm" onClick={onRetry}>
-          Try again
-        </Button>
+          {t("Try again")}</Button>
       )}
     </div>
   )

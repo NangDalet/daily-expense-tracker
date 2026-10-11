@@ -1,6 +1,7 @@
 ﻿FROM node:20-alpine AS build
 WORKDIR /app
 COPY package*.json ./
+COPY scripts/patch-pdfmake.mjs ./scripts/patch-pdfmake.mjs
 RUN npm ci
 COPY . .
 RUN npm run build

@@ -1,3 +1,5 @@
+import { t } from '@/lib/language'
+import { useLanguage } from '@/context/LanguageContext'
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import type { UseFormRegisterReturn } from 'react-hook-form'
@@ -16,7 +18,7 @@ import { Badge } from '@/components/ui/Badge'
 import type { BadgeTone } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
-import { Input } from '@/components/ui/Field'
+import { Input, Select } from '@/components/ui/Field'
 import { Modal } from '@/components/ui/Modal'
 import { PageHeading } from '@/components/layout/AppLayout'
 import { Pagination } from '@/components/ui/Pagination'
@@ -57,6 +59,7 @@ const ROLE_LABELS: Record<Role, string> = {
 }
 
 export default function AdminUsersPage() {
+  useLanguage()
   const { user: currentUser, isSuperAdmin } = useAuth()
   const [searchDraft, setSearchDraft] = useState('')
   const [search, setSearch] = useState('')
@@ -103,18 +106,17 @@ export default function AdminUsersPage() {
   return (
     <div className="mx-auto max-w-6xl">
       <PageHeading
-        title="Users"
+        title={t("Users")}
         description={
           isSuperAdmin
-            ? 'You are a super administrator, so you can manage every account including other administrators.'
-            : 'Administrative account management. You can manage accounts below your own tier.'
+            ? t("You are a super administrator, so you can manage every account including other administrators.")
+            : t("Administrative account management. You can manage accounts below your own tier.")
         }
         action={
           isSuperAdmin ? (
             <Button onClick={() => setIsCreating(true)}>
               <Plus className="h-4 w-4" aria-hidden />
-              New user
-            </Button>
+              {t("New user")}</Button>
           ) : undefined
         }
       />
@@ -129,8 +131,8 @@ export default function AdminUsersPage() {
             type="search"
             value={searchDraft}
             onChange={(event) => setSearchDraft(event.target.value)}
-            placeholder="Search by username, e-mail or name"
-            aria-label="Search users"
+            placeholder={t("Search by username, e-mail or name")}
+            aria-label={t("Search users")}
             className="h-10 w-full rounded-lg border border-slate-300 bg-white pr-3 pl-9 text-sm text-slate-900 shadow-sm placeholder:text-slate-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/40 focus:outline-none sm:max-w-md"
           />
         </div>
@@ -138,17 +140,17 @@ export default function AdminUsersPage() {
         <Card className="overflow-hidden">
           {isError ? (
             <ErrorState
-              title="Could not load users"
+              title={t("Could not load users")}
               message={error instanceof ApiError ? error.message : undefined}
               onRetry={() => void refetch()}
             />
           ) : isPending && !data ? (
-            <LoadingBlock label="Loading users" />
+            <LoadingBlock label={t("Loading users")} />
           ) : (data?.items.length ?? 0) === 0 ? (
             <EmptyState
               icon={<Shield className="h-6 w-6" aria-hidden />}
-              title="No users found"
-              description={search ? 'Try a different search term.' : 'No accounts exist yet.'}
+              title={t("No users found")}
+              description={search ? t("Try a different search term.") : t("No accounts exist yet.")}
             />
           ) : (
             <>
@@ -160,28 +162,24 @@ export default function AdminUsersPage() {
                         scope="col"
                         className="px-4 py-3 text-left text-sm font-medium text-slate-500"
                       >
-                        User
-                      </th>
+                        {t("User")}</th>
                       <th
                         scope="col"
                         className="px-4 py-3 text-left text-sm font-medium text-slate-500"
                       >
-                        Roles
-                      </th>
+                        {t("Roles")}</th>
                       <th
                         scope="col"
                         className="px-4 py-3 text-left text-sm font-medium text-slate-500"
                       >
-                        Status
-                      </th>
+                        {t("Status")}</th>
                       <th
                         scope="col"
                         className="px-4 py-3 text-left text-sm font-medium text-slate-500"
                       >
-                        Created
-                      </th>
+                        {t("Created")}</th>
                       <th scope="col" className="w-28 px-4 py-3">
-                        <span className="sr-only">Actions</span>
+                        <span className="sr-only">{t("Actions")}</span>
                       </th>
                     </tr>
                   </thead>
@@ -200,8 +198,7 @@ export default function AdminUsersPage() {
                                   {row.fullName || row.username}
                                   {isSelf && (
                                     <span className="ml-1.5 text-xs font-normal text-slate-400">
-                                      (you)
-                                    </span>
+                                      {t("(you)")}</span>
                                   )}
                                 </p>
                                 <p className="truncate text-xs text-slate-500">
@@ -214,14 +211,14 @@ export default function AdminUsersPage() {
                             <div className="flex flex-wrap gap-1">
                               {row.roles.map((role) => (
                                 <Badge key={role} tone={ROLE_TONES[role] ?? 'neutral'}>
-                                  {ROLE_LABELS[role] ?? role}
+                                  {t(ROLE_LABELS[role] ?? role)}
                                 </Badge>
                               ))}
                             </div>
                           </td>
                           <td className="px-4 py-3">
                             <Badge tone={row.enabled ? 'success' : 'danger'}>
-                              {row.enabled ? 'Active' : 'Disabled'}
+                              {row.enabled ? t("Active") : t("Disabled")}
                             </Badge>
                           </td>
                           <td className="px-4 py-3 text-xs whitespace-nowrap text-slate-500">
@@ -235,10 +232,10 @@ export default function AdminUsersPage() {
                                 disabled={!manageable}
                                 title={
                                   manageable
-                                    ? `Edit ${row.username}`
-                                    : `You cannot manage an account holding the ${highestRole(row.roles)} role`
+                                    ? t("Edit {0}", [row.username])
+                                    : t("You cannot manage an account holding the {0} role", [highestRole(row.roles)])
                                 }
-                                aria-label={`Edit ${row.username}`}
+                                aria-label={t("Edit {0}", [row.username])}
                                 className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 disabled:pointer-events-none disabled:opacity-40"
                               >
                                 <Pencil className="h-4 w-4" />
@@ -250,10 +247,10 @@ export default function AdminUsersPage() {
                                   disabled={!manageable}
                                   title={
                                     manageable
-                                      ? `Reset password for ${row.username}`
-                                      : 'Not permitted'
+                                      ? t("Reset password for {0}", [row.username])
+                                      : t("Not permitted")
                                   }
-                                  aria-label={`Reset password for ${row.username}`}
+                                  aria-label={t("Reset password for {0}", [row.username])}
                                   className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 disabled:pointer-events-none disabled:opacity-40"
                                 >
                                   <KeyRound className="h-4 w-4" />
@@ -267,12 +264,12 @@ export default function AdminUsersPage() {
                                 disabled={!canDelete}
                                 title={
                                   isSelf
-                                    ? 'You cannot delete your own account'
+                                    ? t("You cannot delete your own account")
                                     : manageable
-                                      ? `Delete ${row.username}`
-                                      : 'Not permitted'
+                                      ? t("Delete {0}", [row.username])
+                                      : t("Not permitted")
                                 }
-                                aria-label={`Delete ${row.username}`}
+                                aria-label={t("Delete {0}", [row.username])}
                                 className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600 disabled:pointer-events-none disabled:opacity-40"
                               >
                                 <Trash2 className="h-4 w-4" />
@@ -301,8 +298,8 @@ export default function AdminUsersPage() {
       <Modal
         open={isCreating}
         onClose={() => setIsCreating(false)}
-        title="New user"
-        description="Creates the account immediately and seeds its default categories."
+        title={t("New user")}
+        description={t("Creates the account immediately and seeds its default categories.")}
         size="md"
       >
         <CreateUserForm
@@ -319,7 +316,7 @@ export default function AdminUsersPage() {
       <Modal
         open={editingUser !== null}
         onClose={() => setEditingUser(null)}
-        title="Edit user"
+        title={t("Edit user")}
         description={editingUser ? `${editingUser.username} · ${editingUser.email}` : undefined}
         size="md"
       >
@@ -343,7 +340,7 @@ export default function AdminUsersPage() {
       <Modal
         open={resettingUser !== null}
         onClose={() => setResettingUser(null)}
-        title="Reset password"
+        title={t("Reset password")}
         description={resettingUser ? resettingUser.username : undefined}
         size="sm"
       >
@@ -362,9 +359,9 @@ export default function AdminUsersPage() {
 
       <ConfirmDialog
         open={deletingUser !== null}
-        title="Delete user"
-        description={`This permanently removes "${deletingUser?.username}" and cascades to all of their categories, expenses and budgets. This cannot be undone.`}
-        confirmLabel="Delete user"
+        title={t("Delete user")}
+        description={t("Remove \"{0}\" from Users. Construction workers and payment history stay intact. Accounts without construction history are permanently deleted, including their categories, expenses and budgets.", [deletingUser?.username])}
+        confirmLabel={t("Delete user")}
         isPending={deleteUser.isPending}
         error={deleteUser.error instanceof ApiError ? deleteUser.error : null}
         onConfirm={handleDelete}
@@ -384,6 +381,7 @@ interface CreateUserFormProps {
 }
 
 function CreateUserForm({ isPending, error, onSubmit, onCancel }: CreateUserFormProps) {
+  useLanguage()
   const {
     register,
     handleSubmit,
@@ -405,6 +403,7 @@ function CreateUserForm({ isPending, error, onSubmit, onCancel }: CreateUserForm
           fullName: values.fullName?.trim() || undefined,
           roles: values.roles,
           enabled: values.enabled,
+          constructionRole: values.constructionRole || undefined,
         })
       })}
       noValidate
@@ -413,62 +412,66 @@ function CreateUserForm({ isPending, error, onSubmit, onCancel }: CreateUserForm
       {error && (
         <Alert tone="error" title={error.message}>
           {error.code === 'DUPLICATE_RESOURCE' && (
-            <p>That username or e-mail address belongs to another account.</p>
+            <p>{t("That username or e-mail address belongs to another account.")}</p>
           )}
           <FieldErrorList details={error.details} />
         </Alert>
       )}
 
       <Input
-        label="Username"
+        label={t("Username")}
         required
         autoComplete="off"
         {...register('username', {
-          required: 'Username is required',
-          minLength: { value: 3, message: 'Must be at least 3 characters' },
-          maxLength: { value: 50, message: 'Must be at most 50 characters' },
+          required: "Username is required",
+          minLength: { value: 3, message: "Must be at least 3 characters" },
+          maxLength: { value: 50, message: "Must be at most 50 characters" },
           pattern: {
             value: /^[A-Za-z0-9._-]+$/,
-            message: 'Only letters, digits, dot, underscore and dash',
+            message: "Only letters, digits, dot, underscore and dash",
           },
         })}
         error={errors.username?.message}
       />
 
       <Input
-        label="E-mail"
+        label={t("E-mail")}
         type="email"
         required
         {...register('email', {
-          required: 'E-mail is required',
-          maxLength: { value: 255, message: 'Must be at most 255 characters' },
-          pattern: { value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: 'Enter a valid e-mail address' },
+          required: "E-mail is required",
+          maxLength: { value: 255, message: "Must be at most 255 characters" },
+          pattern: { value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: "Enter a valid e-mail address" },
         })}
         error={errors.email?.message}
       />
 
       <Input
-        label="Full name"
-        {...register('fullName', { maxLength: { value: 120, message: 'Must be at most 120 characters' } })}
+        label={t("Full name")}
+        {...register('fullName', { maxLength: { value: 120, message: "Must be at most 120 characters" } })}
         error={errors.fullName?.message}
-        hint="Optional, defaults to the username"
+        hint={t("Optional, defaults to the username")}
       />
 
       <Input
-        label="Password"
+        label={t("Password")}
         type="password"
         required
         autoComplete="new-password"
         {...register('password', {
-          required: 'Password is required',
-          minLength: { value: 8, message: 'Must be at least 8 characters' },
-          maxLength: { value: 72, message: 'Must be at most 72 characters' },
+          required: "Password is required",
+          minLength: { value: 8, message: "Must be at least 8 characters" },
+          maxLength: { value: 72, message: "Must be at most 72 characters" },
         })}
         error={errors.password?.message}
-        hint="Between 8 and 72 characters"
+        hint={t("Between 8 and 72 characters")}
       />
 
       <RoleFieldset roleProps={register('roles')} error={errors.roles?.message} />
+
+      <Select label={t('Construction access')} {...register('constructionRole')}
+        options={[{ value: '', label: t('No construction access') }, { value: 'MANAGER', label: t('Construction Site Manager') }]}
+        hint={t('Site managers manage construction records and assign foremen to sites.')} />
 
       <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-slate-200 px-3.5 py-3">
         <input
@@ -477,9 +480,8 @@ function CreateUserForm({ isPending, error, onSubmit, onCancel }: CreateUserForm
           className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
         />
         <span className="flex-1 text-sm text-slate-700">
-          Account enabled
-          <span className="mt-0.5 block text-xs text-slate-500">
-            {enabled ? 'The user can sign in immediately.' : 'Sign-in stays blocked until enabled.'}
+          {t("Account enabled")}<span className="mt-0.5 block text-xs text-slate-500">
+            {enabled ? t("The user can sign in immediately.") : t("Sign-in stays blocked until enabled.")}
           </span>
         </span>
         {enabled ? (
@@ -491,11 +493,9 @@ function CreateUserForm({ isPending, error, onSubmit, onCancel }: CreateUserForm
 
       <div className="flex items-center justify-end gap-2 border-t border-slate-200 pt-4">
         <Button type="button" variant="ghost" onClick={onCancel} disabled={isPending}>
-          Cancel
-        </Button>
+          {t("Cancel")}</Button>
         <Button type="submit" isLoading={isPending}>
-          Create user
-        </Button>
+          {t("Create user")}</Button>
       </div>
     </form>
   )
@@ -514,6 +514,7 @@ interface UserFormProps {
 }
 
 function UserForm({ target, isSelf, actorRole, isPending, error, onSubmit, onCancel }: UserFormProps) {
+  useLanguage()
   const {
     register,
     handleSubmit,
@@ -546,36 +547,36 @@ function UserForm({ target, isSelf, actorRole, isPending, error, onSubmit, onCan
       {error && (
         <Alert tone="error" title={error.message}>
           {error.code === 'DUPLICATE_RESOURCE' && (
-            <p>That e-mail address belongs to another account.</p>
+            <p>{t("That e-mail address belongs to another account.")}</p>
           )}
           <FieldErrorList details={error.details} />
         </Alert>
       )}
 
       <Input
-        label="E-mail"
+        label={t("E-mail")}
         type="email"
         required
         {...register('email', {
-          required: 'E-mail is required',
-          maxLength: { value: 255, message: 'Must be at most 255 characters' },
-          pattern: { value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: 'Enter a valid e-mail address' },
+          required: "E-mail is required",
+          maxLength: { value: 255, message: "Must be at most 255 characters" },
+          pattern: { value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: "Enter a valid e-mail address" },
         })}
         error={errors.email?.message}
       />
 
       <Input
-        label="Full name"
-        {...register('fullName', { maxLength: { value: 120, message: 'Must be at most 120 characters' } })}
+        label={t("Full name")}
+        {...register('fullName', { maxLength: { value: 120, message: "Must be at most 120 characters" } })}
         error={errors.fullName?.message}
-        hint="Leave empty to clear the name"
+        hint={t("Leave empty to clear the name")}
       />
 
       <RoleFieldset
         roleProps={register('roles')}
         error={errors.roles?.message}
         ceiling={actorRole}
-        hint="The role set is replaced wholesale, so at least one role is required."
+        hint={t("The role set is replaced wholesale, so at least one role is required.")}
       />
 
       <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-slate-200 px-3.5 py-3">
@@ -587,13 +588,12 @@ function UserForm({ target, isSelf, actorRole, isPending, error, onSubmit, onCan
           className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500 disabled:cursor-not-allowed"
         />
         <span className="flex-1 text-sm text-slate-700">
-          Account enabled
-          <span className="mt-0.5 block text-xs text-slate-500">
+          {t("Account enabled")}<span className="mt-0.5 block text-xs text-slate-500">
             {isSelf
-              ? 'You cannot disable your own account.'
+              ? t("You cannot disable your own account.")
               : enabled
-                ? 'The user can sign in and use the API.'
-                : 'Sign-in is blocked, but the history is preserved.'}
+                ? t("The user can sign in and use the API.")
+                : t('Sign-in is blocked, but the history is preserved.')}
           </span>
         </span>
         {enabled ? (
@@ -605,18 +605,14 @@ function UserForm({ target, isSelf, actorRole, isPending, error, onSubmit, onCan
 
       {isSelf && (
         <Alert tone="info">
-          You are editing your own account. Removing your own privileged role takes effect immediately and
-          hides this page.
-        </Alert>
+          {t("You are editing your own account. Removing your own privileged role takes effect immediately and hides this page.")}</Alert>
       )}
 
       <div className="flex items-center justify-end gap-2 border-t border-slate-200 pt-4">
         <Button type="button" variant="ghost" onClick={onCancel} disabled={isPending}>
-          Cancel
-        </Button>
+          {t("Cancel")}</Button>
         <Button type="submit" isLoading={isPending}>
-          Save changes
-        </Button>
+          {t("Save changes")}</Button>
       </div>
     </form>
   )
@@ -632,6 +628,7 @@ interface ResetPasswordFormProps {
 }
 
 function ResetPasswordForm({ isPending, error, onSubmit, onCancel }: ResetPasswordFormProps) {
+  useLanguage()
   const {
     register,
     handleSubmit,
@@ -660,26 +657,26 @@ function ResetPasswordForm({ isPending, error, onSubmit, onCancel }: ResetPasswo
       )}
 
       <Input
-        label="New password"
+        label={t("New password")}
         type="password"
         required
         autoComplete="new-password"
         {...register('password', {
-          required: 'Password is required',
-          minLength: { value: 8, message: 'Must be at least 8 characters' },
-          maxLength: { value: 72, message: 'Must be at most 72 characters' },
+          required: "Password is required",
+          minLength: { value: 8, message: "Must be at least 8 characters" },
+          maxLength: { value: 72, message: "Must be at most 72 characters" },
         })}
         error={errors.password?.message}
-        hint="Between 8 and 72 characters"
+        hint={t("Between 8 and 72 characters")}
       />
 
       <Input
-        label="Confirm password"
+        label={t("Confirm password")}
         type="password"
         required
         autoComplete="new-password"
         {...register('confirmPassword', {
-          required: 'Please repeat the password',
+          required: "Please repeat the password",
           validate: (value) => value === password || 'The passwords do not match',
         })}
         error={errors.confirmPassword?.message}
@@ -687,11 +684,9 @@ function ResetPasswordForm({ isPending, error, onSubmit, onCancel }: ResetPasswo
 
       <div className="flex items-center justify-end gap-2 border-t border-slate-200 pt-4">
         <Button type="button" variant="ghost" onClick={onCancel} disabled={isPending}>
-          Cancel
-        </Button>
+          {t("Cancel")}</Button>
         <Button type="submit" isLoading={isPending}>
-          Reset password
-        </Button>
+          {t("Reset password")}</Button>
       </div>
     </form>
   )
@@ -715,11 +710,12 @@ function RoleFieldset({
   ceiling?: Role
   hint?: string
 }) {
+  useLanguage()
   const options = ROLES.filter((role) => ROLE_RANK[role] <= ROLE_RANK[ceiling])
 
   return (
     <fieldset>
-      <legend className="mb-2 text-sm font-medium text-slate-700">Roles</legend>
+      <legend className="mb-2 text-sm font-medium text-slate-700">{t("Roles")}</legend>
       <div className="flex flex-wrap gap-2">
         {options.map((role) => (
           <label
@@ -732,13 +728,13 @@ function RoleFieldset({
               {...roleProps}
               className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
             />
-            {ROLE_LABELS[role]}
+            {t(ROLE_LABELS[role])}
           </label>
         ))}
       </div>
       {error && (
         <p role="alert" className="mt-1.5 text-xs text-red-600">
-          {error}
+          {t(error)}
         </p>
       )}
       <p className="mt-1.5 text-xs text-slate-500">{hint}</p>

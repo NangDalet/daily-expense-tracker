@@ -51,4 +51,7 @@ public class CreateUserRequest {
 
     @Schema(description = "Create the account disabled so it cannot sign in yet", example = "true")
     private Boolean enabled;
+
+    @Pattern(regexp = "MANAGER", message = "Only Construction Site Manager can be assigned during user creation")
+    private String constructionRole;
 }

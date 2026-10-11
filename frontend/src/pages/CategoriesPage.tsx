@@ -1,3 +1,5 @@
+import { t } from '@/lib/language'
+import { useLanguage } from '@/context/LanguageContext'
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { Check, Pencil, Plus, Trash2 } from 'lucide-react'
@@ -31,6 +33,7 @@ const SWATCHES = [
 ]
 
 export default function CategoriesPage() {
+  useLanguage()
   const { data: categories, isPending, isError, error, refetch } = useCategories()
   const createCategory = useCreateCategory()
   const updateCategory = useUpdateCategory()
@@ -64,39 +67,36 @@ export default function CategoriesPage() {
     <div className="mx-auto max-w-7xl">
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-xl font-semibold tracking-tight text-slate-900">Categories</h1>
+          <h1 className="text-xl font-semibold tracking-tight text-slate-900">{t("Categories")}</h1>
           <p className="mt-1 text-sm text-slate-500">
-            Group your expenses and give each one an icon and colour.
-          </p>
+            {t("Group your expenses and give each one an icon and colour.")}</p>
         </div>
         <Button onClick={openCreate}>
           <Plus className="h-4 w-4" aria-hidden />
-          New category
-        </Button>
+          {t("New category")}</Button>
       </div>
 
       {isError ? (
         <Card>
           <ErrorState
-            title="Could not load categories"
+            title={t("Could not load categories")}
             message={error instanceof ApiError ? error.message : undefined}
             onRetry={() => void refetch()}
           />
         </Card>
       ) : isPending ? (
         <Card>
-          <LoadingBlock label="Loading categories" />
+          <LoadingBlock label={t("Loading categories")} />
         </Card>
       ) : (categories?.length ?? 0) === 0 ? (
         <Card>
           <EmptyState
-            title="No categories yet"
-            description="Create one to start organising your expenses."
+            title={t("No categories yet")}
+            description={t("Create one to start organising your expenses.")}
             action={
               <Button size="sm" onClick={openCreate}>
                 <Plus className="h-4 w-4" aria-hidden />
-                New category
-              </Button>
+                {t("New category")}</Button>
             }
           />
         </Card>
@@ -115,14 +115,14 @@ export default function CategoriesPage() {
                       </p>
                       <p className="mt-0.5 text-xs text-slate-500">
                         {formatNumber(category.expenseCount ?? 0)}{' '}
-                        {(category.expenseCount ?? 0) === 1 ? 'expense' : 'expenses'}
+                        {(category.expenseCount ?? 0) === 1 ? t("expense") : t("expenses")}
                       </p>
                     </div>
                     <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
                       <button
                         type="button"
                         onClick={() => openEdit(category)}
-                        aria-label={`Edit ${category.name}`}
+                        aria-label={t("Edit {0}", [category.name])}
                         className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
                       >
                         <Pencil className="h-4 w-4" />
@@ -130,7 +130,7 @@ export default function CategoriesPage() {
                       <button
                         type="button"
                         onClick={() => setDeletingCategory(category)}
-                        aria-label={`Delete ${category.name}`}
+                        aria-label={t("Delete {0}", [category.name])}
                         className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600"
                       >
                         <Trash2 className="h-4 w-4" />
@@ -153,8 +153,8 @@ export default function CategoriesPage() {
       <Modal
         open={isFormOpen}
         onClose={() => setIsFormOpen(false)}
-        title={editingCategory ? 'Edit category' : 'New category'}
-        description={editingCategory ? undefined : 'Categories are visible only to you.'}
+        title={editingCategory ? t("Edit category") : t("New category")}
+        description={editingCategory ? undefined : t("Categories are visible only to you.")}
         size="md"
       >
         <CategoryForm
@@ -182,11 +182,11 @@ export default function CategoriesPage() {
 
       <ConfirmDialog
         open={deletingCategory !== null}
-        title="Delete category"
+        title={t("Delete category")}
         description={
           (deletingCategory?.expenseCount ?? 0) > 0
-            ? `"${deletingCategory?.name}" still has ${deletingCategory?.expenseCount} linked expenses. The backend refuses this so historical data is never orphaned - reassign those expenses first.`
-            : `"${deletingCategory?.name}" has no linked expenses and can be deleted.`
+            ? t("\"{0}\" still has {1} linked expenses. The backend refuses this so historical data is never orphaned - reassign those expenses first.", [deletingCategory?.name, deletingCategory?.expenseCount])
+            : t("\"{0}\" has no linked expenses and can be deleted.", [deletingCategory?.name])
         }
         isPending={deleteCategory.isPending}
         error={deleteCategory.error instanceof ApiError ? deleteCategory.error : null}
@@ -206,6 +206,7 @@ interface CategoryFormProps {
 }
 
 function CategoryForm({ category, isPending, error, onSubmit, onCancel }: CategoryFormProps) {
+  useLanguage()
   const {
     register,
     handleSubmit,
@@ -244,36 +245,36 @@ function CategoryForm({ category, isPending, error, onSubmit, onCancel }: Catego
       {error && (
         <Alert tone="error" title={error.message}>
           {error.code === 'DUPLICATE_RESOURCE' && (
-            <p>You already have a category with that name.</p>
+            <p>{t("You already have a category with that name.")}</p>
           )}
           <FieldErrorList details={error.details} />
         </Alert>
       )}
 
       <Input
-        label="Name"
-        placeholder="Groceries"
+        label={t("Name")}
+        placeholder={t("Groceries")}
         required
         autoFocus
         {...register('name', {
-          required: 'Name is required',
-          minLength: { value: 1, message: 'Must not be empty' },
-          maxLength: { value: 80, message: 'Must be at most 80 characters' },
+          required: "Name is required",
+          minLength: { value: 1, message: "Must not be empty" },
+          maxLength: { value: 80, message: "Must be at most 80 characters" },
         })}
         error={errors.name?.message}
       />
 
       <Textarea
-        label="Description"
-        placeholder="Supermarket and farmers market runs"
+        label={t("Description")}
+        placeholder={t("Supermarket and farmers market runs")}
         {...register('description', {
-          maxLength: { value: 255, message: 'Must be at most 255 characters' },
+          maxLength: { value: 255, message: "Must be at most 255 characters" },
         })}
         error={errors.description?.message}
       />
 
       <fieldset>
-        <legend className="mb-2 text-sm font-medium text-slate-700">Icon</legend>
+        <legend className="mb-2 text-sm font-medium text-slate-700">{t("Icon")}</legend>
         <input type="hidden" {...register('iconName')} />
         <div className="flex max-h-40 flex-wrap gap-1.5 overflow-y-auto rounded-lg border border-slate-200 p-2">
           {CATEGORY_ICON_NAMES.map((name) => {
@@ -301,7 +302,7 @@ function CategoryForm({ category, isPending, error, onSubmit, onCancel }: Catego
       </fieldset>
 
       <fieldset>
-        <legend className="mb-2 text-sm font-medium text-slate-700">Colour</legend>
+        <legend className="mb-2 text-sm font-medium text-slate-700">{t("Colour")}</legend>
         <div className="flex flex-wrap items-center gap-2">
           {SWATCHES.map((color) => {
             const active = selectedColor?.toLowerCase() === color.toLowerCase()
@@ -309,7 +310,7 @@ function CategoryForm({ category, isPending, error, onSubmit, onCancel }: Catego
               <button
                 key={color}
                 type="button"
-                aria-label={`Colour ${color}`}
+                aria-label={t("Colour {0}", [color])}
                 aria-pressed={active}
                 onClick={() => setValue('colorHex', color, { shouldValidate: true })}
                 className={cn(
@@ -328,7 +329,7 @@ function CategoryForm({ category, isPending, error, onSubmit, onCancel }: Catego
           {...register('colorHex', {
             pattern: {
               value: /^#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/,
-              message: 'Must be a hex colour such as #22c55e',
+              message: "Must be a hex colour such as #22c55e",
             },
           })}
         />
@@ -343,18 +344,17 @@ function CategoryForm({ category, isPending, error, onSubmit, onCancel }: Catego
         <CategorySwatch iconName={selectedIcon} color={selectedColor || SWATCHES[0]} />
         <div className="min-w-0">
           <p className="truncate text-sm font-medium text-slate-900">
-            {watch('name') || 'Category name'}
+            {watch('name') || t("Category name")}
           </p>
-          <p className="text-xs text-slate-500">Preview</p>
+          <p className="text-xs text-slate-500">{t("Preview")}</p>
         </div>
       </div>
 
       <div className="flex items-center justify-end gap-2 border-t border-slate-200 pt-4">
         <Button type="button" variant="ghost" onClick={onCancel} disabled={isPending}>
-          Cancel
-        </Button>
+          {t("Cancel")}</Button>
         <Button type="submit" isLoading={isPending}>
-          {category ? 'Save changes' : 'Create category'}
+          {category ? t("Save changes") : t("Create category")}
         </Button>
       </div>
     </form>

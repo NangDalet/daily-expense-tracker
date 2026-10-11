@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.expensetracker.mapper.ConstructionMapper">
+  <select id="hasAccess" resultType="boolean">
+    SELECT EXISTS(SELECT 1 FROM users u WHERE u.id=#{userId} AND u.enabled AND NOT u.archived
+      AND (',' || u.roles || ',' LIKE '%,SUPER_ADMIN,%' OR EXISTS(SELECT 1 FROM construction_access a WHERE a.user_id=u.id)))
+  </select>
+  <select id="grants" resultType="com.example.expensetracker.construction.ConstructionModels$Grant">
+    SELECT u.id AS user_id, u.username, u.full_name, u.enabled, (a.user_id IS NOT NULL) AS granted,
+      a.construction_role, (',' || u.roles || ',' LIKE '%,SUPER_ADMIN,%') AS super_admin
+    FROM users u LEFT JOIN construction_access a ON a.user_id=u.id WHERE NOT u.archived ORDER BY u.username
+  </select>
+  <select id="accessRole" resultType="string">SELECT construction_role FROM construction_access WHERE user_id=#{userId}</select>
+  <select id="lockAccessTarget" resultType="java.util.UUID">SELECT id FROM users WHERE id=#{userId} AND NOT archived FOR UPDATE</select>
+  <select id="foremanSites" resultType="java.util.UUID">SELECT project_id FROM construction_foreman_sites WHERE user_id=#{userId} ORDER BY project_id</select>
+  <delete id="clearForemanSites">DELETE FROM construction_foreman_sites WHERE user_id=#{userId}</delete>
+  <insert id="addForemanSite">INSERT INTO construction_foreman_sites(user_id,project_id) VALUES(#{userId},#{projectId})</insert>
+  <insert id="grantRole">INSERT INTO construction_access(user_id,granted_by,construction_role) VALUES(#{userId},#{actor},#{role}) ON CONFLICT(user_id) DO UPDATE SET granted_by=EXCLUDED.granted_by,granted_at=now(),construction_role=EXCLUDED.construction_role</insert>
+  <insert id="roleHistory">INSERT INTO construction_access_history(user_id,actor_id,granted,construction_role,site_ids) VALUES(#{userId},#{actor},#{granted},#{role},ARRAY[<foreach collection="siteIds" item="site" separator=",">CAST(#{site} AS UUID)</foreach>]::UUID[])</insert>
+  <insert id="grant">INSERT INTO construction_access(user_id, granted_by) VALUES(#{userId},#{actor}) ON CONFLICT(user_id) DO UPDATE SET granted_by=EXCLUDED.granted_by, granted_at=now()</insert>
+  <delete id="revoke">DELETE FROM construction_access WHERE user_id=#{userId}</delete>
+  <insert id="accessHistory">INSERT INTO construction_access_history(user_id,actor_id,granted) VALUES(#{userId},#{actor},#{granted})</insert>
+  <sql id="workerColumns">id, worker_code, full_name, phone, position, rate_type, rate, overtime_rate, hours_per_day, currency, start_date, active, photo_data_url, project_id, (id_card_data_url IS NOT NULL) AS has_id_card</sql>
+  <select id="workers" resultType="com.example.expensetracker.construction.ConstructionModels$Worker">SELECT <include refid="workerColumns"/> FROM construction_workers ORDER BY active DESC, full_name, id</select>
+  <select id="worker" resultType="com.example.expensetracker.construction.ConstructionModels$Worker">SELECT <include refid="workerColumns"/>, id_card_data_url FROM construction_workers WHERE id=#{id}<if test="lock"> FOR UPDATE</if></select>
+  <insert id="insertWorker">INSERT INTO construction_workers(id,worker_code,full_name,phone,position,rate_type,rate,overtime_rate,hours_per_day,currency,start_date,active,photo_data_url,project_id,id_card_data_url) VALUES(#{id},#{workerCode},#{fullName},#{phone},#{position},#{rateType},#{rate},#{overtimeRate},#{hoursPerDay},#{currency},#{startDate},#{active},#{photoDataUrl},#{projectId},#{idCardDataUrl})</insert>
+  <update id="updateWorker">UPDATE construction_workers SET worker_code=#{workerCode},full_name=#{fullName},phone=#{phone},position=#{position},rate_type=#{rateType},rate=#{rate},overtime_rate=#{overtimeRate},hours_per_day=#{hoursPerDay},start_date=#{startDate},active=#{active},photo_data_url=#{photoDataUrl},project_id=#{projectId},id_card_data_url=#{idCardDataUrl} WHERE id=#{id}</update>
+  <select id="projects" resultType="com.example.expensetracker.construction.ConstructionModels$Project">SELECT id,name,site,active FROM construction_projects ORDER BY name, site</select>
+  <select id="hasAttendance" resultType="boolean">SELECT EXISTS(SELECT 1 FROM construction_attendance WHERE worker_id=#{workerId})</select>
+  <select id="attendanceBefore" resultType="boolean">SELECT EXISTS(SELECT 1 FROM construction_attendance WHERE worker_id=#{workerId} AND work_date &lt; #{startDate})</select>
+  <select id="project" resultType="com.example.expensetracker.construction.ConstructionModels$Project">SELECT id,name,site,active FROM construction_projects WHERE id=#{id}</select>
+  <insert id="insertProject">INSERT INTO construction_projects(id,name,site,active) VALUES(#{id},#{name},#{site},#{active})</insert>
+  <update id="updateProject">UPDATE construction_projects SET name=#{name},site=#{site},active=#{active} WHERE id=#{id}</update>
+  <sql id="attendanceColumns">id,worker_id,project_id,work_date,kind,workdays,hours,overtime_hours,base_wages,overtime,payroll_id,recorded_by</sql>
+  <select id="attendance" resultType="com.example.expensetracker.construction.ConstructionModels$Attendance">
+    SELECT <include refid="attendanceColumns"/> FROM construction_attendance WHERE work_date BETWEEN #{from} AND #{to}
+    <if test="workerId != null">AND worker_id=#{workerId}</if><if test="projectId != null">AND project_id=#{projectId}</if> ORDER BY work_date DESC,id
+  </select>
+  <select id="attendanceById" resultType="com.example.expensetracker.construction.ConstructionModels$Attendance">SELECT <include refid="attendanceColumns"/> FROM construction_attendance WHERE id=#{id}</select>
+  <insert id="insertAttendance">INSERT INTO construction_attendance(id,worker_id,project_id,work_date,kind,workdays,hours,overtime_hours,base_wages,overtime,recorded_by) VALUES(#{id},#{workerId},#{projectId},#{workDate},#{kind},#{workdays},#{hours},#{overtimeHours},#{baseWages},#{overtime},#{recordedBy})</insert>
+  <update id="updateAttendance">UPDATE construction_attendance SET project_id=#{projectId},work_date=#{workDate},kind=#{kind},workdays=#{workdays},hours=#{hours},overtime_hours=#{overtimeHours},base_wages=#{baseWages},overtime=#{overtime},recorded_by=#{recordedBy} WHERE id=#{id} AND payroll_id IS NULL</update>
+  <delete id="deleteAttendance">DELETE FROM construction_attendance WHERE id=#{id} AND payroll_id IS NULL</delete>
+  <sql id="adjustmentColumns">id,worker_id,kind,amount,adjustment_date,reason,status,created_by,created_at,approved_by,approved_at,approval_reason,payroll_id</sql>
+  <select id="adjustments" resultType="com.example.expensetracker.construction.ConstructionModels$Adjustment">SELECT <include refid="adjustmentColumns"/> FROM construction_adjustments <if test="workerId != null">WHERE worker_id=#{workerId}</if> ORDER BY adjustment_date DESC,id</select>
+  <select id="adjustment" resultType="com.example.expensetracker.construction.ConstructionModels$Adjustment">SELECT <include refid="adjustmentColumns"/> FROM construction_adjustments WHERE id=#{id}</select>
+  <insert id="insertAdjustment">INSERT INTO construction_adjustments(id,worker_id,kind,amount,adjustment_date,reason,created_by) VALUES(#{id},#{workerId},#{kind},#{amount},#{adjustmentDate},#{reason},#{createdBy})</insert>
+  <update id="approveAdjustment">UPDATE construction_adjustments SET status=#{status},approved_by=#{approvedBy},approved_at=now(),approval_reason=#{approvalReason} WHERE id=#{id} AND status='PENDING'</update>
+  <sql id="payrollColumns">id,reference,worker_id,project_id,from_date,to_date,period,currency,worker_name,worker_code,rate_type,rate,workdays,hours,overtime_hours,base_wages,overtime,bonuses,allowances,advances,deductions,net_pay,paid_amount,status,created_by,created_at,cancelled_by,cancelled_at,cancellation_reason</sql>
+  <select id="payrolls" resultType="com.example.expensetracker.construction.ConstructionModels$Payroll">
+    SELECT <include refid="payrollColumns"/> FROM construction_payrolls WHERE from_date &lt;= #{to} AND to_date &gt;= #{from}
+    <if test="workerId != null">AND worker_id=#{workerId}</if><if test="projectId != null">AND project_id=#{projectId}</if> ORDER BY created_at DESC,id
+  </select>
+  <select id="payroll" resultType="com.example.expensetracker.construction.ConstructionModels$Payroll">SELECT <include refid="payrollColumns"/> FROM construction_payrolls WHERE id=#{id}<if test="lock"> FOR UPDATE</if></select>
+  <select id="overlaps" resultType="int">SELECT count(*) FROM construction_payrolls WHERE worker_id=#{workerId} AND project_id=#{projectId} AND status!='CANCELLED' AND from_date &lt;= #{to} AND to_date &gt;= #{from}</select>
+  <insert id="insertPayroll">INSERT INTO construction_payrolls(id,reference,worker_id,project_id,from_date,to_date,period,currency,worker_name,worker_code,rate_type,rate,workdays,hours,overtime_hours,base_wages,overtime,bonuses,allowances,advances,deductions,net_pay,status,created_by) VALUES(#{id},#{reference},#{workerId},#{projectId},#{fromDate},#{toDate},#{period},#{currency},#{workerName},#{workerCode},#{rateType},#{rate},#{workdays},#{hours},#{overtimeHours},#{baseWages},#{overtime},#{bonuses},#{allowances},#{advances},#{deductions},#{netPay},#{status},#{createdBy})</insert>
+  <update id="claimAttendance">UPDATE construction_attendance SET payroll_id=#{payroll.id} WHERE worker_id=#{payroll.workerId} AND project_id=#{payroll.projectId} AND work_date BETWEEN #{payroll.fromDate} AND #{payroll.toDate} AND payroll_id IS NULL</update>
+  <update id="claimAdjustments">UPDATE construction_adjustments SET payroll_id=#{payroll.id} WHERE worker_id=#{payroll.workerId} AND status='APPROVED' AND payroll_id IS NULL AND adjustment_date &lt;= #{payroll.toDate}</update>
+  <update id="updatePayroll">UPDATE construction_payrolls SET paid_amount=#{paidAmount},status=#{status},cancelled_by=#{cancelledBy},cancelled_at=#{cancelledAt},cancellation_reason=#{cancellationReason} WHERE id=#{id}</update>
+  <update id="releaseAttendance">UPDATE construction_attendance SET payroll_id=NULL WHERE payroll_id=#{payrollId}</update>
+  <update id="releaseAdjustments">UPDATE construction_adjustments SET payroll_id=NULL WHERE payroll_id=#{payrollId}</update>
+  <sql id="paymentColumns">p.id,p.payroll_id,p.reference,p.request_key,p.payment_date,p.amount,p.method,p.processed_by,p.created_at, u.username AS processor_name</sql>
+  <select id="payments" resultType="com.example.expensetracker.construction.ConstructionModels$Payment">SELECT <include refid="paymentColumns"/> FROM construction_payments p JOIN users u ON u.id=p.processed_by WHERE payroll_id=#{payrollId} ORDER BY p.created_at,p.id</select>
+  <select id="paymentByKey" resultType="com.example.expensetracker.construction.ConstructionModels$Payment">SELECT <include refid="paymentColumns"/> FROM construction_payments p JOIN users u ON u.id=p.processed_by WHERE request_key=#{requestKey}</select>
+  <insert id="insertPayment">INSERT INTO construction_payments(id,payroll_id,reference,request_key,payment_date,amount,method,processed_by) VALUES(#{id},#{payrollId},#{reference},#{requestKey},#{paymentDate},#{amount},#{method},#{processedBy})</insert>
+</mapper>
