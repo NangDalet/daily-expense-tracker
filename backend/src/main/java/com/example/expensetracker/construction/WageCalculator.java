@@ -9,6 +9,14 @@ import java.util.List;
 public final class WageCalculator {
     private WageCalculator() {}
     public static BigDecimal money(BigDecimal value) { return value.setScale(2, RoundingMode.HALF_UP); }
+    public static BigDecimal overtimeRate(String rateType, BigDecimal rate, BigDecimal hoursPerDay, BigDecimal fixedOvertimeRate) {
+        return switch (rateType) {
+            case "DAILY" -> rate.multiply(new BigDecimal("1.5")).divide(hoursPerDay, 2, RoundingMode.HALF_UP);
+            case "HOURLY" -> money(rate.multiply(new BigDecimal("1.5")));
+            case "FIXED" -> money(fixedOvertimeRate);
+            default -> throw new IllegalArgumentException("Unknown wage basis");
+        };
+    }
     public static void calculate(Payroll payroll, Worker worker, List<Attendance> attendance, List<Adjustment> adjustments) {
         BigDecimal days=BigDecimal.ZERO, hours=BigDecimal.ZERO, otHours=BigDecimal.ZERO, base=BigDecimal.ZERO, overtime=BigDecimal.ZERO;
         for (var row : attendance) {

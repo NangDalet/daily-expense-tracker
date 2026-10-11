@@ -25,6 +25,28 @@ class ConstructionApiIT extends AbstractPostgresIT {
     private JsonNode postData(String path,String body,String token) throws Exception {
         return data(mvc.perform(post("/api/v1/construction"+path).header("Authorization","Bearer "+token).contentType(MediaType.APPLICATION_JSON).content(body)).andExpect(status().isOk()).andReturn());
     }
+    @Test void automaticOvertimePersistsAndRateUpdatesPreserveRecordedAttendance() throws Exception {
+        String token=data(mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
+            .content("{\"username\":\"root\",\"password\":\"Root@123\"}")).andExpect(status().isOk()).andReturn()).path("accessToken").asText();
+        String body="""
+            {"workerCode":"AUTO-OT","fullName":"Worker","position":"Worker","rateType":"DAILY","rate":60000,"overtimeRate":0,"hoursPerDay":8,"currency":"KHR","startDate":"2026-01-01","active":true}
+            """;
+        JsonNode saved=postData("/workers",body,token);
+        String id=saved.path("id").asText();
+        org.assertj.core.api.Assertions.assertThat(saved.path("overtimeRate").decimalValue()).isEqualByComparingTo("11250");
+        org.assertj.core.api.Assertions.assertThat(jdbc.queryForObject("SELECT overtime_rate FROM construction_workers WHERE id=?",java.math.BigDecimal.class,UUID.fromString(id))).isEqualByComparingTo("11250");
+        String site=postData("/projects","{\"name\":\"OT site\",\"site\":\"A1\",\"active\":true}",token).path("id").asText();
+        String attendanceBody="{\"workerId\":\"%s\",\"projectId\":\"%s\",\"workDate\":\"2026-01-01\",\"kind\":\"FULL\",\"overtimeHours\":2}".formatted(id,site);
+        JsonNode attendance=postData("/attendance",attendanceBody,token);
+        org.assertj.core.api.Assertions.assertThat(attendance.path("overtime").decimalValue()).isEqualByComparingTo("22500");
+        mvc.perform(put("/api/v1/construction/workers/"+id).header("Authorization","Bearer "+token).contentType(MediaType.APPLICATION_JSON)
+            .content(body.replace("60000","80000"))).andExpect(status().isOk()).andExpect(jsonPath("$.data.overtimeRate").value(15000));
+        org.assertj.core.api.Assertions.assertThat(jdbc.queryForObject("SELECT overtime FROM construction_attendance WHERE id=?",java.math.BigDecimal.class,UUID.fromString(attendance.path("id").asText()))).isEqualByComparingTo("22500");
+        JsonNode next=postData("/attendance",attendanceBody.replace("2026-01-01","2026-01-02"),token);
+        org.assertj.core.api.Assertions.assertThat(next.path("overtime").decimalValue()).isEqualByComparingTo("30000");
+        mvc.perform(post("/api/v1/construction/workers").header("Authorization","Bearer "+token).contentType(MediaType.APPLICATION_JSON)
+            .content(body.replace("Worker\",\"rateType","Construction Foreman\",\"rateType"))).andExpect(status().isUnprocessableEntity());
+    }
     @Test void projectPlanningPersistsValidatesAndClearsOptionalFields() throws Exception {
         String token=data(mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
             .content("{\"username\":\"root\",\"password\":\"Root@123\"}")).andExpect(status().isOk()).andReturn()).path("accessToken").asText();
@@ -78,7 +100,7 @@ class ConstructionApiIT extends AbstractPostgresIT {
         mvc.perform(get("/api/v1/construction/grants").header("Authorization","Bearer "+manager)).andExpect(status().isOk())
             .andExpect(jsonPath("$.data[?(@.userId == '"+foremanId+"')].siteIds[0]").value(org.hamcrest.Matchers.hasItem(site)));
         String workerBody="""
-            {"workerCode":"FOREMAN-A1","fullName":"Assigned worker","position":"Mason","rateType":"DAILY","rate":40000,"overtimeRate":5000,"hoursPerDay":8,"currency":"KHR","startDate":"2026-01-01","active":true,"projectId":"%s"}
+            {"workerCode":"FOREMAN-A1","fullName":"Assigned worker","position":"Worker","rateType":"DAILY","rate":40000,"overtimeRate":5000,"hoursPerDay":8,"currency":"KHR","startDate":"2026-01-01","active":true,"projectId":"%s"}
             """.formatted(site);
         String worker=postData("/workers",workerBody,manager).path("id").asText();
         String otherWorker=postData("/workers",workerBody.replace("FOREMAN-A1","FOREMAN-B2").replace(site,otherSite),manager).path("id").asText();
@@ -122,7 +144,7 @@ class ConstructionApiIT extends AbstractPostgresIT {
         var bytes=new java.io.ByteArrayOutputStream();
         javax.imageio.ImageIO.write(new java.awt.image.BufferedImage(16,12,java.awt.image.BufferedImage.TYPE_INT_RGB),"png",bytes);
         var request=json.createObjectNode();
-        request.put("workerCode","photo-test").put("fullName","Photo worker").put("position","Mason").put("rateType","DAILY").put("rate",40000).put("overtimeRate",0).put("hoursPerDay",8).put("currency","KHR").put("startDate","2026-01-01").put("active",true);
+        request.put("workerCode","photo-test").put("fullName","Photo worker").put("position","Worker").put("rateType","DAILY").put("rate",40000).put("overtimeRate",0).put("hoursPerDay",8).put("currency","KHR").put("startDate","2026-01-01").put("active",true);
         request.put("photoDataUrl","data:image/png;base64,"+java.util.Base64.getEncoder().encodeToString(bytes.toByteArray()));
         JsonNode saved=postData("/workers",request.toString(),root);
         String id=saved.path("id").asText(), photo=saved.path("photoDataUrl").asText();
@@ -150,7 +172,7 @@ class ConstructionApiIT extends AbstractPostgresIT {
         var bytes = new java.io.ByteArrayOutputStream();
         javax.imageio.ImageIO.write(new java.awt.image.BufferedImage(1200,800,java.awt.image.BufferedImage.TYPE_INT_RGB),"png",bytes);
         var request = json.createObjectNode();
-        request.put("workerCode","ID-CARD-01").put("fullName","Site worker").put("position","Mason").put("rateType","DAILY")
+        request.put("workerCode","ID-CARD-01").put("fullName","Site worker").put("position","Worker").put("rateType","DAILY")
             .put("rate",40000).put("overtimeRate",0).put("hoursPerDay",8).put("currency","KHR").put("startDate","2026-01-01")
             .put("active",true).put("projectId",site.path("id").asText())
             .put("idCardDataUrl","data:image/png;base64,"+java.util.Base64.getEncoder().encodeToString(bytes.toByteArray()));
@@ -180,7 +202,7 @@ class ConstructionApiIT extends AbstractPostgresIT {
         mvc.perform(put("/api/v1/construction/grants/"+userId).header("Authorization","Bearer "+root).contentType(MediaType.APPLICATION_JSON).content("{\"granted\":true}")).andExpect(status().isOk());
         mvc.perform(put("/api/v1/construction/grants/"+userId).header("Authorization","Bearer "+token).contentType(MediaType.APPLICATION_JSON).content("{\"granted\":true}")).andExpect(status().isForbidden());
         String worker=postData("/workers","""
-            {"workerCode":"CW01","fullName":"Worker","position":"Mason","rateType":"DAILY","rate":20,"overtimeRate":4,"hoursPerDay":8,"currency":"KHR","startDate":"2026-01-01","active":true}
+            {"workerCode":"CW01","fullName":"Worker","position":"Worker","rateType":"DAILY","rate":20,"overtimeRate":4,"hoursPerDay":8,"currency":"KHR","startDate":"2026-01-01","active":true}
             """,token).path("id").asText();
         String project=postData("/projects","{\"name\":\"House\",\"site\":\"Site 1\",\"active\":true}",token).path("id").asText();
         String attendanceBody="{\"workerId\":\"%s\",\"projectId\":\"%s\",\"workDate\":\"2026-01-01\",\"kind\":\"HALF\",\"overtimeHours\":2}".formatted(worker,project);
@@ -189,7 +211,7 @@ class ConstructionApiIT extends AbstractPostgresIT {
         mvc.perform(put("/api/v1/construction/adjustments/"+adjustment+"/approval").header("Authorization","Bearer "+token).contentType(MediaType.APPLICATION_JSON).content("{\"approved\":true,\"reason\":\"Confirmed\"}")).andExpect(status().isOk()).andExpect(jsonPath("$.data.approvedBy").value(userId));
         String payrollBody="{\"workerId\":\"%s\",\"projectId\":\"%s\",\"fromDate\":\"2026-01-01\",\"toDate\":\"2026-01-07\",\"period\":\"WEEKLY\"}".formatted(worker,project);
         JsonNode payroll=postData("/payrolls",payrollBody,token);
-        org.assertj.core.api.Assertions.assertThat(payroll.path("netPay").decimalValue()).isEqualByComparingTo("13");
+        org.assertj.core.api.Assertions.assertThat(payroll.path("netPay").decimalValue()).isEqualByComparingTo("12.5");
         String payrollId=payroll.path("id").asText();
         mvc.perform(post("/api/v1/construction/payrolls").header("Authorization","Bearer "+token).contentType(MediaType.APPLICATION_JSON).content(payrollBody)).andExpect(status().isConflict());
         mvc.perform(delete("/api/v1/construction/attendance/"+attendanceId).header("Authorization","Bearer "+token)).andExpect(status().isUnprocessableEntity());
@@ -214,7 +236,7 @@ class ConstructionApiIT extends AbstractPostgresIT {
     @Test void customPayrollPaysOnlyNonConsecutiveWorkedDaysAndPreventsDuplicates() throws Exception {
         String root=data(mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON).content("{\"username\":\"root\",\"password\":\"Root@123\"}")).andExpect(status().isOk()).andReturn()).path("accessToken").asText();
         String worker=postData("/workers","""
-            {"workerCode":"CUSTOM01","fullName":"Custom worker","position":"Mason","rateType":"DAILY","rate":20000,"overtimeRate":4000,"hoursPerDay":8,"currency":"KHR","startDate":"2026-01-01","active":true}
+            {"workerCode":"CUSTOM01","fullName":"Custom worker","position":"Worker","rateType":"DAILY","rate":20000,"overtimeRate":4000,"hoursPerDay":8,"currency":"KHR","startDate":"2026-01-01","active":true}
             """,root).path("id").asText();
         String project=postData("/projects","{\"name\":\"Custom project\",\"site\":\"Site\",\"active\":true}",root).path("id").asText();
         for(String date : java.util.List.of("2026-01-01","2026-01-04","2026-01-10")) {
@@ -236,7 +258,7 @@ class ConstructionApiIT extends AbstractPostgresIT {
     @Test void rejectsNonKhrWorkersAtApiAndDatabaseBoundaries() throws Exception {
         String root=data(mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON).content("{\"username\":\"root\",\"password\":\"Root@123\"}")).andExpect(status().isOk()).andReturn()).path("accessToken").asText();
         mvc.perform(post("/api/v1/construction/workers").header("Authorization","Bearer "+root).contentType(MediaType.APPLICATION_JSON).content("""
-            {"workerCode":"USD-test","fullName":"Invalid currency","position":"Mason","rateType":"DAILY","rate":20,"overtimeRate":4,"hoursPerDay":8,"currency":"USD","startDate":"2026-01-01","active":true}
+            {"workerCode":"USD-test","fullName":"Invalid currency","position":"Worker","rateType":"DAILY","rate":20,"overtimeRate":4,"hoursPerDay":8,"currency":"USD","startDate":"2026-01-01","active":true}
             """)).andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
         org.assertj.core.api.Assertions.assertThatThrownBy(() -> jdbc.update("""
             INSERT INTO construction_workers(id,worker_code,full_name,position,rate_type,rate,overtime_rate,hours_per_day,currency,start_date)

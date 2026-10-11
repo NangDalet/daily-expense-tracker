@@ -58,6 +58,10 @@ public class ConstructionService {
         mapper.accessHistory(id,actor,granted);
     }
     public Worker saveWorker(UUID id, WorkerRequest r) {
+        if (!"Worker".equals(r.position())) throw rule("Worker records must use the Worker position. Assign account roles separately.");
+        var overtimeRate = WageCalculator.overtimeRate(r.rateType(), r.rate(), r.hoursPerDay(), r.overtimeRate());
+        if (overtimeRate.compareTo(new java.math.BigDecimal("99999999999999.99")) > 0)
+            throw rule("Calculated overtime rate is too large. Check the wage and regular hours.");
         String photo = WorkerPhoto.normalize(r.photoDataUrl());
         String idCard = WorkerPhoto.normalizeIdCard(r.idCardDataUrl());
         Worker w = id==null ? new Worker() : worker(id);
@@ -71,7 +75,7 @@ public class ConstructionService {
         if(id!=null && mapper.attendanceBefore(id,r.startDate())) throw rule("Start date cannot move after existing attendance");
         w.setId(id==null ? UUID.randomUUID() : id); w.setWorkerCode(r.workerCode().trim()); w.setFullName(r.fullName().trim());
         w.setPhone(r.phone()); w.setPosition(r.position().trim()); w.setRateType(r.rateType()); w.setRate(r.rate());
-        w.setOvertimeRate(r.overtimeRate()); w.setHoursPerDay(r.hoursPerDay()); w.setCurrency(r.currency());
+        w.setOvertimeRate(overtimeRate); w.setHoursPerDay(r.hoursPerDay()); w.setCurrency(r.currency());
         w.setStartDate(r.startDate()); w.setActive(r.active());
         // Omitted photos preserve existing uploads; an empty string removes one.
         if(r.photoDataUrl()!=null) w.setPhotoDataUrl(photo);

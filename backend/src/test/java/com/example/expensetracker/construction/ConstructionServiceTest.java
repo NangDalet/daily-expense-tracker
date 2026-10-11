@@ -29,18 +29,42 @@ class ConstructionServiceTest {
     }
     @Test void omittedPhotoPreservesExistingPhotoAndEmptyPhotoRemovesIt() {
         worker.setPhotoDataUrl("saved-photo");
-        WorkerRequest omitted = new WorkerRequest("CW01", "Worker", null, "Mason", "DAILY", n("20"), n("4"), n("8"), "KHR", date, true, null, null, null);
+        WorkerRequest omitted = new WorkerRequest("CW01", "Worker", null, "Worker", "DAILY", n("20"), n("4"), n("8"), "KHR", date, true, null, null, null);
         assertThat(service.saveWorker(workerId, omitted).getPhotoDataUrl()).isEqualTo("saved-photo");
-        WorkerRequest removed = new WorkerRequest("CW01", "Worker", null, "Mason", "DAILY", n("20"), n("4"), n("8"), "KHR", date, true, "", null, null);
+        WorkerRequest removed = new WorkerRequest("CW01", "Worker", null, "Worker", "DAILY", n("20"), n("4"), n("8"), "KHR", date, true, "", null, null);
         assertThat(service.saveWorker(workerId, removed).getPhotoDataUrl()).isNull();
         verify(mapper, times(2)).updateWorker(worker);
+    }
+    @Test void automaticallyCalculatesDailyAndHourlyOvertimeIgnoringSubmittedRate() {
+        for (String basis : List.of("DAILY", "HOURLY")) {
+            var request = new WorkerRequest("CW01", "Worker", null, "Worker", basis, n("60000"), n("0"), n("8"), "KHR", date, true, null, null, null);
+            var saved = service.saveWorker(workerId, request);
+            assertThat(saved.getOvertimeRate()).isEqualByComparingTo(basis.equals("DAILY") ? "11250" : "90000");
+            assertThat(saved.getPosition()).isEqualTo("Worker");
+        }
+        assertThat(WageCalculator.overtimeRate("DAILY", n("100"), n("7"), n("999"))).isEqualByComparingTo("21.43");
+        assertThat(WageCalculator.overtimeRate("HOURLY", n("0.01"), n("8"), n("0"))).isEqualByComparingTo("0.02");
+    }
+    @Test void fixedWagesKeepAgreedOvertimeAndWorkerPositionCannotAssignAccountRoles() {
+        var request = new WorkerRequest("CW01", "Worker", null, "Worker", "FIXED", n("60000"), n("2000"), n("8"), "KHR", date, true, null, null, null);
+        assertThat(service.saveWorker(workerId, request).getOvertimeRate()).isEqualByComparingTo("2000");
+        for (String position : List.of("Construction Foreman", "Site Supervisor", "Construction Site Manager")) {
+            var invalid = new WorkerRequest("CW01", "Worker", null, position, "DAILY", n("60000"), n("0"), n("8"), "KHR", date, true, null, null, null);
+            assertThatThrownBy(() -> service.saveWorker(null, invalid)).hasMessageContaining("Worker position");
+        }
+        verify(mapper, never()).insertWorker(any());
+    }
+    @Test void rejectsCalculatedOvertimeBeyondDatabasePrecisionBeforeWriting() {
+        var request = new WorkerRequest("CW01", "Worker", null, "Worker", "DAILY", n("99999999999999.99"), n("0"), n("0.01"), "KHR", date, true, null, null, null);
+        assertThatThrownBy(() -> service.saveWorker(null, request)).hasMessageContaining("too large");
+        verify(mapper, never()).insertWorker(any());
     }
     private Attendance attendance() {
         Attendance a=new Attendance(); a.setWorkerId(workerId); a.setProjectId(projectId); a.setWorkdays(n("1.5")); a.setHours(n("12"));
         a.setOvertimeHours(n("2")); a.setBaseWages(n("30")); a.setOvertime(n("8")); return a;
     }
     private WorkerRequest workerRequest(UUID site, String card) {
-        return new WorkerRequest("CW01", "Worker", null, "Mason", "DAILY", n("20"), n("4"), n("8"), "KHR", date, true, null, site, card);
+        return new WorkerRequest("CW01", "Worker", null, "Worker", "DAILY", n("20"), n("4"), n("8"), "KHR", date, true, null, site, card);
     }
     @Test void workersCanBeAssignedToSitesAndOmittedFieldsPreserveTheirDocuments() {
         worker.setIdCardDataUrl("saved-card");

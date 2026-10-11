@@ -21,27 +21,27 @@ test('Docker stack: migration, permissions, payroll, concurrent payments, receip
     expect(response.status(), await response.text()).toBe(200)
     return (await response.json()).data
   }
-  const worker = await post('/workers', { workerCode: 'DOCKER-' + suffix, fullName: 'សុខ Docker ' + suffix, position: 'Mason', rateType: 'DAILY', rate: 20, overtimeRate: 4, hoursPerDay: 8, currency: 'KHR', startDate: '2026-01-01', active: true })
+  const worker = await post('/workers', { workerCode: 'DOCKER-' + suffix, fullName: 'សុខ Docker ' + suffix, position: 'Worker', rateType: 'DAILY', rate: 20, overtimeRate: 4, hoursPerDay: 8, currency: 'KHR', startDate: '2026-01-01', active: true })
   const project = await post('/projects', { name: 'Docker construction ' + suffix, site: 'Test site', active: true })
   const attendance = await post('/attendance', { workerId: worker.id, projectId: project.id, workDate: '2026-01-01', kind: 'HALF', overtimeHours: 2 })
   const advance = await post('/adjustments', { workerId: worker.id, kind: 'ADVANCE', amount: 5, adjustmentDate: '2026-01-01', reason: 'Docker test advance' })
   expect((await request.put(`/api/v1/construction/adjustments/${advance.id}/approval`, { headers, data: { approved: true, reason: 'Verified test advance' } })).status()).toBe(200)
   const body = { workerId: worker.id, projectId: project.id, fromDate: '2026-01-01', toDate: '2026-01-07', period: 'WEEKLY' }
-  const preview = await post('/payrolls/preview', body); expect(preview.netPay).toBe(13)
-  const payroll = await post('/payrolls', body); expect(payroll.netPay).toBe(13)
+  const preview = await post('/payrolls/preview', body); expect(preview.netPay).toBe(12.5)
+  const payroll = await post('/payrolls', body); expect(payroll.netPay).toBe(12.5)
   expect((await request.post('/api/v1/construction/payrolls', { headers, data: body })).status()).toBe(409)
   expect((await request.delete('/api/v1/construction/attendance/' + attendance.id, { headers })).status()).toBe(422)
   const keys = [crypto.randomUUID(), crypto.randomUUID()]
   const path = `/payrolls/${payroll.id}/payments`
-  const attempts = await Promise.all(keys.map(requestKey => request.post('/api/v1/construction' + path, { headers, data: { requestKey, paymentDate: '2026-01-07', amount: 8, method: 'CASH' } })))
+  const attempts = await Promise.all(keys.map(requestKey => request.post('/api/v1/construction' + path, { headers, data: { requestKey, paymentDate: '2026-01-07', amount: 7.5, method: 'CASH' } })))
   expect(attempts.map(r => r.status()).sort()).toEqual([200, 422])
   const successful = attempts.findIndex(r => r.status() === 200)
-  await post(path, { requestKey: keys[successful], paymentDate: '2026-01-07', amount: 8, method: 'CASH' })
+  await post(path, { requestKey: keys[successful], paymentDate: '2026-01-07', amount: 7.5, method: 'CASH' })
   await post(path, { requestKey: crypto.randomUUID(), paymentDate: '2026-01-07', amount: 5, method: 'QR' })
   const receiptResponse = await request.get(`/api/v1/construction/payrolls/${payroll.id}/receipt`, { headers })
   expect(receiptResponse.status()).toBe(200)
   const receipt = (await receiptResponse.json()).data
-  expect(receipt.payroll.status).toBe('PAID'); expect(receipt.payroll.paidAmount).toBe(13); expect(receipt.payments).toHaveLength(2)
+  expect(receipt.payroll.status).toBe('PAID'); expect(receipt.payroll.paidAmount).toBe(12.5); expect(receipt.payments).toHaveLength(2)
   await page.addInitScript(tokens => {
     localStorage.setItem('expense-tracker.accessToken', tokens.accessToken)
     localStorage.setItem('expense-tracker.refreshToken', tokens.refreshToken)
@@ -111,7 +111,7 @@ test('Docker stack: site manager assigns a foreman who records attendance only a
   }
   const site = await create('/projects', { name: 'Assigned ' + suffix, site: 'A1', active: true })
   const other = await create('/projects', { name: 'Other ' + suffix, site: 'B2', active: true })
-  const workerData = { workerCode: 'ROLE-A1-' + suffix, fullName: 'Assigned worker ' + suffix, position: 'Mason', rateType: 'DAILY', rate: 40000, overtimeRate: 5000, hoursPerDay: 8, currency: 'KHR', startDate: '2026-01-01', active: true, projectId: site.id }
+  const workerData = { workerCode: 'ROLE-A1-' + suffix, fullName: 'Assigned worker ' + suffix, position: 'Worker', rateType: 'DAILY', rate: 40000, overtimeRate: 5000, hoursPerDay: 8, currency: 'KHR', startDate: '2026-01-01', active: true, projectId: site.id }
   const worker = await create('/workers', workerData)
   const otherWorker = await create('/workers', { ...workerData, workerCode: 'ROLE-B2-' + suffix, projectId: other.id })
   const grantPath = '/api/v1/construction/grants/' + foreman.user.id
