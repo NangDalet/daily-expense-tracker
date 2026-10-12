@@ -59,10 +59,12 @@ export interface InputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 
   error?: string
   /** Rendered inside the field, before the control (e.g. a currency symbol). */
   prefix?: ReactNode
+  /** Interactive control at the end of the input, such as password visibility. */
+  suffix?: ReactNode
 }
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
-  { label, hint, error, prefix, className, id, required, ...props },
+  { label, hint, error, prefix, suffix, className, id, required, ...props },
   ref,
 ) {
   const generatedId = useId()
@@ -87,10 +89,12 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
             CONTROL_CLASSES,
             'h-10',
             prefix && 'pl-8',
+            suffix && 'pr-12',
             error ? 'border-red-400 focus:border-red-500 focus:ring-red-500/30' : 'border-slate-300',
           )}
           {...props}
         />
+        {suffix && <span className="absolute inset-y-0 right-1 flex items-center">{suffix}</span>}
       </div>
     </Field>
   )

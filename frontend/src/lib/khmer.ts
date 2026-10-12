@@ -1,5 +1,18 @@
 /** Application-owned interface text. User-entered names and descriptions are never translated. */
 export const khmer: Record<string, string> = {
+  'Make every day add up': 'គ្រប់គ្រងប្រាក់ឱ្យបានល្អរាល់ថ្ងៃ',
+  'A clearer view of your money.': 'យល់ច្បាស់ពីប្រាក់របស់អ្នក។',
+  'Track expenses, plan budgets, and see your month in USD or KHR.': 'តាមដានចំណាយ រៀបចំថវិកា និងមើលសរុបប្រចាំខែជា USD ឬ KHR។',
+  'Example overview': 'ឧទាហរណ៍ទិដ្ឋភាពទូទៅ',
+  'One total. Two currencies.': 'សរុបតែមួយ រូបិយប័ណ្ណពីរ។',
+  'Monthly insights': 'ទិដ្ឋភាពប្រចាំខែ',
+  'Simple budgeting': 'រៀបចំថវិកាងាយស្រួល',
+  'Your daily money companion': 'ជំនួយការគ្រប់គ្រងប្រាក់ប្រចាំថ្ងៃ',
+  'Show password': 'បង្ហាញពាក្យសម្ងាត់',
+  'Hide password': 'លាក់ពាក្យសម្ងាត់',
+  'Caps Lock is on': 'Caps Lock កំពុងបើក',
+  'Signing in…': 'កំពុងចូលគណនី…',
+  'Could not sign in. Please try again.': 'មិនអាចចូលគណនីបាន។ សូមព្យាយាមម្តងទៀត។',
   'Fixed rate: 1 USD = 4,000 KHR': 'អត្រាថេរ៖ 1 USD = 4,000 KHR',
   'Includes USD and KHR at 1 USD = 4,000 KHR.': 'រួមបញ្ចូល USD និង KHR តាមអត្រា 1 USD = 4,000 KHR។',
   'Combined total (USD)': 'សរុបរួម (USD)',

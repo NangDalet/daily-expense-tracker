@@ -85,6 +85,28 @@ body {
 
 .app-shell, .auth-shell { background: transparent; }
 
+.auth-hero {
+  background: radial-gradient(ellipse at 100% 0%, rgb(99 102 241 / 45%), transparent 65%),
+    radial-gradient(ellipse at 0% 100%, rgb(20 184 166 / 18%), transparent 60%), #171737;
+  box-shadow: 0 24px 70px -35px rgb(49 46 129 / 65%);
+}
+.auth-hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(rgb(255 255 255 / 3%) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(255 255 255 / 3%) 1px, transparent 1px);
+  background-size: 48px 48px;
+  pointer-events: none;
+}
+.auth-preview {
+  background: linear-gradient(135deg, rgb(255 255 255 / 11%), rgb(255 255 255 / 4%));
+  box-shadow: 0 18px 40px -24px rgb(0 0 0 / 45%), inset 0 1px 0 rgb(255 255 255 / 8%);
+}
+.login-form .glass-control { height: 50px; }
+.login-form .glass-control:focus { box-shadow: 0 0 0 4px rgb(99 102 241 / 10%); }
+.login-submit { height: 50px; }
+
 .glass-sidebar, .glass-header {
   background: var(--glass-shell);
   border: 1px solid var(--glass-border);
