@@ -83,7 +83,7 @@ export const CalendarInput = forwardRef<HTMLInputElement, InputHTMLAttributes<HT
     <button ref={buttonRef} type="button" disabled={disabled} aria-label={text('Open calendar', 'បើកប្រតិទិន')} aria-expanded={open} aria-controls={open ? panelId : undefined} aria-haspopup="dialog"
       onClick={show} className="absolute inset-y-0 right-0 flex w-10 items-center justify-center rounded-r-lg text-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-500 disabled:opacity-40"><CalendarDays className="h-4 w-4" /></button>
     {open && <div ref={panelRef} id={panelId} role="dialog" aria-label={text('Calendar', 'ប្រតិទិន')} lang={language}
-      style={position} className="fixed z-[100] max-h-[calc(100dvh-16px)] w-80 max-w-[calc(100vw-16px)] overflow-y-auto rounded-xl border border-slate-300 bg-white p-3 text-sm text-slate-900 shadow-xl"
+      style={position} className="glass-popover fixed z-[100] max-h-[calc(100dvh-16px)] w-80 max-w-[calc(100vw-16px)] overflow-y-auto rounded-2xl p-3 text-sm text-slate-900"
       onKeyDown={event => {
         if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); close() }
         const target = event.target as HTMLElement

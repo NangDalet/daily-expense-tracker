@@ -23,10 +23,10 @@ const choices = (values: string[]) => values.map(value => ({ value, label: value
 function Status({ value }: { value: string | null | undefined }) { const { t } = useConstructionLanguage(); const status = value || 'INACTIVE'; return <span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-medium text-slate-700">{t(status).replaceAll('_', ' ')}</span> }
 function Table({ headers, rows, rowClassName }: { headers: string[]; rows: ReactNode[][]; rowClassName?: (index: number) => string }) {
   const { t } = useConstructionLanguage()
-  return <div className="rounded-xl border border-slate-200 bg-white">
+  return <div className="card overflow-hidden">
     <div className="hidden overflow-x-auto md:block">
       <table className="w-full min-w-max text-left text-sm">
-        <thead className="bg-slate-50 text-xs uppercase text-slate-500"><tr>{headers.map(h => <th key={h} className="px-4 py-3 whitespace-nowrap">{t(h)}</th>)}</tr></thead>
+        <thead className="glass-table-head text-xs uppercase text-slate-500"><tr>{headers.map(h => <th key={h} className="px-4 py-3 whitespace-nowrap">{t(h)}</th>)}</tr></thead>
         <tbody className="divide-y divide-slate-100">{rows.length ? rows.map((cells, i) => <tr key={i} className={rowClassName?.(i)}>{cells.map((cell, j) => <td key={j} className="px-4 py-3 align-top">{cell}</td>)}</tr>) : <tr><td className="px-4 py-10 text-center text-slate-500" colSpan={headers.length}>{t('No records found.')}</td></tr>}</tbody>
       </table>
     </div>
@@ -223,7 +223,7 @@ function ConstructionContent() {
     {(error || loadError) && !dialog && <div role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{t(error || (loadError as Error)?.message || '')} {loadError && <button className="underline" onClick={() => void qc.invalidateQueries({ queryKey: key })}>{t('Retry')}</button>}</div>}
     {notice && <p role="status" className="rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800">{t(notice)}</p>}
     {skippedWorkers.length > 0 && <p role="status" className="rounded-lg bg-amber-50 p-3 text-sm text-amber-800">{skippedWorkers.length} {t('worker(s) already have attendance on this date and were skipped.')}: {skippedWorkers.map(workerName).join(', ')}</p>}
-    <div className="grid gap-4 rounded-xl border border-slate-200 bg-white p-4 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="card grid gap-4 p-4 sm:grid-cols-2 lg:grid-cols-4">
       <Input label={t('From date')} type="date" value={from} onChange={e => setFrom(e.target.value)} required />
       <Input label={t('To date')} type="date" value={to} onChange={e => setTo(e.target.value)} required />
       <Select label={t('Worker / payment history')} value={workerId} onChange={e => setWorkerId(e.target.value)} options={[{ value: '', label: t('All workers') }, ...workers.map(w => ({ value: w.id, label: w.fullName }))]} />
@@ -231,8 +231,8 @@ function ConstructionContent() {
     </div>
     {from > to && <p role="alert" className="text-red-600">{t('From date must precede the to date.')}</p>}
     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-      <div className="rounded-xl border border-slate-200 bg-white p-4"><p className="text-xs text-slate-500">{t('Total workers')}</p><p className="text-2xl font-semibold">{workers.length}</p><p className="text-xs text-slate-500">{workers.filter(w => w.active).length} {t('active')}</p></div>
-      {manager && ['Net wages', 'Paid', 'Unpaid'].map((label, i) => <div key={label} className="rounded-xl border border-slate-200 bg-white p-4"><p className="text-xs text-slate-500">{t(label)} · {t('selected payroll periods')}</p>{totals.length ? totals.map(t => <p key={t.currency} className="mt-1 font-semibold">{money([t.wages, t.paid, t.unpaid][i], t.currency)}</p>) : <p className="mt-1 font-semibold">{t('KHR 0.00')}</p>}</div>)}
+      <div className="card p-4"><p className="text-xs text-slate-500">{t('Total workers')}</p><p className="text-2xl font-semibold">{workers.length}</p><p className="text-xs text-slate-500">{workers.filter(w => w.active).length} {t('active')}</p></div>
+      {manager && ['Net wages', 'Paid', 'Unpaid'].map((label, i) => <div key={label} className="card p-4"><p className="text-xs text-slate-500">{t(label)} · {t('selected payroll periods')}</p>{totals.length ? totals.map(t => <p key={t.currency} className="mt-1 font-semibold">{money([t.wages, t.paid, t.unpaid][i], t.currency)}</p>) : <p className="mt-1 font-semibold">{t('KHR 0.00')}</p>}</div>)}
     </div>
     <div className="flex gap-1 overflow-x-auto border-b border-slate-200" role="tablist" aria-label={t('Construction module')}>
       {(manager ? ['Workers', 'Projects', 'Attendance', 'Adjustments', 'Payroll', 'Reports', 'Access'] : ['Attendance']).map(tabName => <button key={tabName} role="tab" aria-selected={tab === tabName} onClick={() => setTab(tabName)} className={`shrink-0 whitespace-nowrap px-4 py-3 text-sm font-medium ${tab === tabName ? 'border-b-2 border-brand-600 text-brand-700' : 'text-slate-500'}`}>{t(tabName)}</button>)}

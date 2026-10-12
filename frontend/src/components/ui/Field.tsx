@@ -48,7 +48,7 @@ export function Field({
 }
 
 const CONTROL_CLASSES =
-  'w-full rounded-lg border bg-white px-3 text-sm text-slate-900 placeholder:text-slate-400 ' +
+  'glass-control w-full rounded-xl border px-3 text-sm text-slate-900 placeholder:text-slate-400 ' +
   'transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500 ' +
   'disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-500'
 
@@ -166,7 +166,7 @@ export const MultiSelect = forwardRef<HTMLDivElement, MultiSelectProps>(function
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? `${fieldId}-error` : hint ? `${fieldId}-hint` : undefined}
         className={cn(
-          'max-h-56 overflow-y-auto rounded-lg border bg-white p-1.5',
+          'glass-control max-h-56 overflow-y-auto rounded-xl border p-1.5',
           error ? 'border-red-400' : 'border-slate-300',
         )}
       >

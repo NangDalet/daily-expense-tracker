@@ -54,8 +54,104 @@
 
 @layer components {
   .card {
-    @apply rounded-xl border border-slate-200 bg-white shadow-sm;
+    @apply rounded-2xl border;
+    border-color: var(--glass-border);
+    background: var(--glass-surface);
+    box-shadow: var(--glass-shadow);
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
   }
+}
+
+:root {
+  --app-background: radial-gradient(ellipse at 5% 5%, #dce5ff 0%, transparent 42%),
+    radial-gradient(ellipse at 95% 30%, #dcf4f0 0%, transparent 40%),
+    radial-gradient(ellipse at 45% 100%, #eee2fa 0%, transparent 48%), #f3f6fc;
+  --glass-surface: linear-gradient(135deg, rgb(255 255 255 / 82%), rgb(255 255 255 / 62%));
+  --glass-border: rgb(255 255 255 / 85%);
+  --glass-shadow: 0 8px 30px -14px rgb(41 57 104 / 18%), inset 0 1px 0 rgb(255 255 255 / 70%);
+  --glass-shell: rgb(255 255 255 / 78%);
+  --glass-dialog: rgb(250 252 255 / 94%);
+  --glass-control: rgb(255 255 255 / 72%);
+  --glass-control-border: rgb(148 163 184 / 35%);
+  --glass-tint: rgb(99 102 241 / 7%);
+  --glass-active: linear-gradient(135deg, rgb(224 231 255 / 90%), rgb(237 233 254 / 65%));
+}
+
+body {
+  background: var(--app-background);
+  background-attachment: fixed;
+}
+
+.app-shell, .auth-shell { background: transparent; }
+
+.glass-sidebar, .glass-header {
+  background: var(--glass-shell);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+}
+
+.glass-nav {
+  border: 1px solid transparent;
+  border-radius: 14px;
+  transition: background-color 160ms ease, border-color 160ms ease;
+}
+
+.glass-nav:hover { background: var(--glass-tint); }
+.glass-nav[aria-current='page'] {
+  background: var(--glass-active);
+  border-color: var(--glass-control-border);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 35%);
+}
+
+.glass-divider { border-color: var(--glass-control-border); }
+.glass-control { background-color: var(--glass-control); }
+.glass-control:not([aria-invalid='true']) { border-color: var(--glass-control-border); }
+.glass-control:disabled { background-color: var(--glass-tint); opacity: .75; }
+
+.glass-dialog, .glass-popover {
+  background: var(--glass-dialog);
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 24px 80px -20px rgb(15 23 42 / 35%), inset 0 1px 0 rgb(255 255 255 / 25%);
+  -webkit-backdrop-filter: blur(24px);
+  backdrop-filter: blur(24px);
+}
+
+.glass-overlay { background: rgb(15 23 42 / 40%); }
+.glass-footer { background: var(--glass-tint); }
+.glass-table-head { background: var(--glass-tint); }
+
+.app-button {
+  border-radius: 12px;
+  transition: background-color 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+}
+.app-button[data-variant='primary'] {
+  background: linear-gradient(135deg, #5b5ee9, #4f46e5);
+  box-shadow: 0 4px 12px -4px rgb(79 70 229 / 45%), inset 0 1px 0 rgb(255 255 255 / 22%);
+}
+.app-button[data-variant='primary']:hover {
+  background: linear-gradient(135deg, #5558e8, #4338ca);
+  box-shadow: 0 6px 16px -4px rgb(79 70 229 / 50%);
+}
+.app-button[data-variant='outline'] {
+  background: var(--glass-control);
+  border-color: var(--glass-control-border);
+}
+.app-button[data-variant='outline']:hover { background: var(--glass-tint); }
+
+/* The nested table and form controls use tint instead of additional blur layers. */
+.card .bg-slate-50 { background-color: var(--glass-tint); }
+.auth-card { border-radius: 28px; }
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .card, .glass-sidebar, .glass-header { background: var(--glass-dialog); }
+}
+
+@media (max-width: 767px) {
+  .card { -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
+  .glass-sidebar { background: var(--glass-dialog); }
 }
 
 /* Recharts injects a focus outline on the surface wrapper; suppress it. */
@@ -77,6 +173,18 @@ html[data-theme='dark'] select optgroup {
 }
 
 html[data-theme='dark'] {
+  --app-background: radial-gradient(ellipse at 5% 0%, #20264a 0%, transparent 45%),
+    radial-gradient(ellipse at 95% 35%, #103733 0%, transparent 42%),
+    radial-gradient(ellipse at 45% 100%, #271d3c 0%, transparent 50%), #0b1220;
+  --glass-surface: linear-gradient(135deg, rgb(25 39 60 / 88%), rgb(21 32 51 / 76%));
+  --glass-border: rgb(148 163 184 / 18%);
+  --glass-shadow: 0 10px 36px -16px rgb(0 0 0 / 45%), inset 0 1px 0 rgb(255 255 255 / 5%);
+  --glass-shell: rgb(16 27 45 / 84%);
+  --glass-dialog: rgb(20 32 51 / 96%);
+  --glass-control: rgb(15 25 43 / 65%);
+  --glass-control-border: rgb(148 163 184 / 26%);
+  --glass-tint: rgb(148 163 184 / 7%);
+  --glass-active: linear-gradient(135deg, rgb(79 70 229 / 27%), rgb(99 102 241 / 14%));
   --color-slate-50: #0b1220;
   --color-slate-100: #162235;
   --color-slate-200: #29374e;
@@ -98,7 +206,6 @@ html[data-theme='dark'] {
   --color-amber-100: #46371a;
 }
 
-html[data-theme='dark'] .card,
 html[data-theme='dark'] .bg-white { background-color: #162235; }
 html[data-theme='dark'] [class~='bg-white/90'] { background-color: rgb(22 34 53 / 90%); }
 html[data-theme='dark'] .bg-slate-900 { background-color: #0f172a; }
@@ -125,6 +232,7 @@ html[data-theme='dark'] .inactive-project-row td,
 html[data-theme='dark'] .inactive-project-row small { color: #fde68a !important; }
 html[data-theme='dark'] .inactive-project-row { background-color: #78350f !important; }
 html[data-theme='dark'] .recharts-cartesian-axis-tick-value { fill: #a0aec0; }
+html[data-theme='dark'] .recharts-cartesian-grid-horizontal line { stroke: var(--glass-control-border); }
 html[data-theme='dark'] .recharts-default-tooltip { background-color: #162235 !important; border-color: #40506a !important; }
 
 @media (prefers-reduced-motion: reduce) {

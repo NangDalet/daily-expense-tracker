@@ -26,7 +26,7 @@ function Assignment({ grant, projects, superAdmin, pending, onSave }: Props & { 
     setSites(grant.siteIds ?? [])
   }, [grant, superAdmin])
   const disabled = pending || !grant.enabled || !!grant.superAdmin
-  return <form className="space-y-3 rounded-xl border border-slate-200 bg-white p-4" onSubmit={event => {
+  return <form className="card space-y-3 p-4" onSubmit={event => {
     event.preventDefault()
     onSave(grant.userId, true, role, role === 'FOREMAN' ? sites : [])
   }}>

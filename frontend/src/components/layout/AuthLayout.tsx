@@ -20,9 +20,9 @@ export function AuthLayout({
   useLanguage()
   const { theme, toggleTheme } = useTheme()
   return (
-    <div className="flex min-h-screen">
+    <div className="auth-shell flex min-h-screen">
       <div className="flex w-full flex-col justify-center px-6 py-12 sm:px-12 lg:w-[46%] lg:px-16">
-        <div className="mx-auto w-full max-w-sm">
+        <div className="card auth-card mx-auto w-full max-w-md p-6 sm:p-8">
           <div className="mb-8 flex items-center gap-2.5">
             <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-600 text-white">
               <Wallet className="h-5 w-5" aria-hidden />

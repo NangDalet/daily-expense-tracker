@@ -90,7 +90,7 @@ export function AppLayout() {
   }
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
+    <div className="app-shell flex min-h-screen">
       {/* Mobile backdrop */}
       {isSidebarOpen && (
         <div
@@ -102,12 +102,12 @@ export function AppLayout() {
 
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-40 flex w-64 shrink-0 flex-col border-r border-slate-200 bg-white',
-          'transition-transform duration-200 lg:static lg:translate-x-0',
+          'glass-sidebar fixed inset-y-0 left-0 z-40 flex w-64 shrink-0 flex-col',
+          'transition-transform duration-200 lg:sticky lg:top-4 lg:my-4 lg:ml-4 lg:h-[calc(100dvh-2rem)] lg:translate-x-0 lg:rounded-3xl',
           isSidebarOpen ? 'translate-x-0' : '-translate-x-full',
         )}
       >
-        <div className="flex h-16 items-center justify-between gap-2 border-b border-slate-200 px-5">
+        <div className="glass-divider flex h-16 items-center justify-between gap-2 border-b px-5">
           <div className="flex items-center gap-2.5">
             <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-600 text-white">
               <Wallet className="h-5 w-5" aria-hidden />
@@ -136,10 +136,10 @@ export function AppLayout() {
               onClick={() => setIsSidebarOpen(false)}
               className={({ isActive }) =>
                 cn(
-                  'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                  'glass-nav flex items-center gap-3 px-3 py-2.5 text-sm font-medium',
                   isActive
-                    ? 'bg-brand-50 text-brand-700'
-                    : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900',
+                    ? 'text-brand-700'
+                    : 'text-slate-600 hover:text-slate-900',
                 )
               }
             >
@@ -149,7 +149,7 @@ export function AppLayout() {
           ))}
         </nav>
 
-        <div className="border-t border-slate-200 p-3">
+        <div className="glass-divider border-t p-3">
           <div className="flex items-center gap-3 rounded-lg px-2 py-2">
             <NavLink to="/profile" aria-label={t("Edit my profile")}><Avatar name={user?.fullName || user?.username} src={user?.avatarUrl} /></NavLink>
             <div className="min-w-0 flex-1">
@@ -172,7 +172,7 @@ export function AppLayout() {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-slate-200 bg-white/90 px-4 backdrop-blur sm:px-6">
+        <header className="glass-header sticky top-3 z-20 mx-4 mt-3 flex h-16 items-center gap-3 rounded-2xl px-4 sm:mx-6 sm:px-5">
           <button
             type="button"
             onClick={() => setIsSidebarOpen(true)}

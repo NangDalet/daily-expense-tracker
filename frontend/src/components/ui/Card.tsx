@@ -17,7 +17,7 @@ interface CardHeaderProps {
 export function CardHeader({ title, description, action, className }: CardHeaderProps) {
   useLanguage()
   return (
-    <div className={cn('flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-4', className)}>
+    <div className={cn('glass-divider flex items-start justify-between gap-4 border-b px-5 py-4', className)}>
       <div className="min-w-0">
         <h2 className="truncate text-sm font-semibold text-slate-900">{typeof title === 'string' ? t(title) : title}</h2>
         {description && <p className="mt-0.5 text-xs text-slate-500">{typeof description === 'string' ? t(description) : description}</p>}

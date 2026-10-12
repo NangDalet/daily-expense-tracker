@@ -37,8 +37,9 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       // A loading button must not be re-submittable.
       disabled={disabled || isLoading}
       aria-busy={isLoading || undefined}
+      data-variant={variant}
       className={cn(
-        'inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-colors',
+        'app-button inline-flex items-center justify-center gap-2 font-medium',
         'disabled:pointer-events-none disabled:opacity-55',
         VARIANTS[variant],
         SIZES[size],

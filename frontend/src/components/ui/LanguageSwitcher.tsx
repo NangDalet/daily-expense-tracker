@@ -9,7 +9,7 @@ export function LanguageSwitcher() {
       title={t('Language')}
       value={language}
       onChange={event => setLanguage(event.target.value as Language)}
-      className="max-w-32 rounded-lg border border-slate-300 bg-white px-2 py-2 text-sm text-slate-700"
+      className="glass-control max-w-32 rounded-xl border px-2 py-2 text-sm text-slate-700"
     >
       <option value="en" lang="en">English</option>
       <option value="km" lang="km">ភាសាខ្មែរ</option>
