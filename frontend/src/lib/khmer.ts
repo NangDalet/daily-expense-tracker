@@ -1,5 +1,6 @@
 /** Application-owned interface text. User-entered names and descriptions are never translated. */
 export const khmer: Record<string, string> = {
+  'Could not load this page': 'មិនអាចផ្ទុកទំព័រនេះ',
   'Show income amount': 'បង្ហាញចំនួនប្រាក់ចំណូល',
   'Hide income amount': 'លាក់ចំនួនប្រាក់ចំណូល',
   'Income amount hidden': 'ចំនួនប្រាក់ចំណូលត្រូវបានលាក់',

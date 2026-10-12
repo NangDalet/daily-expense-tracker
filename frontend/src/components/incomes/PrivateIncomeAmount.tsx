@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useLayoutEffect, useRef, useState } from 'react'
 import { Eye, EyeOff } from 'lucide-react'
 import { Modal } from '@/components/ui/Modal'
 import { Input } from '@/components/ui/Field'
@@ -33,7 +33,7 @@ export function useIncomeVisibility(scope: string) {
     setPending(false)
   }, [])
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     hide()
     const onVisibilityChange = () => { if (document.hidden) hide() }
     window.addEventListener('blur', hide)
