@@ -1,7 +1,6 @@
 package com.example.expensetracker.serviceImpl;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.List;
 import java.util.UUID;
 import com.example.expensetracker.config.TelegramProperties;
 import com.example.expensetracker.domain.Expense;
@@ -29,8 +28,7 @@ public class SpendingNotificationServiceImpl implements SpendingNotificationServ
         var usage = budgets.getBudgetUsage(expense.getUserId(), expense.getExpenseDate().getYear(), expense.getExpenseDate().getMonthValue());
         var matching = usage.stream().filter(item -> item.getBudget().getCurrency().equals(expense.getCurrency())
                 && (item.getBudget().getCategoryId() == null || item.getBudget().getCategoryId().equals(expense.getCategoryId()))).toList();
-        if (!matching.isEmpty()) telegram.enqueue(expense.getUserId(), connection.getChatId(), "expense:" + expense.getId(),
-                expenseMessage(expense, matching));
+        // Spending notifications are threshold alerts, not per-expense receipts.
         for (var item : matching) alert(expense.getUserId(), connection.getChatId(), item);
     }
     @Override public void checkBudgets(UUID userId, int year, int month) {
@@ -41,21 +39,12 @@ public class SpendingNotificationServiceImpl implements SpendingNotificationServ
     }
     private void alert(UUID userId, long chatId, BudgetUsage item) {
         var budget = item.getBudget();
-        if (item.getSpentAmount().compareTo(budget.getMonthlyLimit().multiply(new BigDecimal("0.80"))) < 0) return;
+        if (budget.getMonthlyLimit().signum() <= 0
+                || item.getSpentAmount().compareTo(budget.getMonthlyLimit().multiply(new BigDecimal("0.80"))) < 0) return;
         String key = "budget80:" + budget.getId() + ":" + budget.getYear() + ":" + budget.getMonth() + ":" + budget.getCurrency();
         telegram.enqueue(userId, chatId, key, "📊 Daily Expense Tracker\n\n"
                 + recipient(userId) + "\n\n⚠️ Budget Alert: 80% reached\n\n" + budgetDetails(item)
                 + "\n\n🔔 Review your spending to stay within your budget.");
-    }
-    private String expenseMessage(Expense expense, List<BudgetUsage> matching) {
-        var message = new StringBuilder("📊 Daily Expense Tracker\n\n")
-                .append(recipient(expense.getUserId())).append("\n\n✅ Expense Recorded\n")
-                .append("💸 Amount: ").append(money(expense.getCurrency(), expense.getAmount()))
-                .append("\n📅 Date: ").append(expense.getExpenseDate());
-        if (expense.getDescription() != null && !expense.getDescription().isBlank())
-            message.append("\n📝 Description: ").append(truncate(expense.getDescription()));
-        for (var item : matching) message.append("\n\n").append(budgetDetails(item));
-        return message.toString();
     }
     private String budgetDetails(BudgetUsage item) {
         var budget = item.getBudget();

@@ -34,8 +34,10 @@
       SELECT n.id FROM telegram_notifications n
       JOIN telegram_connections c ON c.user_id = n.user_id AND c.chat_id = n.chat_id AND c.enabled = true
       JOIN users u ON u.id = n.user_id AND u.enabled = true
-      WHERE (n.status = 'pending' AND n.next_attempt_at &lt;= now())
-         OR (n.status = 'sending' AND n.claimed_at &lt; now() - interval '2 minutes')
+      <!-- Old per-expense receipts must not be delivered after enabling threshold-only alerts. -->
+      WHERE n.event_key NOT LIKE 'expense:%'
+        AND ((n.status = 'pending' AND n.next_attempt_at &lt;= now())
+         OR (n.status = 'sending' AND n.claimed_at &lt; now() - interval '2 minutes'))
       ORDER BY n.created_at LIMIT 1 FOR UPDATE OF n SKIP LOCKED
     )
     UPDATE telegram_notifications n SET status = 'sending', claimed_at = now(), attempts = attempts + 1

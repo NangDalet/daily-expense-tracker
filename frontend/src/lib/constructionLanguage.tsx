@@ -1,5 +1,6 @@
 export type ConstructionLanguage = 'en' | 'km'
 export const constructionKhmer: Record<string, string> = {
+  'Exported by': 'នាំចេញដោយ',
   'Account roles are assigned separately from worker records.': 'តួនាទីគណនីត្រូវបានកំណត់ដាច់ដោយឡែកពីកំណត់ត្រាកម្មករ។',
   'Automatic: daily wage ÷ regular hours per day × 1.5.': 'គណនាស្វ័យប្រវត្តិ៖ ប្រាក់ឈ្នួលប្រចាំថ្ងៃ ÷ ម៉ោងធ្វើការធម្មតាក្នុងមួយថ្ងៃ × 1.5។',
   'Automatic: hourly wage × 1.5.': 'គណនាស្វ័យប្រវត្តិ៖ ប្រាក់ឈ្នួលក្នុងមួយម៉ោង × 1.5។',

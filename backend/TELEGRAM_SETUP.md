@@ -39,8 +39,8 @@ Open **Telegram alerts** in the app, select **Connect Telegram**, then follow th
 
 ## Notification behavior
 
-- One message for each newly saved expense covered by an overall or category budget with the same currency and expense month. If both budgets cover an expense, it still sends one spending message.
-- A separate alert when spending reaches **at least 80%**, once per budget, month and currency. Further spending does not repeat that alert.
+- Spending alerts are sent only when a matching budget reaches **at least 80%**, once per budget, month and currency. Further spending does not repeat that alert.
+- Expenses below 80% do not send a Telegram receipt or spending alert. Legacy per-expense receipts in the delivery queue are ignored.
 - Expense edits and budget changes also check the threshold, without sending a new expense message.
 - USD and KHR are never added together or converted. Existing budgets migrate to USD; edit a budget's currency if needed.
 - Messages are saved in the same transaction as the expense. The worker delivers only committed messages, with retry backoff and up to 10 failed attempts. The worker checks that the original chat is still connected.
@@ -51,9 +51,9 @@ Live sending requires bot credentials and either polling mode or a registered we
 
 ### Budget message example
 
-New expense messages include the expense amount, date, description, and usage of each matching budget. The separate 80% alert uses this layout:
+The 80% alert includes the budget limit, total spent, remaining amount, and usage percentage:
 
-Both messages identify the expense account with `👤 User: <full name>`. If the account has no full name, they use its Expense Tracker username. The name is loaded from the account that owns the expense or budget, independently of the Telegram bot name.
+Alerts identify the expense account with `👤 User: <full name>`. If the account has no full name, they use its Expense Tracker username. The name is loaded from the account that owns the expense or budget, independently of the Telegram bot name.
 
 ```text
 📊 Daily Expense Tracker

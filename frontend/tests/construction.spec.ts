@@ -61,7 +61,7 @@ test('Docker serves fresh HTML and returns 404 for removed build assets', async 
   expect(removed.headers()['cache-control'] ?? '').not.toContain('immutable')
 })
 
-test('a failed PDF chunk reloads once and PDF export works on retry', async ({ page }) => {
+test('a failed PDF chunk shows an error without reloading or blocking module navigation', async ({ page }) => {
   test.skip(!process.env.EXPORT_TEST_BASE_URL, 'Requires Vite production chunks')
   await setup(page)
   let failed = false
@@ -70,16 +70,15 @@ test('a failed PDF chunk reloads once and PDF export works on retry', async ({ p
     else await route.continue()
   })
   await page.getByRole('tab', { name: 'Reports', exact: true }).click()
-  const reloaded = page.waitForEvent('framenavigated', frame => frame === page.mainFrame())
+  const documents: string[] = []
+  page.on('request', request => { if (request.isNavigationRequest() && request.frame() === page.mainFrame()) documents.push(request.url()) })
   await page.getByRole('button', { name: 'PDF', exact: true }).click()
-  await reloaded
+  await expect(page.getByRole('alert')).toBeVisible()
   expect(failed).toBe(true)
   await expect(page.getByRole('heading', { name: 'Construction worker payments' })).toBeVisible()
-  await page.getByRole('tab', { name: 'Reports', exact: true }).click()
-  const download = page.waitForEvent('download')
-  await page.getByRole('button', { name: 'PDF', exact: true }).click()
-  expect((await download).suggestedFilename()).toMatch(/\.pdf$/)
-  // A second failure inside the guard window must stay visible without reloading.
+  await expect(page.getByRole('button', { name: 'PDF', exact: true })).toBeEnabled()
+  await page.getByRole('tab', { name: 'Workers', exact: true }).click()
+  expect(documents).toEqual([])
   expect(await page.evaluate(() => {
     const event = new Event('vite:preloadError', { cancelable: true })
     window.dispatchEvent(event)
@@ -194,6 +193,9 @@ test('language switch translates forms and exports, persists on reload, and swit
   await page.getByRole('button', { name: 'Excel', exact: true }).click()
   const xlsx = await downloading; const xlsxPath = info.outputPath('khmer.xlsx'); await xlsx.saveAs(xlsxPath)
   const book = new ExcelJS.Workbook(); await book.xlsx.readFile(xlsxPath)
+  expect(book.creator).toBe('foreman')
+  const summary = book.getWorksheet('សង្ខេប')!
+  expect(summary.getCell(`B${summary.rowCount}`).value).toBe('foreman')
   expect(book.getWorksheet('ការទូទាត់កម្មករ')!.getCell('A1').value).toBe('លេខយោង')
   expect(book.getWorksheet('សង្ខេប')!.getCell('D3').value).toBe(60)
   downloading = page.waitForEvent('download')
@@ -204,6 +206,8 @@ test('language switch translates forms and exports, persists on reload, and swit
   const content = await (await document.getPage(1)).getTextContent()
   const text = content.items.map(x => 'str' in x ? x.str : '').join(' ')
   expect(text).toContain('របាយការណ៍'); expect(text).toContain('60.00')
+  expect(text).toContain('foreman')
+  expect((await document.getMetadata()).info).toMatchObject({ Author: 'foreman' })
   await loading.destroy()
   downloading = page.waitForEvent('download')
   await page.getByRole('button', { name: 'បង្កាន់ដៃ', exact: true }).click()
@@ -214,6 +218,7 @@ test('language switch translates forms and exports, persists on reload, and swit
   // PDF extraction can reorder Khmer combining marks after glyph shaping.
   expect(receiptText).toContain('កម្មករសំណង់'); expect(receiptText).not.toContain('Construction worker payment receipt')
   expect(receiptText).toContain('foreman'); expect(receiptText).toContain('60.00')
+  expect((await receiptDocument.getMetadata()).info).toMatchObject({ Author: 'foreman' })
   await receiptLoading.destroy()
   await page.getByRole('tab', { name: 'បញ្ជីប្រាក់ឈ្នួល', exact: true }).click()
   await page.getByRole('button', { name: 'រៀបចំបញ្ជីប្រាក់ឈ្នួល', exact: true }).click()

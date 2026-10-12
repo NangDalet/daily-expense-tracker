@@ -1,4 +1,4 @@
-import { t, getLocale, getLanguage } from '@/lib/language'
+import { t, getLocale } from '@/lib/language'
 import { expenseApi } from '@/lib/api/endpoints'
 import type { ExpenseFilterParams, ExpenseResponse } from '@/lib/api/types'
 import type { ContentText, CustomTableLayout, TableCell, TDocumentDefinitions } from 'pdfmake/interfaces'
@@ -70,10 +70,10 @@ export async function fetchExpensesForExport(
   return expenses
 }
 
-async function createExcel(expenses: ExpenseResponse[], filters: string): Promise<Blob> {
+async function createExcel(expenses: ExpenseResponse[], filters: string, exportedBy: string): Promise<Blob> {
   const { default: ExcelJS } = await import('exceljs')
   const workbook = new ExcelJS.Workbook()
-  workbook.creator = 'Daily Expense Tracker'
+  workbook.creator = exportedBy
   workbook.created = new Date()
 
   const sheet = workbook.addWorksheet(t("Expenses"), { views: [{ state: 'frozen', ySplit: 1 }] })
@@ -116,6 +116,7 @@ async function createExcel(expenses: ExpenseResponse[], filters: string): Promis
   summary.addRow([])
   summary.addRow([t("Exported"), new Date().toISOString()])
   summary.addRow([t("Filters"), filters])
+  summary.addRow([t('Exported by'), exportedBy])
   summary.getColumn(2).alignment = { wrapText: true }
 
   for (const worksheet of [sheet, summary]) {
@@ -145,7 +146,7 @@ function pdfText(text: string): ContentText {
   }
 }
 
-async function createPdf(expenses: ExpenseResponse[], filters: string): Promise<Blob> {
+async function createPdf(expenses: ExpenseResponse[], filters: string, exportedBy: string): Promise<Blob> {
   const [{ default: pdfMake }, { default: latinFonts }] = await Promise.all([
     import('pdfmake/build/pdfmake'),
     import('pdfmake/build/vfs_fonts'),
@@ -177,11 +178,14 @@ async function createPdf(expenses: ExpenseResponse[], filters: string): Promise<
     pageSize: 'A4',
     pageOrientation: 'landscape',
     pageMargins: [40, 40, 40, 42],
-    info: { title: t("Expense report"), creator: 'Daily Expense Tracker' },
-    defaultStyle: { font: getLanguage() === 'km' ? 'NotoSansKhmer' : 'Roboto', fontSize: 8, color: '#334155', lineHeight: 1.25 },
+    info: { title: t("Expense report"), creator: 'Daily Expense Tracker', author: exportedBy },
+    // Dates, amounts and currency codes need Latin glyphs even in Khmer mode.
+    // Khmer text selects its embedded font explicitly through pdfText.
+    defaultStyle: { font: 'Roboto', fontSize: 8, color: '#334155', lineHeight: 1.25 },
     content: [
       { ...pdfText(t("Expense report")), fontSize: 18, bold: true, margin: [0, 0, 0, 8] },
       { ...pdfText(t("Exported: ") + new Date().toLocaleString(getLocale()) + ' | ' + expenses.length + t(" expenses")), fontSize: 9, margin: [0, 0, 0, 6] },
+      { ...pdfText(t('Exported by') + ': ' + exportedBy), fontSize: 9, margin: [0, 0, 0, 6] },
       { ...pdfText(t("Filters: ") + filters), fontSize: 9, margin: [0, 0, 0, 12] },
       {
         table: {
@@ -218,7 +222,7 @@ async function createPdf(expenses: ExpenseResponse[], filters: string): Promise<
       },
     ],
     footer: (page, pages) => ({
-      text: t("Page ") + page + t(" of ") + pages,
+      ...pdfText(t("Page ") + page + t(" of ") + pages),
       alignment: 'right', fontSize: 8, color: '#64748b', margin: [40, 12, 40, 0],
     }),
   }
@@ -229,8 +233,9 @@ export async function downloadExpenseExport(
   format: ExpenseExportFormat,
   expenses: ExpenseResponse[],
   filters: string,
+  exportedBy: string,
 ): Promise<void> {
-  const blob = format === 'xlsx' ? await createExcel(expenses, filters) : await createPdf(expenses, filters)
+  const blob = format === 'xlsx' ? await createExcel(expenses, filters, exportedBy) : await createPdf(expenses, filters, exportedBy)
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')
   link.href = url

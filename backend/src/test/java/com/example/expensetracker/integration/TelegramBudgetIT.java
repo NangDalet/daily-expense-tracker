@@ -64,9 +64,10 @@ class TelegramBudgetIT extends AbstractPostgresIT {
     @Test void currenciesStaySeparateAndAlertIsDeduplicatedAtExactThreshold() {
         connect(); budget("USD"); budget("KHR");
         spend("KHR","20"); spend("USD","79.99");
+        assertThat(count("%")).isZero();
         assertThat(count("budget80:%")).isZero();
         spend("USD","0.01"); spend("USD","5");
-        assertThat(count("expense:%")).isEqualTo(4);
+        assertThat(count("expense:%")).isZero();
         assertThat(count("budget80:%")).isEqualTo(1);
         var usage = budgets.getBudgetUsage(user,2026,10);
         assertThat(usage).filteredOn(x->x.getBudget().getCurrency().equals("USD")).singleElement()
@@ -78,7 +79,7 @@ class TelegramBudgetIT extends AbstractPostgresIT {
         connect(); budget("USD"); spend("KHR","10000");
         assertThat(count("%")).isZero();
     }
-    @Test void overlappingBudgetsSendOneReceiptAndSeparateAlerts() {
+    @Test void overlappingBudgetsSendSeparateThresholdAlertsWithoutReceipts() {
         connect(); budget("USD");
         UUID category=UUID.randomUUID();
         jdbc.update("INSERT INTO categories(id,name,user_id) VALUES (?,?,?)", category, "Food", user);
@@ -86,9 +87,9 @@ class TelegramBudgetIT extends AbstractPostgresIT {
                 .year(2026).month(10).build());
         service.create(user, ExpenseRequest.builder().currency("USD").amount(new BigDecimal("80"))
                 .categoryId(category.toString()).expenseDate(LocalDate.of(2026,10,9)).paymentMethod(PaymentMethod.CASH).build());
-        assertThat(count("expense:%")).isEqualTo(1);
+        assertThat(count("expense:%")).isZero();
         assertThat(count("budget80:%")).isEqualTo(2);
-        assertThat(jdbc.queryForObject("SELECT count(*) FROM telegram_notifications WHERE user_id=? AND status='pending'",Integer.class,user)).isEqualTo(3);
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM telegram_notifications WHERE user_id=? AND status='pending'",Integer.class,user)).isEqualTo(2);
     }
     @Test void unrelatedCurrencySpendingDoesNotTriggerExistingOverBudgetAlerts() {
         connect(); budget("USD");
@@ -126,7 +127,7 @@ class TelegramBudgetIT extends AbstractPostgresIT {
         assertThat(telegram.find(user).getChatId()).isEqualTo(424242L);
     }
     @Test void deliveryClaimsRetryAndDisconnectWorkAgainstRealSql() {
-        connect(); budget("USD"); spend("USD","10");
+        connect(); budget("USD"); spend("USD","80");
         var item=telegram.claim();
         assertThat(item).isNotNull(); assertThat(item.getAttempts()).isEqualTo(1);
         assertThat(telegram.claim()).isNull();
@@ -137,7 +138,15 @@ class TelegramBudgetIT extends AbstractPostgresIT {
         telegram.sent(item.getId()); assertThat(telegram.claim()).isNull();
         spend("USD","10"); links.disconnect(user);
         assertThat(links.status(user).connected()).isFalse();
-        assertThat(count("expense:%")).isEqualTo(1);
+        assertThat(count("budget80:%")).isEqualTo(1);
         assertThat(telegram.claim()).isNull();
+    }
+
+    @Test void legacyExpenseReceiptsAreNotDelivered() {
+        connect();
+        telegram.enqueue(user, 424242L, "expense:" + UUID.randomUUID(), "Legacy receipt below 80%");
+        assertThat(telegram.claim()).isNull();
+        budget("USD"); spend("USD", "80");
+        assertThat(telegram.claim().getMessage()).contains("Budget Alert: 80% reached");
     }
 }

@@ -29,7 +29,7 @@ export function payrollTotals(rows: Payroll[]) {
   }
   return [...totals.values()].map(t => ({ ...t, wages: t.wages / 100, paid: t.paid / 100, unpaid: t.unpaid / 100 }))
 }
-export async function exportConstruction(rows: Payroll[], projects: Project[], filters: string, format: 'xlsx' | 'pdf', language: ConstructionLanguage = 'en') {
+export async function exportConstruction(rows: Payroll[], projects: Project[], filters: string, format: 'xlsx' | 'pdf', language: ConstructionLanguage = 'en', exportedBy = '') {
   const t = (text: string) => constructionText(language, text)
   if (!rows.length) throw new Error('No payrolls match the selected filters.')
   const headings = ['Reference', 'Worker ID', 'Worker', 'Project', 'Site', 'From', 'To', 'Period', 'Currency', 'Workdays', 'Hours', 'OT hours', 'Base wages', 'Overtime', 'Bonus', 'Allowance', 'Advances', 'Deductions', 'Net pay', 'Paid', 'Balance', 'Status'].map(t)
@@ -41,7 +41,7 @@ export async function exportConstruction(rows: Payroll[], projects: Project[], f
   })
   if (format === 'xlsx') {
     const { default: ExcelJS } = await import('exceljs')
-    const book = new ExcelJS.Workbook(); book.creator = 'Daily Expense Tracker'
+    const book = new ExcelJS.Workbook(); book.creator = exportedBy
     const sheet = book.addWorksheet(t('Worker payments'), { views: [{ state: 'frozen', ySplit: 1 }] })
     sheet.addRow(headings); data.forEach(row => sheet.addRow(row)); sheet.autoFilter = { from: 'A1', to: 'V' + sheet.rowCount }
     sheet.columns.forEach(column => { column.width = 20 }); sheet.getColumn(1).width = 48
@@ -49,11 +49,13 @@ export async function exportConstruction(rows: Payroll[], projects: Project[], f
     sheet.getRow(1).font = { bold: true }
     const summary = book.addWorksheet(t('Summary')); summary.addRow([t('Filters'), filters]); summary.addRow(['Currency', 'Net wages', 'Paid', 'Unpaid'].map(t))
     payrollTotals(rows).forEach(t => summary.addRow([t.currency, t.wages, t.paid, t.unpaid])); summary.columns.forEach(c => { c.width = 30 })
+    summary.addRow([t('Exported by'), exportedBy])
     download(new Blob([await book.xlsx.writeBuffer() as BlobPart]), 'worker-payments-' + todayIso() + '.xlsx')
   } else {
     const header: TableCell[] = ['Worker / Reference', 'Project / Site', 'Period', 'Currency', 'Net pay', 'Paid', 'Balance', 'Status'].map(text => ({ ...pdfText(t(text)), bold: true, fillColor: '#e2e8f0' }))
-    await pdf({ pageOrientation: 'landscape', pageMargins: [25, 25, 25, 25], content: [
+    await pdf({ info: { title: t('Construction worker payment report'), author: exportedBy }, pageOrientation: 'landscape', pageMargins: [25, 25, 25, 25], content: [
       { ...pdfText(t('Construction worker payment report')), fontSize: 18, bold: true },
+      { ...pdfText(t('Exported by') + ': ' + exportedBy), margin: [0, 8, 0, 0] },
       { ...pdfText(filters), margin: [0, 8, 0, 12] },
       ...payrollTotals(rows).map(total => ({ ...pdfText(`${total.currency}: ${t('Net wages')} ${total.wages.toFixed(2)} | ${t('Paid')} ${total.paid.toFixed(2)} | ${t('Unpaid')} ${total.unpaid.toFixed(2)}`), margin: [0, 0, 0, 6] as [number, number, number, number] })),
       { table: { headerRows: 1, widths: ['*', '*', 100, 45, 55, 55, 55, 65], body: [header, ...rows.map(p => {
@@ -66,11 +68,12 @@ export async function exportConstruction(rows: Payroll[], projects: Project[], f
     ] }, 'worker-payments-' + todayIso() + '.pdf')
   }
 }
-export async function exportReceipt(p: Payroll, payments: Payment[], project?: Project, language: ConstructionLanguage = 'en') {
+export async function exportReceipt(p: Payroll, payments: Payment[], project?: Project, language: ConstructionLanguage = 'en', exportedBy = '') {
   const t = (text: string) => constructionText(language, text)
   const label = (text: string) => pdfText(t(text))
-  await pdf({ pageMargins: [35, 35, 35, 35], content: [
+  await pdf({ info: { title: t('Construction worker payment receipt'), author: exportedBy }, pageMargins: [35, 35, 35, 35], content: [
     { ...label('Construction worker payment receipt'), bold: true, fontSize: 18 },
+    { ...pdfText(t('Exported by') + ': ' + exportedBy), margin: [0, 8, 0, 0] },
     { ...pdfText(p.workerName + ' (' + p.workerCode + ')'), fontSize: 13, margin: [0, 12, 0, 8] },
     pdfText((project?.name ?? '') + ' / ' + (project?.site ?? '')),
     { ...pdfText(`${p.reference}\n${t('Period')}: ${p.fromDate} – ${p.toDate}\n${t('Status')}: ${t(p.status)}`), margin: [0, 8, 0, 12] },

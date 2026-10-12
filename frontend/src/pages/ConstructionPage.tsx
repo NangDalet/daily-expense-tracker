@@ -172,12 +172,12 @@ function ConstructionContent() {
     try {
       // Fetch fresh data using the same filters before generating a report.
       const rows = await api.payrolls(filter)
-      await exportConstruction(rows, projects, `${from} – ${to} | ${t('Worker')}: ${workerId ? workerName(workerId) : t('All')} | ${t('Project / site')}: ${projectId ? projectName(projectId) : t('All')}`, format, language)
+      await exportConstruction(rows, projects, `${from} – ${to} | ${t('Worker')}: ${workerId ? workerName(workerId) : t('All')} | ${t('Project / site')}: ${projectId ? projectName(projectId) : t('All')}`, format, language, user?.fullName?.trim() || user?.username || '')
     } catch (e) { setError((e as Error).message) } finally { setExporting(false) }
   }
   async function receipt(p: Payroll) {
     setExporting(true); setError('')
-    try { const snapshot = await api.receipt(p.id); await exportReceipt(snapshot.payroll, snapshot.payments, snapshot.project, language) }
+    try { const snapshot = await api.receipt(p.id); await exportReceipt(snapshot.payroll, snapshot.payments, snapshot.project, language, user?.fullName?.trim() || user?.username || '') }
     catch (e) { setError((e as Error).message) } finally { setExporting(false) }
   }
   async function createPayroll(request: PayrollRequest) {

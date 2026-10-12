@@ -1,5 +1,8 @@
 /** Application-owned interface text. User-entered names and descriptions are never translated. */
 export const khmer: Record<string, string> = {
+  'Exported by': 'នាំចេញដោយ',
+  'Receive one alert when a budget reaches 80% or more. No spending alerts are sent below 80%.': 'ទទួលការជូនដំណឹងមួយពេលប្រើថវិកាដល់ 80% ឬច្រើនជាងនេះ។ មិនផ្ញើការជូនដំណឹងចំណាយក្រោម 80% ទេ។',
+  'USD expenses count toward USD budgets, and KHR expenses count toward KHR budgets. Each budget alerts once per month when spending reaches at least 80%, including after an expense is edited.': 'ចំណាយ USD រាប់ក្នុងថវិកា USD ហើយចំណាយ KHR រាប់ក្នុងថវិកា KHR។ ថវិកានីមួយៗជូនដំណឹងម្តងក្នុងមួយខែពេលចំណាយដល់យ៉ាងហោចណាស់ 80% រួមទាំងក្រោយពេលកែចំណាយ។',
   'Could not load this page': 'មិនអាចផ្ទុកទំព័រនេះ',
   'Show income amount': 'បង្ហាញចំនួនប្រាក់ចំណូល',
   'Hide income amount': 'លាក់ចំនួនប្រាក់ចំណូល',

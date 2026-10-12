@@ -31,7 +31,7 @@ export default function TelegramPage() {
     <div className="mx-auto max-w-2xl space-y-5">
       <div>
         <h1 className="text-xl font-semibold text-slate-900">{t("Telegram alerts")}</h1>
-        <p className="mt-1 text-sm text-slate-500">{t("Receive a message for each new expense covered by a budget and one alert when a budget reaches 80%.")}</p>
+        <p className="mt-1 text-sm text-slate-500">{t('Receive one alert when a budget reaches 80% or more. No spending alerts are sent below 80%.')}</p>
       </div>
       {error && <Alert tone="error" title={error.message} />}
       <Card><CardBody className="space-y-4">
@@ -57,7 +57,7 @@ export default function TelegramPage() {
           </>
         )}
       </CardBody></Card>
-      <p className="text-sm text-slate-500">{t("USD expenses count toward USD budgets, and KHR expenses count toward KHR budgets. Expenses outside a budget do not send spending messages. Editing an expense can trigger the 80% alert, but does not send a new spending message.")}</p>
+      <p className="text-sm text-slate-500">{t('USD expenses count toward USD budgets, and KHR expenses count toward KHR budgets. Each budget alerts once per month when spending reaches at least 80%, including after an expense is edited.')}</p>
     </div>
   )
 }

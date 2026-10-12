@@ -1,5 +1,6 @@
 import { t } from '@/lib/language'
 import { useLanguage } from '@/context/LanguageContext'
+import { useAuth } from '@/context/AuthContext'
 import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { FileDown, FileSpreadsheet, Plus, Receipt } from 'lucide-react'
@@ -35,6 +36,7 @@ const DEFAULT_SIZE = 20
 
 export default function ExpensesPage() {
   useLanguage()
+  const { user } = useAuth()
   const [searchParams, setSearchParams] = useSearchParams()
   const [filters, setFilters] = useState<ExpenseFilterState>(EMPTY_FILTERS)
   const [page, setPage] = useState(0)
@@ -62,7 +64,7 @@ export default function ExpensesPage() {
       const expenses = await fetchExpensesForExport(selectedFilters, (loaded, total) => {
         setExportStatus(t("Preparing ") + formatNumber(loaded) + t(" of ") + formatNumber(total) + t(" expenses..."))
       })
-      await downloadExpenseExport(format, expenses, describeExportFilters(selectedFilters, categoryName))
+      await downloadExpenseExport(format, expenses, describeExportFilters(selectedFilters, categoryName), user?.fullName?.trim() || user?.username || '')
       setExportStatus(t("Downloaded ") + formatNumber(expenses.length) + t(" expenses as ") + (format === 'xlsx' ? 'Excel' : 'PDF') + '.')
     } catch (error) {
       setExportStatus('')

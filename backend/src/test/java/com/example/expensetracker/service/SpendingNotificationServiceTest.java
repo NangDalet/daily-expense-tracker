@@ -15,6 +15,8 @@ import com.example.expensetracker.mapper.UserMapper;
 import com.example.expensetracker.serviceImpl.SpendingNotificationServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.ArgumentCaptor;
 
 class SpendingNotificationServiceTest {
@@ -48,20 +50,24 @@ class SpendingNotificationServiceTest {
                 .spentAmount(new BigDecimal(spent)).build();
     }
 
-    @Test void receiptShowsMatchingBudgetTotalWithoutMixingCurrencies() {
+    @Test void spendingBelowThresholdDoesNotNotifyEvenWhenOtherCurrencyIsOverBudget() {
         when(budgets.getBudgetUsage(user, 2026, 10)).thenReturn(List.of(
-                usage("USD", "100", "79.99"), usage("KHR", "10000", "4500")));
+                usage("USD", "100", "79.99"), usage("KHR", "10000", "12000")));
         var expense = Expense.builder().id(UUID.randomUUID()).userId(user).currency("USD")
                 .amount(new BigDecimal("2")).expenseDate(LocalDate.of(2026, 10, 10))
                 .description("Lunch អាហារ").build();
         service.expenseCreated(expense);
-        var message = ArgumentCaptor.forClass(String.class);
-        verify(telegram).enqueue(eq(user), eq(424242L), eq("expense:" + expense.getId()), message.capture());
-        assertThat(message.getValue()).contains("📊 Daily Expense Tracker", "👤 User: Nang Dalet", "✅ Expense Recorded",
-                "Amount: USD 2.00", "Lunch អាហារ", "Budget limit: USD 100.00",
-                "Total spent: USD 79.99", "Remaining: USD 20.01", "Used: 79.99%")
-                .doesNotContain("KHR", "Budget Alert");
-        verify(telegram, times(1)).enqueue(any(), anyLong(), anyString(), anyString());
+        verify(telegram, never()).enqueue(any(), anyLong(), anyString(), anyString());
+    }
+
+    @ParameterizedTest
+    @CsvSource({"0,false", "79.99,false", "79.999,false", "80,true", "80.01,true", "100,true", "125,true"})
+    void alertsOnlyAtOrAboveExactThreshold(String spent, boolean alertExpected) {
+        when(budgets.getBudgetUsage(user, 2026, 10)).thenReturn(List.of(usage("USD", "100", spent)));
+        service.expenseCreated(Expense.builder().id(UUID.randomUUID()).userId(user).currency("USD")
+                .amount(new BigDecimal("0.01")).expenseDate(LocalDate.of(2026, 10, 10)).build());
+        verify(telegram, times(alertExpected ? 1 : 0)).enqueue(eq(user), eq(424242L), startsWith("budget80:"), anyString());
+        verify(telegram, never()).enqueue(any(), anyLong(), startsWith("expense:"), anyString());
     }
 
     @Test void thresholdAlertIncludesLimitTotalRemainingAndStableEventKey() {

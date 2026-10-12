@@ -19,15 +19,15 @@ const expenses = Array.from({ length: 143 }, (_, index) => ({
   receiptUrl: 'https://example.com/receipt',
 }))
 
-async function openExpenses(page: Page, failure?: 'request' | 'changed') {
+async function openExpenses(page: Page, failure?: 'request' | 'changed', fullName = 'Nang Dalet') {
   const requests: URLSearchParams[] = []
-  await page.addInitScript(() => {
+  await page.addInitScript((fullName) => {
     localStorage.setItem('expense-tracker.accessToken', 'test-access')
     localStorage.setItem('expense-tracker.refreshToken', 'test-refresh')
     localStorage.setItem('expense-tracker.user', JSON.stringify({
-      id: 'test-user', username: 'export-test', email: 'test@example.com', roles: ['USER'], enabled: true,
+      id: 'test-user', username: 'export-test', fullName, email: 'test@example.com', roles: ['USER'], enabled: true,
     }))
-  })
+  }, fullName)
   await page.route('**/api/v1/**', async (route) => {
     const url = new URL(route.request().url())
     if (url.pathname.endsWith('/categories')) {
@@ -89,6 +89,8 @@ test('Excel exports every page with typed cells, safe descriptions and currency 
   expect(sheet.getCell('B144').value).toBe('Export row 143')
   expect(sheet.getCell('H2').value).toBe('https://example.com/receipt')
   const summary = workbook.getWorksheet('Summary')!
+  expect(workbook.creator).toBe('Nang Dalet')
+  expect(summary.getRow(summary.rowCount).values).toEqual([undefined, 'Exported by', 'Nang Dalet'])
   expect(summary.getRow(2).values).toEqual([undefined, 'KHR', 71, 727.75])
   expect(summary.getRow(3).values).toEqual([undefined, 'USD', 72, 738])
   expect(requests.map((params) => params.get('page'))).toEqual(['0', '1'])
@@ -115,6 +117,8 @@ test('PDF downloads a complete report across multiple pages', async ({ page }, t
   }))
   const text = pages.join(' ')
   expect(text).toContain('Expense report')
+  expect(text).toContain('Exported by: Nang Dalet')
+  expect((await pdf.getMetadata()).info).toMatchObject({ Author: 'Nang Dalet' })
   expect(text).toContain('Export row 143')
   expect(text).toContain('727.75')
   expect(text).toContain('738.00')
@@ -189,6 +193,50 @@ test('Khmer search filters preserve Unicode in both reports', async ({ page }, t
   expect(text).toContain('Search:')
   expect(text).toContain(khmerCategory)
   await loading.destroy()
+})
+
+test('Khmer-mode PDFs embed every numeric, Latin and Khmer glyph and identify the exporting user', async ({ page }, testInfo) => {
+  await openExpenses(page, undefined, 'ណាង Dalet')
+  await page.getByRole('combobox', { name: 'Language', exact: true }).selectOption('km')
+  const pending = page.waitForEvent('download')
+  await page.getByRole('button', { name: /PDF$/ }).click()
+  const path = testInfo.outputPath('khmer-mode.pdf')
+  await (await pending).saveAs(path)
+  const loading = getDocument({ data: new Uint8Array(await readFile(path)), useSystemFonts: false })
+  const pdf = await loading.promise
+  const text: string[] = []
+  for (let index = 1; index <= pdf.numPages; index++) {
+    const sheet = await pdf.getPage(index)
+    const content = await sheet.getTextContent()
+    text.push(content.items.flatMap(item => 'str' in item ? [item.str] : []).join(' '))
+    const operators = await sheet.getOperatorList()
+    const glyphs = operators.argsArray.flatMap((args, index) => operators.fnArray[index] === OPS.showText
+      ? args[0].filter((glyph: { unicode: string }) => typeof glyph === 'object' && /[A-Za-z0-9\u1780-\u17ff]/u.test(glyph.unicode))
+      : [])
+    expect(glyphs.length).toBeGreaterThan(0)
+    expect(glyphs.filter((glyph: { isInFont: boolean }) => !glyph.isInFont)).toEqual([])
+  }
+  expect(text.join(' ')).toContain('2026-10-01')
+  expect(text.join(' ')).toContain('10.25')
+  expect(text.join(' ')).toContain('USD')
+  expect(text.join(' ')).toContain('KHR')
+  expect(text.join(' ')).toContain('Dalet')
+  expect(text.join(' ')).toContain('Export row 143')
+  expect((await pdf.getMetadata()).info).toMatchObject({ Author: 'ណាង Dalet' })
+  await loading.destroy()
+})
+
+test('export attribution falls back to username when a full name is missing', async ({ page }, testInfo) => {
+  await openExpenses(page, undefined, '')
+  const pending = page.waitForEvent('download')
+  await page.getByRole('button', { name: 'Export Excel', exact: true }).click()
+  const path = testInfo.outputPath('username.xlsx')
+  await (await pending).saveAs(path)
+  const workbook = new ExcelJS.Workbook()
+  await workbook.xlsx.readFile(path)
+  expect(workbook.creator).toBe('export-test')
+  const summary = workbook.getWorksheet('Summary')!
+  expect(summary.getRow(summary.rowCount).values).toEqual([undefined, 'Exported by', 'export-test'])
 })
 
 for (const failure of ['request', 'changed'] as const) {
