@@ -54,13 +54,13 @@ function card(page: Page, label: string) {
   return page.locator('.card').filter({ has: page.getByText(label, { exact: true }) })
 }
 
-test('keeps USD and KHR totals, averages, categories and budgets separate across pages', async ({ page }) => {
+test('converts USD and KHR totals, averages, categories and budgets across pages', async ({ page }) => {
   const requests = await openDashboard(page)
-  await expect(card(page, 'Total spend')).toContainText('$88.48')
-  await expect(card(page, 'Total spend')).toContainText('3 expenses')
-  await expect(card(page, 'Average expense')).toContainText('$29.49')
-  await expect(card(page, 'Budget left')).toContainText('$161.52')
-  await expect(card(page, 'Budget left')).toContainText('35.4% of $250.00 used')
+  await expect(card(page, 'Total spend')).toContainText('$89.61')
+  await expect(card(page, 'Total spend')).toContainText('104 expenses')
+  await expect(card(page, 'Average expense')).toContainText('$0.86')
+  await expect(card(page, 'Budget left')).toContainText('$160.39')
+  await expect(card(page, 'Budget left')).toContainText('35.8% of $250.00 used')
   await expect(card(page, 'Budget left')).not.toContainText('-$4,338.48')
   await expect(page.getByText('$4,588.48', { exact: true })).toHaveCount(0)
   // React StrictMode can abort and restart the first request in development.
@@ -72,23 +72,23 @@ test('keeps USD and KHR totals, averages, categories and budgets separate across
   const money = (amount: number) => page.evaluate((amount) => new Intl.NumberFormat('km-KH', {
     style: 'currency', currency: 'KHR', maximumFractionDigits: 2,
   }).format(amount), amount)
-  await expect(card(page, 'Total spend')).toContainText(await money(4500))
-  await expect(card(page, 'Total spend')).toContainText('101 expenses')
-  await expect(card(page, 'Average expense')).toContainText(await money(4500 / 101))
-  await expect(card(page, 'Budget left')).toContainText(await money(5500))
+  await expect(card(page, 'Total spend')).toContainText(await money(358420))
+  await expect(card(page, 'Total spend')).toContainText('104 expenses')
+  await expect(card(page, 'Average expense')).toContainText(await money(358420 / 104))
+  await expect(card(page, 'Budget left')).toContainText(await money(-348420))
   await expect(card(page, 'By category')).toContainText(await money(2500))
-  await expect(card(page, 'By category')).toContainText(await money(2000))
-  await expect(card(page, 'By category')).toContainText('55.6%')
+  await expect(card(page, 'By category')).toContainText(await money(355920))
+  await expect(card(page, 'By category')).toContainText('99.3%')
   await page.getByRole('button', { name: 'Weekly', exact: true }).click()
-  await expect(card(page, 'Total spend')).toContainText(await money(4500))
+  await expect(card(page, 'Total spend')).toContainText(await money(358420))
   await page.getByRole('button', { name: 'Monthly', exact: true }).click()
-  await expect(card(page, 'Total spend')).toContainText(await money(4500))
+  await expect(card(page, 'Total spend')).toContainText(await money(358420))
   await page.getByLabel('Currency', { exact: true }).selectOption('USD')
-  await expect(card(page, 'Total spend')).toContainText('$88.48')
+  await expect(card(page, 'Total spend')).toContainText('$89.61')
   await page.goto('/budgets')
-  await expect(page.getByText('$88.48 spent of $250.00 across 3 expenses', { exact: true })).toBeVisible()
-  await expect(page.getByText('$161.52 remaining', { exact: true })).toBeVisible()
-  await expect(page.getByText('35.4%', { exact: true })).toBeVisible()
+  await expect(page.getByText('$89.61 spent of $250.00 across 104 expenses', { exact: true })).toBeVisible()
+  await expect(page.getByText('$160.39 remaining', { exact: true })).toBeVisible()
+  await expect(page.getByText('35.8%', { exact: true })).toBeVisible()
 })
 
 test('defaults to riel when all expenses are KHR', async ({ page }) => {
@@ -97,8 +97,8 @@ test('defaults to riel when all expenses are KHR', async ({ page }) => {
   await expect(card(page, 'Total spend')).toContainText('101 expenses')
   await expect(card(page, 'Total spend')).not.toContainText('$')
   await page.getByLabel('Currency', { exact: true }).selectOption('USD')
-  await expect(card(page, 'Total spend')).toContainText('$0.00')
-  await expect(card(page, 'Total spend')).toContainText('0 expenses')
+  await expect(card(page, 'Total spend')).toContainText('$1.13')
+  await expect(card(page, 'Total spend')).toContainText('101 expenses')
 })
 
 test('shows unavailable instead of a partial total when a later page fails', async ({ page }) => {

@@ -13,6 +13,9 @@ public final class MoneyUtils {
     /** Money is always stored with 2 decimal places (NUMERIC(15,2)). */
     public static final int SCALE = 2;
 
+    /** User-defined fixed rate, shared by the reporting and budget SQL. */
+    public static final BigDecimal KHR_PER_USD = new BigDecimal("4000");
+
     private static final Pattern ISO_CODE = Pattern.compile("^[A-Z]{3}$");
 
     public static final String SUPPORTED_CURRENCY_PATTERN = "^(USD|KHR)$";

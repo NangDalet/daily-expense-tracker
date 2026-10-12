@@ -42,7 +42,7 @@ Open **Telegram alerts** in the app, select **Connect Telegram**, then follow th
 - Spending alerts are sent only when a matching budget reaches **at least 80%**, once per budget, month and currency. Further spending does not repeat that alert.
 - Expenses below 80% do not send a Telegram receipt or spending alert. Legacy per-expense receipts in the delivery queue are ignored.
 - Expense edits and budget changes also check the threshold, without sending a new expense message.
-- USD and KHR are never added together or converted. Existing budgets migrate to USD; edit a budget's currency if needed.
+- USD and KHR expenses count toward each matching budget at the fixed rate **1 USD = 4,000 KHR**. Usage and alerts are expressed in the budget's currency. Original expense amounts are preserved.
 - Messages are saved in the same transaction as the expense. The worker delivers only committed messages, with retry backoff and up to 10 failed attempts. The worker checks that the original chat is still connected.
 - Delivery is at least once: a server crash after Telegram accepts a message but before its delivery status is saved may cause a duplicate on retry. The 80% event is deduplicated in the database.
 - Failed deliveries are retained with `status='failed'` in `telegram_notifications`. No Telegram request URLs or exception bodies are logged because they can contain the bot token.

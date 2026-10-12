@@ -17,6 +17,10 @@ import lombok.NoArgsConstructor;
 @Schema(name = "CategoryStatResponse", description = "Spend aggregated per category")
 public class CategoryStatResponse {
 
+    @Builder.Default
+    @Schema(description = "Totals include USD and KHR converted at 1 USD = 4000 KHR")
+    private String currency = "USD";
+
     private String categoryId;
 
     @Schema(example = "Groceries")

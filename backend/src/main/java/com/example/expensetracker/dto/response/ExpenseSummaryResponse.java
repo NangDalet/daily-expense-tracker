@@ -18,6 +18,10 @@ import lombok.NoArgsConstructor;
 @Schema(name = "ExpenseSummaryResponse", description = "Spend aggregated per day/week/month")
 public class ExpenseSummaryResponse {
 
+    @Builder.Default
+    @Schema(description = "Totals include USD and KHR converted at 1 USD = 4000 KHR")
+    private String currency = "USD";
+
     @Schema(type = "string", format = "date", description = "First day of the bucket")
     private LocalDate periodStart;
 

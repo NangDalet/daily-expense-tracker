@@ -57,7 +57,7 @@ export default function TelegramPage() {
           </>
         )}
       </CardBody></Card>
-      <p className="text-sm text-slate-500">{t('USD expenses count toward USD budgets, and KHR expenses count toward KHR budgets. Each budget alerts once per month when spending reaches at least 80%, including after an expense is edited.')}</p>
+      <p className="text-sm text-slate-500">{t('USD and KHR expenses count toward every budget at 1 USD = 4,000 KHR. Each budget alerts once per month when spending reaches at least 80%, including after an expense is edited.')}</p>
     </div>
   )
 }

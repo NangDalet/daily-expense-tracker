@@ -61,19 +61,21 @@ class TelegramBudgetIT extends AbstractPostgresIT {
     int count(String pattern) {
         return jdbc.queryForObject("SELECT count(*) FROM telegram_notifications WHERE user_id=? AND event_key LIKE ?", Integer.class, user, pattern);
     }
-    @Test void currenciesStaySeparateAndAlertIsDeduplicatedAtExactThreshold() {
-        connect(); budget("USD"); budget("KHR");
-        spend("KHR","20"); spend("USD","79.99");
+    @Test void currenciesAreConvertedAndAlertIsDeduplicatedAtExactThreshold() {
+        connect(); budget("USD");
+        budgets.insert(Budget.builder().userId(user).currency("KHR").monthlyLimit(new BigDecimal("400000"))
+                .year(2026).month(10).build());
+        spend("KHR","40"); spend("USD","79.98");
         assertThat(count("%")).isZero();
         assertThat(count("budget80:%")).isZero();
         spend("USD","0.01"); spend("USD","5");
         assertThat(count("expense:%")).isZero();
-        assertThat(count("budget80:%")).isEqualTo(1);
+        assertThat(count("budget80:%")).isEqualTo(2);
         var usage = budgets.getBudgetUsage(user,2026,10);
         assertThat(usage).filteredOn(x->x.getBudget().getCurrency().equals("USD")).singleElement()
                 .satisfies(x->assertThat(x.getSpentAmount()).isEqualByComparingTo("85"));
         assertThat(usage).filteredOn(x->x.getBudget().getCurrency().equals("KHR")).singleElement()
-                .satisfies(x->assertThat(x.getSpentAmount()).isEqualByComparingTo("20"));
+                .satisfies(x->assertThat(x.getSpentAmount()).isEqualByComparingTo("340000"));
     }
     @Test void expensesWithoutMatchingBudgetDoNotNotify() {
         connect(); budget("USD"); spend("KHR","10000");
@@ -91,11 +93,11 @@ class TelegramBudgetIT extends AbstractPostgresIT {
         assertThat(count("budget80:%")).isEqualTo(2);
         assertThat(jdbc.queryForObject("SELECT count(*) FROM telegram_notifications WHERE user_id=? AND status='pending'",Integer.class,user)).isEqualTo(2);
     }
-    @Test void unrelatedCurrencySpendingDoesNotTriggerExistingOverBudgetAlerts() {
+    @Test void khrSpendingTriggersUsdBudgetAlerts() {
         connect(); budget("USD");
         jdbc.update("INSERT INTO expenses(user_id,amount,currency,expense_date,payment_method) VALUES (?,?,?,?,?)",
-                user,new BigDecimal("90"),"USD",LocalDate.of(2026,10,9),"CASH");
-        spend("KHR","20000"); assertThat(count("%")).isZero();
+                user,new BigDecimal("75"),"USD",LocalDate.of(2026,10,9),"CASH");
+        spend("KHR","20000"); assertThat(count("budget80:%")).isEqualTo(1);
     }
     @Test void webhookRejectsWrongSecretGroupsAndReplay() {
         telegram.setLink(user,TelegramServiceImpl.hash(TOKEN));

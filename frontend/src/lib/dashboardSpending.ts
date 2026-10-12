@@ -1,8 +1,9 @@
 import { expenseApi } from '@/lib/api/endpoints'
 import type { CategoryStatResponse, ExpenseResponse, ExpenseSummaryResponse, SummaryGroupBy } from '@/lib/api/types'
 import { parseIsoDate, toIsoDate } from '@/lib/utils'
+import { fromKhrMinor, toKhrMinor } from '@/lib/currency'
 
-/** The deployed summary API combines currencies, so use currency-bearing rows. */
+/** Fetch original amounts for fixed-rate totals in either display currency. */
 export async function fetchDashboardExpenses(from: string, to: string, signal?: AbortSignal): Promise<ExpenseResponse[]> {
   const expenses: ExpenseResponse[] = []
   const ids = new Set<string>()
@@ -37,8 +38,7 @@ export function summarizeDashboardExpenses(expenses: ExpenseResponse[], currency
   let cents = 0
   let count = 0
   for (const expense of expenses) {
-    if (expense.currency !== currency) continue
-    const amount = Math.round(expense.amount * 100)
+    const amount = toKhrMinor(expense.amount, expense.currency)
     cents += amount
     count++
     const start = periodStart(expense.expenseDate, groupBy)
@@ -59,17 +59,17 @@ export function summarizeDashboardExpenses(expenses: ExpenseResponse[], currency
     categories.set(key, category)
   }
   return {
-    total: cents / 100,
+    total: fromKhrMinor(cents, currency),
     count,
-    average: count ? cents / 100 / count : 0,
+    average: count ? fromKhrMinor(cents, currency) / count : 0,
     summary: [...periods.values()].sort((a, b) => a.periodStart.localeCompare(b.periodStart)).map((period) => ({
-      ...period, totalAmount: period.totalAmount / 100, averageAmount: period.totalAmount / 100 / period.expenseCount,
+      ...period, totalAmount: fromKhrMinor(period.totalAmount, currency), averageAmount: fromKhrMinor(period.totalAmount, currency) / period.expenseCount,
     })),
     categories: [...categories.values()].sort((a, b) => b.totalAmount - a.totalAmount).map((category) => ({
       ...category,
       percentage: cents ? category.totalAmount * 100 / cents : 0,
-      averageAmount: category.totalAmount / 100 / category.expenseCount,
-      totalAmount: category.totalAmount / 100,
+      averageAmount: fromKhrMinor(category.totalAmount, currency) / category.expenseCount,
+      totalAmount: fromKhrMinor(category.totalAmount, currency),
     })),
   }
 }

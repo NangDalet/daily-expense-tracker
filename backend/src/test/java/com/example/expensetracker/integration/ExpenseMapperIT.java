@@ -426,6 +426,36 @@ class ExpenseMapperIT extends AbstractPostgresIT {
     // ===================== BudgetMapper =====================
 
     @Test
+    void convertsMixedCurrenciesWithoutRoundingEachRielEntry() {
+        LocalDate date = LocalDate.of(2026, 1, 5);
+        insertExpense(new BigDecimal("5.00"), date, groceriesId, PaymentMethod.CASH);
+        for (int index = 0; index < 100; index++) {
+            expenseMapper.insert(Expense.builder().userId(userId).currency("KHR").amount(new BigDecimal("20"))
+                    .expenseDate(date).categoryId(groceriesId).paymentMethod(PaymentMethod.CASH).tags(List.of()).build());
+        }
+        insertExpenseFor(otherUserId, new BigDecimal("1000"), date, groceriesId);
+        var summary = expenseMapper.sumByPeriod(userId, "month", date.withDayOfMonth(1), date.withDayOfMonth(31), null, null);
+        assertThat(summary).singleElement().satisfies(row -> {
+            assertThat(row.getTotalAmount()).isEqualByComparingTo("5.50");
+            assertThat(row.getExpenseCount()).isEqualTo(101);
+        });
+        assertThat(expenseMapper.statsByCategory(userId, null, null)).singleElement()
+                .satisfies(row -> assertThat(row.getTotalAmount()).isEqualByComparingTo("5.50"));
+        for (String currency : List.of("USD", "KHR")) {
+            budgetMapper.insert(Budget.builder().userId(userId).categoryId(groceriesId).currency(currency)
+                    .monthlyLimit(new BigDecimal(currency.equals("USD") ? "10" : "40000")).month(1).year(2026).build());
+        }
+        for (var usage : budgetMapper.getBudgetUsage(userId, 2026, 1)) {
+            assertThat(usage.getSpentAmount()).isEqualByComparingTo(usage.getBudget().getCurrency().equals("USD") ? "5.50" : "22000");
+            assertThat(usage.getExpenseCount()).isEqualTo(101);
+            assertThat(usage.getUsagePercentage()).isEqualByComparingTo("55");
+        }
+        assertThat(expenseMapper.findByFilters(userId, new ExpenseFilterRequest(), 0, 200, "expenseDate", "ASC"))
+                .filteredOn(row -> row.getCurrency().equals("KHR"))
+                .hasSize(100).allSatisfy(row -> assertThat(row.getAmount()).isEqualByComparingTo("20"));
+    }
+
+    @Test
     @DisplayName("joins budgets with the actual spend of the same period")
     void computesBudgetUsage() {
         insertExpense(new BigDecimal("30.00"), LocalDate.of(2026, 1, 5), groceriesId, PaymentMethod.CASH);

@@ -133,6 +133,7 @@
         * remaining amount and usage percentage are computed in the same pass
     -->
     <select id="getBudgetUsage" resultMap="budgetUsageMap">
+        <bind name="khrPerUsd" value="@com.example.expensetracker.util.MoneyUtils@KHR_PER_USD"/>
         SELECT
         <include refid="budgetColumns"/>,
         <include refid="categoryColumns"/>,
@@ -142,11 +143,14 @@
         ROUND(COALESCE(spent.total_amount, 0) * 100.0 / NULLIF(b.monthly_limit, 0), 2) AS usage_percentage
         FROM budgets b
                  LEFT JOIN categories c ON c.id = b.category_id
-                 LEFT JOIN LATERAL (SELECT SUM(e.amount) AS total_amount,
+                 LEFT JOIN LATERAL (SELECT ROUND(SUM(CASE
+                                           WHEN e.currency = b.currency THEN e.amount
+                                           WHEN b.currency = 'USD' THEN e.amount / #{khrPerUsd}
+                                           ELSE e.amount * #{khrPerUsd}
+                                           END), 2) AS total_amount,
                                            COUNT(*) AS expense_count
                                     FROM expenses e
                                     WHERE e.user_id = b.user_id
-                                      AND e.currency = b.currency
                                       AND EXTRACT(YEAR FROM e.expense_date) = b.year
                                       AND EXTRACT(MONTH FROM e.expense_date) = b.month
                                       AND (b.category_id IS NULL OR e.category_id = b.category_id)

@@ -10,6 +10,7 @@ import { ApiError } from '@/lib/api/client'
 import type { ExpenseRequest, ExpenseResponse, PaymentMethod } from '@/lib/api/types'
 import { CURRENCIES, PAYMENT_METHODS } from '@/lib/api/types'
 import { formatMoney, paymentMethodLabel, resolveColor, todayIso } from '@/lib/utils'
+import { convertMoney } from '@/lib/currency'
 
 interface ExpenseFormValues {
   amount: string
@@ -89,13 +90,13 @@ export function ExpenseForm({ expense, onSuccess, onCancel }: ExpenseFormProps) 
     [categories],
   )
 
-  // Live total hint: shows the amount in the selected currency.
+  // Preview both currencies while preserving the entered amount on save.
   const amount = watch('amount')
   const currency = watch('currency')
   const parsedAmount = Number.parseFloat(amount)
   const amountPreview =
     Number.isFinite(parsedAmount) && parsedAmount > 0
-      ? formatMoney(parsedAmount, currency)
+      ? `${formatMoney(parsedAmount, currency)} ≈ ${formatMoney(convertMoney(parsedAmount, currency, currency === 'USD' ? 'KHR' : 'USD'), currency === 'USD' ? 'KHR' : 'USD')}`
       : null
 
   const onSubmit = handleSubmit(async (values) => {
@@ -189,6 +190,7 @@ export function ExpenseForm({ expense, onSuccess, onCancel }: ExpenseFormProps) 
             validate: (value) => CURRENCIES.some((code) => code === value) || 'Currency must be USD or KHR',
           })}
           error={errors.currency?.message}
+          hint={t('Fixed rate: 1 USD = 4,000 KHR')}
         />
       </div>
 

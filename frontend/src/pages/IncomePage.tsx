@@ -23,6 +23,7 @@ import { useDeleteIncome, useIncomes, useIncomeSummary } from '@/hooks/queries'
 import { ApiError } from '@/lib/api/client'
 import type { IncomeResponse } from '@/lib/api/types'
 import { formatNumber, todayIso, paymentMethodLabel } from '@/lib/utils'
+import { sumMoney } from '@/lib/currency'
 
 const DEFAULT_SORT = 'incomeDate,desc'
 const DEFAULT_SIZE = 20
@@ -125,6 +126,11 @@ export default function IncomePage() {
             <p className="mt-2 text-sm text-slate-500">{t("No income recorded this month.")}</p>
           ) : (
             <div className="mt-3 flex flex-wrap gap-6">
+              <div>
+                <p className="text-xs text-slate-500">{t('Combined total (USD)')}</p>
+                <p className="text-xl font-semibold tabular-nums text-emerald-700"><PrivateIncomeAmount amount={sumMoney(monthlySummary.data.map((row) => ({ amount: row.totalAmount, currency: row.currency })), 'USD')} currency="USD" /></p>
+                <p className="mt-1 text-xs text-slate-500">{t('Fixed rate: 1 USD = 4,000 KHR')}</p>
+              </div>
               {monthlySummary.data.map((row) => (
                 <div key={row.currency}>
                   <p className="text-xl font-semibold tabular-nums text-emerald-700"><PrivateIncomeAmount amount={row.totalAmount} currency={row.currency} /></p>

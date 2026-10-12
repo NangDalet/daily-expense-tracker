@@ -11,6 +11,7 @@ import { financeApi } from '@/lib/api/endpoints'
 import { formatMoney, toIsoDate } from '@/lib/utils'
 import { useAuth } from '@/context/AuthContext'
 import { PrivateIncomeAmount } from '@/components/incomes/PrivateIncomeAmount'
+import { sumMoney } from '@/lib/currency'
 
 export default function MonthlyPage() {
   useLanguage()
@@ -26,7 +27,19 @@ export default function MonthlyPage() {
     enabled: validPeriod,
     staleTime: 0,
   })
-  const totals = report.data?.find((row) => row.currency === currency)
+  const rows = report.data ?? []
+  const totalIncome = sumMoney(rows.map((row) => ({ amount: row.totalIncome, currency: row.currency })), currency)
+  const totalExpenses = sumMoney(rows.map((row) => ({ amount: row.totalExpenses, currency: row.currency })), currency)
+  const totals = {
+    totalIncome,
+    totalExpenses,
+    balance: sumMoney(rows.flatMap((row) => [
+      { amount: row.totalIncome, currency: row.currency },
+      { amount: -row.totalExpenses, currency: row.currency },
+    ]), currency),
+    incomeCount: rows.reduce((sum, row) => sum + row.incomeCount, 0),
+    expenseCount: rows.reduce((sum, row) => sum + row.expenseCount, 0),
+  }
   const available = validPeriod && report.isSuccess
   const amount = (value: number | undefined) => available ? formatMoney(value ?? 0, currency) : '—'
   const numberOf = (value: number | undefined, type: string) => available ? `${value ?? 0} ${type}` : t("Loading monthly totals")
@@ -42,7 +55,7 @@ export default function MonthlyPage() {
           <option value="USD">{t("USD ($)")}</option><option value="KHR">{t("KHR (៛)")}</option>
         </select>
       </div>
-      <p className="pb-2 text-xs text-slate-500">{t("USD and KHR are calculated separately.")}</p>
+      <p className="pb-2 text-xs text-slate-500">{t('Includes USD and KHR at 1 USD = 4,000 KHR.')}</p>
     </CardBody></Card>
     {!validPeriod && <Alert tone="error">{t("Choose a valid month between 1900 and 2100.")}</Alert>}
     {report.isError && <Alert tone="error">{t(report.error.message)}<button className="ml-2 underline" onClick={() => void report.refetch()}>{t("Try again")}</button></Alert>}
@@ -51,7 +64,7 @@ export default function MonthlyPage() {
       <StatCard label={t("Monthly expenses")} value={amount(totals?.totalExpenses)} hint={numberOf(totals?.expenseCount, t("expenses"))} icon={<ArrowUpRight />} tone="warning" />
       <StatCard label={t("Monthly balance")} value={available ? <PrivateIncomeAmount amount={totals?.balance ?? 0} currency={currency} scope={period} /> : t("Loading monthly totals")} hint={t("Income minus expenses")} icon={<Wallet />} tone="brand" />
     </div>
-    {available && !totals && <p className="text-sm text-slate-500">{t("No")}{' '}{currency} {' '}{t("income or expenses recorded for this month.")}</p>}
+    {available && rows.length === 0 && <p className="text-sm text-slate-500">{t('No income or expenses recorded for this month.')}</p>}
     <Card><CardHeader title={t("Plan your month")} description={t("Try different amounts to calculate a monthly balance.")} />
       <CardBody className="space-y-5">
         <div className="grid gap-4 sm:grid-cols-2">

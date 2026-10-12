@@ -186,6 +186,8 @@ export interface BudgetUsageResponse {
 }
 
 export interface CategoryStatResponse {
+  /** Expense reporting API uses combined USD equivalents. */
+  currency?: string
   categoryId?: string
   categoryName?: string
   categoryColor?: string
@@ -197,6 +199,8 @@ export interface CategoryStatResponse {
 }
 
 export interface ExpenseSummaryResponse {
+  /** Expense reporting API uses combined USD equivalents. */
+  currency?: string
   /** First day of the bucket. */
   periodStart: string
   totalAmount: number

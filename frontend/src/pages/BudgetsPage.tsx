@@ -106,6 +106,7 @@ export default function BudgetsPage() {
           {t("Set budget")}</Button>
       </div>
 
+      <p className="mb-4 text-xs text-slate-500">{t('Includes USD and KHR at 1 USD = 4,000 KHR.')}</p>
       <div className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
         <Button
           variant="outline"

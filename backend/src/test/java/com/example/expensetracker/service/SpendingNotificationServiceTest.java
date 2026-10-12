@@ -50,14 +50,14 @@ class SpendingNotificationServiceTest {
                 .spentAmount(new BigDecimal(spent)).build();
     }
 
-    @Test void spendingBelowThresholdDoesNotNotifyEvenWhenOtherCurrencyIsOverBudget() {
+    @Test void spendingCanTriggerABudgetInTheOtherCurrency() {
         when(budgets.getBudgetUsage(user, 2026, 10)).thenReturn(List.of(
                 usage("USD", "100", "79.99"), usage("KHR", "10000", "12000")));
         var expense = Expense.builder().id(UUID.randomUUID()).userId(user).currency("USD")
                 .amount(new BigDecimal("2")).expenseDate(LocalDate.of(2026, 10, 10))
                 .description("Lunch អាហារ").build();
         service.expenseCreated(expense);
-        verify(telegram, never()).enqueue(any(), anyLong(), anyString(), anyString());
+        verify(telegram).enqueue(eq(user), eq(424242L), startsWith("budget80:"), contains("Total spent: KHR 12000.00"));
     }
 
     @ParameterizedTest

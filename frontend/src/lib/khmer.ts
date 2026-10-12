@@ -1,5 +1,10 @@
 /** Application-owned interface text. User-entered names and descriptions are never translated. */
 export const khmer: Record<string, string> = {
+  'Fixed rate: 1 USD = 4,000 KHR': 'អត្រាថេរ៖ 1 USD = 4,000 KHR',
+  'Includes USD and KHR at 1 USD = 4,000 KHR.': 'រួមបញ្ចូល USD និង KHR តាមអត្រា 1 USD = 4,000 KHR។',
+  'Combined total (USD)': 'សរុបរួម (USD)',
+  'No income or expenses recorded for this month.': 'មិនមានចំណូល ឬចំណាយសម្រាប់ខែនេះទេ។',
+  'USD and KHR expenses count toward every budget at 1 USD = 4,000 KHR. Each budget alerts once per month when spending reaches at least 80%, including after an expense is edited.': 'ចំណាយ USD និង KHR ត្រូវបានរាប់ក្នុងថវិកានីមួយៗតាមអត្រា 1 USD = 4,000 KHR។ ថវិកានីមួយៗជូនដំណឹងម្តងក្នុងមួយខែនៅពេលចំណាយដល់យ៉ាងហោចណាស់ 80% រួមទាំងក្រោយពេលកែចំណាយ។',
   'Exported by': 'នាំចេញដោយ',
   'Receive one alert when a budget reaches 80% or more. No spending alerts are sent below 80%.': 'ទទួលការជូនដំណឹងមួយពេលប្រើថវិកាដល់ 80% ឬច្រើនជាងនេះ។ មិនផ្ញើការជូនដំណឹងចំណាយក្រោម 80% ទេ។',
   'USD expenses count toward USD budgets, and KHR expenses count toward KHR budgets. Each budget alerts once per month when spending reaches at least 80%, including after an expense is edited.': 'ចំណាយ USD រាប់ក្នុងថវិកា USD ហើយចំណាយ KHR រាប់ក្នុងថវិកា KHR។ ថវិកានីមួយៗជូនដំណឹងម្តងក្នុងមួយខែពេលចំណាយដល់យ៉ាងហោចណាស់ 80% រួមទាំងក្រោយពេលកែចំណាយ។',

@@ -26,8 +26,8 @@ public class SpendingNotificationServiceImpl implements SpendingNotificationServ
         var connection = telegram.find(expense.getUserId());
         if (connection == null || connection.getChatId() == null || !Boolean.TRUE.equals(connection.getEnabled())) return;
         var usage = budgets.getBudgetUsage(expense.getUserId(), expense.getExpenseDate().getYear(), expense.getExpenseDate().getMonthValue());
-        var matching = usage.stream().filter(item -> item.getBudget().getCurrency().equals(expense.getCurrency())
-                && (item.getBudget().getCategoryId() == null || item.getBudget().getCategoryId().equals(expense.getCategoryId()))).toList();
+        var matching = usage.stream().filter(item -> item.getBudget().getCategoryId() == null
+                || item.getBudget().getCategoryId().equals(expense.getCategoryId())).toList();
         // Spending notifications are threshold alerts, not per-expense receipts.
         for (var item : matching) alert(expense.getUserId(), connection.getChatId(), item);
     }
