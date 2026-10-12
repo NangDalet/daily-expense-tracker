@@ -5,11 +5,12 @@ export interface Worker {
   currency: 'KHR'; startDate: string; active: boolean; photoDataUrl?: string
   projectId?: string | null; idCardDataUrl?: string | null; hasIdCard?: boolean
 }
-export interface Project { id: string; name: string; site: string; active: boolean; startDate?: string | null; endDate?: string | null; plannedAmount?: number | null }
+export interface Project { id: string; name: string; site: string; active: boolean; status?: 'ACTIVE' | 'INACTIVE' | 'COMPLETED'; startDate?: string | null; endDate?: string | null; plannedAmount?: number | null }
 export interface Attendance {
   id: string; workerId: string; projectId: string; workDate: string; kind: string; workdays: number
   hours: number; overtimeHours: number; baseWages: number; overtime: number; payrollId?: string
 }
+export interface AttendanceRequest { workerId: string; projectId: string; workDate: string; kind: string; hours?: number | null; overtimeHours: number }
 export interface Adjustment {
   id: string; workerId: string; kind: string; amount: number; adjustmentDate: string; reason: string
   status: string; createdBy: string; createdAt: string; approvedBy?: string; approvedAt?: string
@@ -39,8 +40,10 @@ export const constructionApi = {
   saveWorker: (body: unknown, id?: string) => id ? http.put<Worker>(root + '/workers/' + id, body) : http.post<Worker>(root + '/workers', body),
   projects: () => http.get<Project[]>(root + '/projects'),
   saveProject: (body: unknown, id?: string) => id ? http.put<Project>(root + '/projects/' + id, body) : http.post<Project>(root + '/projects', body),
+  transferWorkers: (projectId: string, body: { targetProjectId: string; workerIds: string[] }) => http.post(root + '/projects/' + projectId + '/transfer-workers', body),
   attendance: (filter: QueryParams) => http.get<Attendance[]>(root + '/attendance', filter),
   saveAttendance: (body: unknown, id?: string) => id ? http.put<Attendance>(root + '/attendance/' + id, body) : http.post<Attendance>(root + '/attendance', body),
+  saveAttendanceMany: (bodies: AttendanceRequest[]) => Promise.all(bodies.map(body => http.post<Attendance>(root + '/attendance', body))),
   removeAttendance: (id: string) => http.delete(root + '/attendance/' + id),
   adjustments: () => http.get<Adjustment[]>(root + '/adjustments'),
   adjustment: (body: unknown) => http.post<Adjustment>(root + '/adjustments', body),

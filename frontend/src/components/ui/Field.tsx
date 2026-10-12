@@ -137,6 +137,66 @@ export interface SelectProps extends InputHTMLAttributes<HTMLSelectElement> {
   placeholder?: string
 }
 
+export interface MultiSelectProps {
+  label?: string
+  hint?: string
+  error?: string
+  id?: string
+  className?: string
+  required?: boolean
+  options: { value: string; label: string }[]
+  value: string[]
+  onChange?: (values: string[]) => void
+  placeholder?: string
+}
+
+export const MultiSelect = forwardRef<HTMLDivElement, MultiSelectProps>(function MultiSelect(
+  { label, hint, error, options, value, onChange, placeholder, className, id, required },
+  ref,
+) {
+  const generatedId = useId()
+  const fieldId = id ?? generatedId
+  const toggle = (optionValue: string) =>
+    onChange?.(value.includes(optionValue) ? value.filter(v => v !== optionValue) : [...value, optionValue])
+
+  return (
+    <Field label={label} hint={hint} error={error} required={required} id={fieldId} className={className}>
+      <div
+        ref={ref}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={error ? `${fieldId}-error` : hint ? `${fieldId}-hint` : undefined}
+        className={cn(
+          'max-h-56 overflow-y-auto rounded-lg border bg-white p-1.5',
+          error ? 'border-red-400' : 'border-slate-300',
+        )}
+      >
+        {options.length === 0
+          ? <p className="px-2 py-3 text-center text-sm text-slate-500">{placeholder ?? '—'}</p>
+          : options.map(option => {
+            const checked = value.includes(option.value)
+            return (
+              <label
+                key={option.value}
+                className={cn(
+                  'flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm',
+                  checked ? 'bg-brand-50 text-brand-800' : 'text-slate-700 hover:bg-slate-50',
+                )}
+              >
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500/40"
+                  checked={checked}
+                  onChange={() => toggle(option.value)}
+                />
+                <span>{option.label}</span>
+              </label>
+            )
+          })}
+      </div>
+    </Field>
+  )
+})
+
 export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select(
   { label, hint, error, options, placeholder, className, id, required, ...props },
   ref,

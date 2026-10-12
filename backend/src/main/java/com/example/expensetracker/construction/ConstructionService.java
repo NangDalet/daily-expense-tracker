@@ -22,6 +22,9 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 @Transactional
 public class ConstructionService {
+    private static boolean isOpen(Project project) {
+        return project.isActive() && (project.getStatus() == null || "ACTIVE".equals(project.getStatus()));
+    }
     private final ConstructionMapper mapper;
     private final UserMapper users;
     private static ApiException rule(String message) { return new ApiException(ErrorCode.BUSINESS_RULE_VIOLATION, message); }
@@ -45,7 +48,7 @@ public class ConstructionService {
         var sites=request.siteIds()==null ? List.<UUID>of() : request.siteIds().stream().distinct().toList();
         if(request.granted() && "FOREMAN".equals(role)) {
             if(sites.isEmpty()) throw rule("Choose at least one site for the foreman");
-            for(UUID site:sites) if(!found(mapper.project(site)).isActive()) throw rule("Choose an active site for the foreman");
+            for(UUID site:sites) if(!isOpen(found(mapper.project(site)))) throw rule("Choose an active site for the foreman");
         } else sites=List.of();
         if(request.granted()) mapper.grantRole(id,actor,role); else mapper.revoke(id);
         mapper.clearForemanSites(id);
@@ -67,7 +70,7 @@ public class ConstructionService {
         Worker w = id==null ? new Worker() : worker(id);
         if(r.projectId()!=null) {
             Project assigned = found(mapper.project(r.projectId()));
-            if(!assigned.isActive() && !r.projectId().equals(w.getProjectId())) throw rule("Choose an active site for this worker");
+            if(!isOpen(assigned) && !r.projectId().equals(w.getProjectId())) throw rule("Choose an active site for this worker");
             w.setProjectId(r.projectId());
         }
         if(id!=null && !w.getCurrency().equals(r.currency())) throw rule("Currency cannot change; create a separate worker account for another currency");
@@ -77,6 +80,7 @@ public class ConstructionService {
         w.setPhone(r.phone()); w.setPosition(r.position().trim()); w.setRateType(r.rateType()); w.setRate(r.rate());
         w.setOvertimeRate(overtimeRate); w.setHoursPerDay(r.hoursPerDay()); w.setCurrency(r.currency());
         w.setStartDate(r.startDate()); w.setActive(r.active());
+        if (w.getProjectId() != null && !isOpen(found(mapper.project(w.getProjectId())))) w.setActive(false);
         // Omitted photos preserve existing uploads; an empty string removes one.
         if(r.photoDataUrl()!=null) w.setPhotoDataUrl(photo);
         if(r.idCardDataUrl()!=null) w.setIdCardDataUrl(idCard);
@@ -84,12 +88,28 @@ public class ConstructionService {
         if(id==null) mapper.insertWorker(w); else mapper.updateWorker(w);
         return w;
     }
+    public void transferWorkers(UUID sourceProjectId, TransferWorkersRequest r) {
+        Project source = found(mapper.project(sourceProjectId));
+        Project target = found(mapper.project(r.targetProjectId()));
+        if (sourceProjectId.equals(r.targetProjectId())) throw rule("Choose a different target project");
+        if (!"COMPLETED".equals(source.getStatus())) throw rule("Workers can be moved only from a completed project");
+        if (!isOpen(target)) throw rule("Choose an active target project");
+        for (UUID workerId : r.workerIds()) {
+            Worker worker = worker(workerId);
+            if (!sourceProjectId.equals(worker.getProjectId())) throw rule("Every selected worker must belong to the completed project");
+        }
+        mapper.transferWorkers(r.workerIds(), target.getId());
+        mapper.activateWorkers(r.workerIds());
+    }
     public Project saveProject(UUID id, ProjectRequest r) {
         if(r.startDate()!=null || r.endDate()!=null) dateRange(r.startDate(),r.endDate());
         Project p=id==null ? new Project() : found(mapper.project(id)); p.setId(id==null ? UUID.randomUUID() : id);
-        p.setName(r.name().trim()); p.setSite(r.site().trim()); p.setActive(r.active());
+        if (id != null && "COMPLETED".equals(p.getStatus())) throw rule("Completed projects cannot be updated");
+        p.setName(r.name().trim()); p.setSite(r.site().trim()); p.setStatus(r.status()); p.setActive("ACTIVE".equals(r.status()));
         p.setStartDate(r.startDate()); p.setEndDate(r.endDate()); p.setPlannedAmount(r.plannedAmount());
-        if(id==null) mapper.insertProject(p); else mapper.updateProject(p); return p;
+        if(id==null) mapper.insertProject(p); else mapper.updateProject(p);
+        if ("COMPLETED".equals(r.status())) mapper.deactivateProjectWorkers(p.getId());
+        return p;
     }
     public static void dateRange(LocalDate from, LocalDate to) {
         if(from==null || to==null || from.isAfter(to)) throw rule("Select a valid date range");
@@ -100,7 +120,7 @@ public class ConstructionService {
     public Attendance saveAttendance(UUID id, AttendanceRequest r, UUID actor) {
         Worker w=worker(r.workerId());
         if(!w.isActive()) throw rule("Activate the worker before recording attendance");
-        if(!found(mapper.project(r.projectId())).isActive()) throw rule("Project is inactive");
+        if(!isOpen(found(mapper.project(r.projectId())))) throw rule("Project is not active");
         if(r.workDate().isBefore(w.getStartDate()) || r.workDate().isAfter(LocalDate.now(java.time.ZoneId.of("Asia/Bangkok")))) throw rule("Attendance must be between the worker start date and today");
         Attendance a=id==null ? new Attendance() : found(mapper.attendanceById(id));
         if(id!=null && (!a.getWorkerId().equals(r.workerId()) || a.getPayrollId()!=null)) throw rule("Payroll attendance is locked and the worker cannot be changed");
@@ -122,6 +142,7 @@ public class ConstructionService {
     public List<Adjustment> adjustments(UUID workerId) { return mapper.adjustments(workerId); }
     public Adjustment createAdjustment(AdjustmentRequest r, UUID actor) {
         Worker w=worker(r.workerId()); if(!w.isActive()) throw rule("Worker is inactive");
+        if(w.getProjectId() != null && !isOpen(found(mapper.project(w.getProjectId())))) throw rule("This worker's construction site is completed or inactive");
         if(r.adjustmentDate().isBefore(w.getStartDate())) throw rule("Adjustment cannot precede the worker start date");
         Adjustment a=new Adjustment(); a.setId(UUID.randomUUID()); a.setWorkerId(w.getId()); a.setKind(r.kind());
         a.setAmount(r.amount()); a.setAdjustmentDate(r.adjustmentDate()); a.setReason(r.reason().trim()); a.setCreatedBy(actor);
@@ -145,7 +166,7 @@ public class ConstructionService {
     }
     public Payroll prepare(PayrollRequest r) {
         Worker w=worker(r.workerId()); dateRange(r.fromDate(),r.toDate());
-        if(!w.isActive() || !found(mapper.project(r.projectId())).isActive()) throw rule("Worker and project must be active");
+        if(!w.isActive() || !isOpen(found(mapper.project(r.projectId())))) throw rule("Worker and project must be active");
         if(r.fromDate().isBefore(w.getStartDate())) throw rule("Payroll cannot precede the worker start date");
         long days=ChronoUnit.DAYS.between(r.fromDate(),r.toDate())+1;
         boolean valid=switch(r.period()) { case "CUSTOM" -> true; case "DAILY" -> days==1; case "WEEKLY" -> days==7; case "BIWEEKLY" -> days==14; case "MONTHLY" -> r.toDate().equals(r.fromDate().plusMonths(1).minusDays(1)); default -> false; };

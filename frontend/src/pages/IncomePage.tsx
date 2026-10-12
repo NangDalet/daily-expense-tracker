@@ -11,6 +11,7 @@ import { Pagination } from '@/components/ui/Pagination'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { EmptyState, ErrorState, LoadingBlock } from '@/components/ui/States'
 import { IncomeForm } from '@/components/incomes/IncomeForm'
+import { PrivateIncomeAmount, useIncomeVisibility } from '@/components/incomes/PrivateIncomeAmount'
 import { IncomeList, SortableHeader } from '@/components/incomes/IncomeList'
 import {
   EMPTY_FILTERS,
@@ -21,7 +22,7 @@ import {
 import { useDeleteIncome, useIncomes, useIncomeSummary } from '@/hooks/queries'
 import { ApiError } from '@/lib/api/client'
 import type { IncomeResponse } from '@/lib/api/types'
-import { formatMoney, formatNumber, todayIso, paymentMethodLabel } from '@/lib/utils'
+import { formatNumber, todayIso, paymentMethodLabel } from '@/lib/utils'
 
 const DEFAULT_SORT = 'incomeDate,desc'
 const DEFAULT_SIZE = 20
@@ -37,6 +38,7 @@ export default function IncomePage() {
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [editingIncome, setEditingIncome] = useState<IncomeResponse | null>(null)
   const [deletingIncome, setDeletingIncome] = useState<IncomeResponse | null>(null)
+  const editAccess = useIncomeVisibility('income-edit')
 
   const deleteIncome = useDeleteIncome()
   const today = todayIso()
@@ -78,6 +80,7 @@ export default function IncomePage() {
   function openEdit(income: IncomeResponse) {
     setEditingIncome(income)
     setIsFormOpen(true)
+    editAccess.requestReveal()
   }
 
   async function handleDelete() {
@@ -124,7 +127,7 @@ export default function IncomePage() {
             <div className="mt-3 flex flex-wrap gap-6">
               {monthlySummary.data.map((row) => (
                 <div key={row.currency}>
-                  <p className="text-xl font-semibold tabular-nums text-emerald-700">{formatMoney(row.totalAmount, row.currency)}</p>
+                  <p className="text-xl font-semibold tabular-nums text-emerald-700"><PrivateIncomeAmount amount={row.totalAmount} currency={row.currency} /></p>
                   <p className="mt-1 text-xs text-slate-500">{formatNumber(row.incomeCount)} {' '}{t("records ·")}{' '}{row.currency}</p>
                 </div>
               ))}
@@ -228,7 +231,7 @@ export default function IncomePage() {
                           {paymentMethodLabel(income.paymentMethod)}
                         </td>
                         <td className="whitespace-nowrap px-4 py-3 text-right text-sm font-semibold tabular-nums text-slate-900">
-                          {formatMoney(income.amount, income.currency)}
+                          <PrivateIncomeAmount amount={income.amount} currency={income.currency} scope={income.id} />
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex items-center justify-end gap-0.5">
@@ -279,8 +282,8 @@ export default function IncomePage() {
       </div>
 
       <Modal
-        open={isFormOpen}
-        onClose={() => setIsFormOpen(false)}
+        open={isFormOpen && (!editingIncome || editAccess.visible)}
+        onClose={() => { setIsFormOpen(false); editAccess.hide() }}
         title={editingIncome ? t("Edit income") : t("Add income")}
         description={editingIncome ? undefined : t("Record a new incoming payment.")}
         size="md"
@@ -288,15 +291,16 @@ export default function IncomePage() {
         <IncomeForm
           key={editingIncome?.id ?? 'new'}
           income={editingIncome}
-          onSuccess={() => setIsFormOpen(false)}
-          onCancel={() => setIsFormOpen(false)}
+          onSuccess={() => { setIsFormOpen(false); editAccess.hide() }}
+          onCancel={() => { setIsFormOpen(false); editAccess.hide() }}
         />
       </Modal>
+      {editAccess.dialog}
 
       <ConfirmDialog
         open={deletingIncome !== null}
         title={t("Delete income")}
-        description={t("This permanently removes \"{0}\" ({1}). This cannot be undone.", [deletingIncome?.description || t("this income"), formatMoney(deletingIncome?.amount ?? 0, deletingIncome?.currency)])}
+        description={t('This permanently removes "{0}". This cannot be undone.', [deletingIncome?.description || t("this income")])}
         isPending={deleteIncome.isPending}
         error={deleteIncome.error instanceof ApiError ? deleteIncome.error : null}
         onConfirm={handleDelete}

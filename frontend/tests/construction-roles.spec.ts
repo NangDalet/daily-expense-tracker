@@ -86,7 +86,7 @@ test('foreman records and edits assigned-site attendance without finance or acce
   await expect(page.getByRole('row').filter({ hasText: '2026-10-01' }).getByRole('button')).toHaveCount(0)
   await page.getByRole('button', { name: 'Record attendance', exact: true }).click()
   const dialog = page.getByRole('dialog')
-  await dialog.getByLabel('Worker', { exact: false }).selectOption('w1')
+  await dialog.getByLabel('A1-01 · A1 Worker (KHR)').check()
   await expect(dialog.getByLabel('Project / site')).toHaveValue('a1')
   await expect(dialog.getByRole('option', { name: 'Project B / B2' })).toHaveCount(0)
   await dialog.getByLabel('Work type').selectOption('HALF')

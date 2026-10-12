@@ -24,6 +24,9 @@ public interface ConstructionMapper {
     Worker worker(@Param("id") UUID id, @Param("lock") boolean lock);
     void insertWorker(Worker worker);
     void updateWorker(Worker worker);
+    void transferWorkers(@Param("workerIds") List<UUID> workerIds, @Param("projectId") UUID projectId);
+    void activateWorkers(List<UUID> workerIds);
+    void deactivateProjectWorkers(UUID projectId);
     boolean hasAttendance(UUID workerId);
     boolean attendanceBefore(@Param("workerId") UUID workerId, @Param("startDate") LocalDate startDate);
     List<Project> projects();

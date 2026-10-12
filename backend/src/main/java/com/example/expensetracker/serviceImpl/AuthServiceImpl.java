@@ -56,6 +56,18 @@ public class AuthServiceImpl implements AuthService {
     // ===================== Register =====================
 
     @Override
+    @Transactional(readOnly = true)
+    public void verifyPassword(UUID userId, String password) {
+        requireLocalAuthMode();
+        User user = userMapper.findById(userId);
+        if (user == null || Boolean.FALSE.equals(user.getEnabled())
+                || password == null || password.isBlank()
+                || !passwordEncoder.matches(password, user.getPassword())) {
+            throw new AuthenticationException(ErrorCode.FORBIDDEN, "Password verification failed");
+        }
+    }
+
+    @Override
     @Transactional
     public TokenResponse register(RegisterRequest request) {
         requireLocalAuthMode();

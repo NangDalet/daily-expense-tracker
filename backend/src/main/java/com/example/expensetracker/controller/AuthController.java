@@ -6,6 +6,11 @@ import com.example.expensetracker.dto.request.RegisterRequest;
 import com.example.expensetracker.dto.response.ApiResponse;
 import com.example.expensetracker.dto.response.TokenResponse;
 import com.example.expensetracker.service.AuthService;
+import com.example.expensetracker.dto.request.VerifyPasswordRequest;
+import com.example.expensetracker.security.SecurityUtils;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirements;
@@ -31,6 +36,15 @@ import lombok.RequiredArgsConstructor;
 public class AuthController {
 
     private final AuthService authService;
+
+    @PostMapping("/verify-password")
+    @SecurityRequirement(name = "bearerAuth")
+    @Operation(summary = "Confirm the authenticated user's password")
+    public ApiResponse<Void> verifyPassword(@AuthenticationPrincipal Jwt jwt,
+            @Valid @RequestBody VerifyPasswordRequest request) {
+        authService.verifyPassword(SecurityUtils.currentUserId(jwt), request.password());
+        return ApiResponse.empty("Password verified");
+    }
 
     @PostMapping("/register")
     @Operation(summary = "Create an account",

@@ -8,6 +8,8 @@ import com.example.expensetracker.dto.response.TokenResponse;
 /** Auth use cases. */
 public interface AuthService {
 
+    void verifyPassword(java.util.UUID userId, String password);
+
     TokenResponse register(RegisterRequest request);
 
     TokenResponse login(LoginRequest request);

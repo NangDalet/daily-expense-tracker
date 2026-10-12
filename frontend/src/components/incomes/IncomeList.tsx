@@ -4,7 +4,8 @@ import { ArrowUpDown, ExternalLink, Pencil, Receipt, Trash2 } from 'lucide-react
 import type { IncomeResponse } from '@/lib/api/types'
 import { Badge } from '@/components/ui/Badge'
 import { CategorySwatch } from '@/components/ui/CategoryIcon'
-import { PAYMENT_METHOD_ICONS, formatDate, formatMoney, paymentMethodLabel, resolveColor } from '@/lib/utils'
+import { PAYMENT_METHOD_ICONS, formatDate, paymentMethodLabel, resolveColor } from '@/lib/utils'
+import { PrivateIncomeAmount } from './PrivateIncomeAmount'
 import { cn } from '@/lib/utils'
 
 interface IncomeListProps {
@@ -62,7 +63,7 @@ export function IncomeList({ incomes, onEdit, onDelete, compact = false, classNa
 
             <div className="shrink-0 text-right">
               <p className="text-sm font-semibold tabular-nums text-slate-900">
-                {formatMoney(income.amount, income.currency)}
+                <PrivateIncomeAmount amount={income.amount} currency={income.currency} scope={income.id} />
               </p>
               {income.receiptUrl && (
                 <a

@@ -35,6 +35,7 @@ export interface Page<T> {
 }
 
 export const authApi = {
+  verifyPassword: (password: string) => http.post<void>('/auth/verify-password', { password }),
   login: (body: LoginRequest) => http.post<TokenResponse>('/auth/login', body, true),
   register: (body: RegisterRequest) => http.post<TokenResponse>('/auth/register', body, true),
   // `skipRefresh`: a 401 here must not trigger another refresh attempt.

@@ -1,5 +1,13 @@
 /** Application-owned interface text. User-entered names and descriptions are never translated. */
 export const khmer: Record<string, string> = {
+  'Show income amount': 'បង្ហាញចំនួនប្រាក់ចំណូល',
+  'Hide income amount': 'លាក់ចំនួនប្រាក់ចំណូល',
+  'Income amount hidden': 'ចំនួនប្រាក់ចំណូលត្រូវបានលាក់',
+  'Verify password': 'បញ្ជាក់ពាក្យសម្ងាត់',
+  'Password verification failed': 'ការបញ្ជាក់ពាក្យសម្ងាត់បរាជ័យ',
+  'Could not verify password': 'មិនអាចបញ្ជាក់ពាក្យសម្ងាត់',
+  'Enter your login password. Amounts hide again after 30 seconds.': 'បញ្ចូលពាក្យសម្ងាត់ចូលគណនីរបស់អ្នក។ ចំនួនប្រាក់នឹងលាក់វិញបន្ទាប់ពី ៣០ វិនាទី។',
+  'This permanently removes "{0}". This cannot be undone.': 'វានឹងលុប "{0}" ជាអចិន្ត្រៃយ៍។ មិនអាចត្រឡប់វិញបានទេ។',
   'Construction Site Manager': 'អ្នកគ្រប់គ្រងការដ្ឋានសំណង់',
   'Construction Foreman': 'មេការសំណង់',
   'Construction access': 'សិទ្ធិប្រើប្រាស់ផ្នែកសំណង់',

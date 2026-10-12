@@ -18,7 +18,7 @@ public final class ConstructionModels {
     }
     @Data public static class Project {
         private UUID id;
-        private String name, site;
+        private String name, site, status;
         private LocalDate startDate, endDate;
         private BigDecimal plannedAmount;
         private boolean active;

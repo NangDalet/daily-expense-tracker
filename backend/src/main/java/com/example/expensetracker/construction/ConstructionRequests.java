@@ -3,6 +3,7 @@ package com.example.expensetracker.construction;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.UUID;
+import java.util.List;
 import jakarta.validation.constraints.*;
 
 public final class ConstructionRequests {
@@ -17,7 +18,9 @@ public final class ConstructionRequests {
         @NotNull @Pattern(regexp="KHR", message="Construction payments use KHR only") String currency, @NotNull LocalDate startDate, boolean active,
         @Size(max=350000) String photoDataUrl, UUID projectId,
         @Size(max=2000000) String idCardDataUrl) {}
+    public record TransferWorkersRequest(@NotNull UUID targetProjectId, @NotEmpty List<@NotNull UUID> workerIds) {}
     public record ProjectRequest(@NotBlank @Size(max=120) String name, @NotBlank @Size(max=160) String site, boolean active,
+        @NotNull @Pattern(regexp="ACTIVE|INACTIVE|COMPLETED") String status,
         LocalDate startDate, LocalDate endDate,
         @DecimalMin("0") @Digits(integer=14,fraction=2) BigDecimal plannedAmount) {}
     public record AttendanceRequest(@NotNull UUID workerId, @NotNull UUID projectId, @NotNull LocalDate workDate,

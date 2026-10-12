@@ -95,6 +95,36 @@ class AuthServiceTest {
     // ===================== Register =====================
 
     @Test
+    void verifiesAuthenticatedUsersPasswordWithoutIssuingTokens() {
+        when(userMapper.findById(USER_ID)).thenReturn(user(USER_ID, "demo"));
+        authService.verifyPassword(USER_ID, RAW_PASSWORD);
+        verify(passwordEncoder).matches(RAW_PASSWORD, STORED_HASH);
+        verify(jwtTokenService, never()).createAccessToken(any());
+        verify(jwtTokenService, never()).createRefreshToken(any());
+    }
+
+    @Test
+    void rejectsWrongConfirmationPassword() {
+        when(userMapper.findById(USER_ID)).thenReturn(user(USER_ID, "demo"));
+        when(passwordEncoder.matches("wrong", STORED_HASH)).thenReturn(false);
+        assertThatThrownBy(() -> authService.verifyPassword(USER_ID, "wrong"))
+                .isInstanceOf(AuthenticationException.class)
+                .hasMessage("Password verification failed");
+    }
+
+    @Test
+    void rejectsDisabledOrMissingConfirmationAccount() {
+        assertThatThrownBy(() -> authService.verifyPassword(USER_ID, RAW_PASSWORD))
+                .isInstanceOf(AuthenticationException.class);
+        User disabled = user(USER_ID, "demo");
+        disabled.setEnabled(false);
+        when(userMapper.findById(USER_ID)).thenReturn(disabled);
+        assertThatThrownBy(() -> authService.verifyPassword(USER_ID, RAW_PASSWORD))
+                .isInstanceOf(AuthenticationException.class);
+        verify(passwordEncoder, never()).matches(anyString(), anyString());
+    }
+
+    @Test
     @DisplayName("registers a user, hashes the password and seeds the default categories")
     void registersUser() {
         when(userMapper.insert(any())).thenAnswer(invocation -> {

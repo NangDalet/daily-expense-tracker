@@ -138,7 +138,7 @@ test('Docker stack: site manager assigns a foreman who records attendance only a
   await expect(page.getByRole('tab')).toHaveCount(1)
   await page.getByRole('button', { name: 'Record attendance', exact: true }).click()
   const dialog = page.getByRole('dialog')
-  await dialog.getByLabel('Worker', { exact: false }).selectOption(worker.id)
+  await dialog.getByRole('checkbox', { name: new RegExp('ROLE-A1-') }).check()
   await expect(dialog.getByLabel('Project / site')).toHaveValue(site.id)
   await dialog.getByLabel('Work date').fill('2026-01-01')
   await dialog.getByLabel('Work type').selectOption('HALF')

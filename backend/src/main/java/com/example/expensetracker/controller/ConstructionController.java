@@ -48,6 +48,7 @@ public class ConstructionController {
     }
     @PostMapping("/projects") public ApiResponse<Project> createProject(@Valid @RequestBody ProjectRequest r) { return ApiResponse.of(service.saveProject(null,r)); }
     @PutMapping("/projects/{id}") public ApiResponse<Project> updateProject(@PathVariable UUID id,@Valid @RequestBody ProjectRequest r) { return ApiResponse.of(service.saveProject(id,r)); }
+    @PostMapping("/projects/{id}/transfer-workers") public ApiResponse<Void> transferWorkers(@PathVariable UUID id,@Valid @RequestBody TransferWorkersRequest r) { service.transferWorkers(id,r); return ApiResponse.empty("Workers transferred"); }
     @GetMapping("/attendance") @PreAuthorize("@constructionAccess.allowed(authentication)")
     public ApiResponse<List<Attendance>> attendance(@RequestParam(required=false) UUID workerId,@RequestParam(required=false) UUID projectId,@RequestParam LocalDate from,@RequestParam LocalDate to,Authentication auth) {
         var rows=service.attendance(workerId,projectId,from,to);

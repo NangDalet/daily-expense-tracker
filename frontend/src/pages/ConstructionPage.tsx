@@ -9,24 +9,40 @@ import { useLanguage as useConstructionLanguage } from '@/context/LanguageContex
 import { todayIso } from '@/lib/utils'
 import { PageHeading } from '@/components/layout/AppLayout'
 import { Button } from '@/components/ui/Button'
-import { Input, Select } from '@/components/ui/Field'
+import { Input, MultiSelect, Select } from '@/components/ui/Field'
 import { Modal } from '@/components/ui/Modal'
 import { WorkerPhotoField } from '@/components/WorkerPhotoField'
 import { ConstructionAccessPanel } from '@/components/ConstructionAccessPanel'
 import { WorkerWageFields } from '@/components/WorkerWageFields'
 
-type FormKind = 'worker' | 'project' | 'attendance' | 'adjustment' | 'payroll' | 'pay' | 'approve' | 'cancel' | 'remove' | 'history'
+type FormKind = 'worker' | 'project' | 'transfer' | 'attendance' | 'borrow' | 'adjustment' | 'payroll' | 'pay' | 'approve' | 'cancel' | 'remove' | 'history'
 interface Dialog { kind: FormKind; id?: string; defaults?: Record<string, string | number | boolean | null | undefined>; payroll?: Payroll; approved?: boolean; requestKey?: string }
-const labels = { worker: 'Worker details', project: 'Project and construction site', attendance: 'Record attendance', adjustment: 'Advance or wage adjustment', payroll: 'Prepare payroll', pay: 'Record payment', approve: 'Review adjustment', cancel: 'Cancel unpaid payroll', remove: 'Remove attendance', history: 'Payment history' }
+const labels = { worker: 'Worker details', project: 'Project and construction site', transfer: 'Move workers to another project', attendance: 'Record attendance', borrow: 'Record worker borrowing', adjustment: 'Advance or wage adjustment', payroll: 'Prepare payroll', pay: 'Record payment', approve: 'Review adjustment', cancel: 'Cancel unpaid payroll', remove: 'Remove attendance', history: 'Payment history' }
 const money = (amount: number, currency: string) => `${currency} ${amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 const choices = (values: string[]) => values.map(value => ({ value, label: value.replaceAll('_', ' ').toLowerCase().replace(/^./, c => c.toUpperCase()) }))
-function Status({ value }: { value: string }) { const { t } = useConstructionLanguage(); return <span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-medium text-slate-700">{t(value).replaceAll('_', ' ')}</span> }
-function Table({ headers, rows }: { headers: string[]; rows: ReactNode[][] }) {
+function Status({ value }: { value: string | null | undefined }) { const { t } = useConstructionLanguage(); const status = value || 'INACTIVE'; return <span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-medium text-slate-700">{t(status).replaceAll('_', ' ')}</span> }
+function Table({ headers, rows, rowClassName }: { headers: string[]; rows: ReactNode[][]; rowClassName?: (index: number) => string }) {
   const { t } = useConstructionLanguage()
-  return <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white"><table className="w-full text-left text-sm">
-    <thead className="bg-slate-50 text-xs uppercase text-slate-500"><tr>{headers.map(h => <th key={h} className="px-4 py-3">{t(h)}</th>)}</tr></thead>
-    <tbody className="divide-y divide-slate-100">{rows.length ? rows.map((cells, i) => <tr key={i}>{cells.map((cell, j) => <td key={j} className="px-4 py-3 align-top">{cell}</td>)}</tr>) : <tr><td className="px-4 py-10 text-center text-slate-500" colSpan={headers.length}>{t('No records found.')}</td></tr>}</tbody>
-  </table></div>
+  return <div className="rounded-xl border border-slate-200 bg-white">
+    <div className="hidden overflow-x-auto md:block">
+      <table className="w-full min-w-max text-left text-sm">
+        <thead className="bg-slate-50 text-xs uppercase text-slate-500"><tr>{headers.map(h => <th key={h} className="px-4 py-3 whitespace-nowrap">{t(h)}</th>)}</tr></thead>
+        <tbody className="divide-y divide-slate-100">{rows.length ? rows.map((cells, i) => <tr key={i} className={rowClassName?.(i)}>{cells.map((cell, j) => <td key={j} className="px-4 py-3 align-top">{cell}</td>)}</tr>) : <tr><td className="px-4 py-10 text-center text-slate-500" colSpan={headers.length}>{t('No records found.')}</td></tr>}</tbody>
+      </table>
+    </div>
+    <div className="divide-y divide-slate-200 md:hidden">
+      {rows.length ? rows.map((cells, i) => (
+        <article key={i} className={`space-y-3 p-4 ${rowClassName?.(i) ?? ''}`}>
+          {cells.map((cell, j) => (
+            <div key={j} className="min-w-0">
+              <p className="mb-1 text-xs font-medium uppercase tracking-wide text-slate-500">{t(headers[j])}</p>
+              <div className="break-words text-sm text-slate-900">{cell}</div>
+            </div>
+          ))}
+        </article>
+      )) : <p className="px-4 py-10 text-center text-sm text-slate-500">{t('No records found.')}</p>}
+    </div>
+  </div>
 }
 export default function ConstructionPage() {
   return <ConstructionContent />
@@ -56,6 +72,9 @@ function ConstructionContent() {
   const [payrollProject, setPayrollProject] = useState('')
   const [payrollPeriod, setPayrollPeriod] = useState('CUSTOM')
   const [payrollDates, setPayrollDates] = useState({ from, to })
+  const [attendanceWorkers, setAttendanceWorkers] = useState<string[]>([])
+  const [transferWorkers, setTransferWorkers] = useState<string[]>([])
+  const [skippedWorkers, setSkippedWorkers] = useState<string[]>([])
   const filter = { from, to, workerId, projectId }
   const key = ['construction', user?.id]
   const workersQ = useQuery({ queryKey: [...key, 'workers'], queryFn: api.workers })
@@ -91,14 +110,16 @@ function ConstructionContent() {
     setDialog(null); setPreview(null); setError(''); setNotice('Saved successfully.')
   }, onError: (e: Error) => setError(e.message) })
   function open(d: Dialog) {
-    setError(''); setNotice(''); setPreview(null)
+    setError(''); setNotice(''); setSkippedWorkers([]); setPreview(null)
     setWorkerPhoto(typeof d.defaults?.photoDataUrl === 'string' ? d.defaults.photoDataUrl : '')
     setWorkerIdCard(typeof d.defaults?.idCardDataUrl === 'string' ? d.defaults.idCardDataUrl : '')
+    if (d.kind === 'transfer') setTransferWorkers([])
     if (d.kind === 'payroll' || d.kind === 'attendance') {
       const selectedWorker = String(d.defaults?.workerId ?? workerId)
       const selectedProject = String(d.defaults?.projectId ?? (projectId || workers.find(w => w.id === selectedWorker)?.projectId || ''))
       setPayrollWorker(selectedWorker); setPayrollProject(selectedProject); setPayrollPeriod('CUSTOM'); setPayrollDates({ from, to })
     }
+    if (d.kind === 'attendance') setAttendanceWorkers(d.defaults?.workerId ? [String(d.defaults.workerId)] : workerId ? [workerId] : [])
     setDialog(d)
   }
   async function editWorker(id: string) {
@@ -118,9 +139,21 @@ function ConstructionContent() {
       case 'project': {
         const startDate = text('startDate'), endDate = text('endDate')
         if ((startDate || endDate) && (!startDate || !endDate || startDate > endDate)) { setError('Select a valid date range'); return }
-        mutation.mutate(() => api.saveProject({ name: text('name'), site: text('site'), active: text('active') === 'true', startDate: startDate || null, endDate: endDate || null, plannedAmount: text('plannedAmount') ? num('plannedAmount') : null }, d.id)); break
+        mutation.mutate(() => api.saveProject({ name: text('name'), site: text('site'), active: text('status') === 'ACTIVE', status: text('status'), startDate: startDate || null, endDate: endDate || null, plannedAmount: text('plannedAmount') ? num('plannedAmount') : null }, d.id)); break
       }
-      case 'attendance': mutation.mutate(() => api.saveAttendance({ workerId: text('workerId'), projectId: text('projectId'), workDate: text('workDate'), kind: text('kind'), hours: text('hours') ? num('hours') : null, overtimeHours: num('overtimeHours') }, d.id)); break
+      case 'transfer': mutation.mutate(() => api.transferWorkers(d.id!, { targetProjectId: text('targetProjectId'), workerIds: transferWorkers })); break
+      case 'attendance': {
+        const common = { projectId: text('projectId'), workDate: text('workDate'), kind: text('kind'), hours: text('hours') ? num('hours') : null, overtimeHours: num('overtimeHours') }
+        if (d.id) { mutation.mutate(() => api.saveAttendance({ workerId: text('workerId'), ...common }, d.id)); break }
+        if (!attendanceWorkers.length) { setError('Select at least one worker'); return }
+        const recorded = new Set(attendance.filter(a => a.workDate === common.workDate).map(a => a.workerId))
+        const pending = attendanceWorkers.filter(id => !recorded.has(id))
+        const skipped = attendanceWorkers.filter(id => recorded.has(id))
+        setSkippedWorkers(skipped)
+        if (!pending.length) { setError('All selected workers already have attendance on this date.'); return }
+        mutation.mutate(() => api.saveAttendanceMany(pending.map(workerId => ({ workerId, ...common })))); break
+      }
+      case 'borrow': mutation.mutate(() => api.adjustment({ workerId: text('workerId'), kind: 'ADVANCE', amount: num('amount'), adjustmentDate: text('adjustmentDate'), reason: text('reason') })); break
       case 'adjustment': mutation.mutate(() => api.adjustment({ workerId: text('workerId'), kind: text('kind'), amount: num('amount'), adjustmentDate: text('adjustmentDate'), reason: text('reason') })); break
       case 'payroll': {
         const request = { workerId: text('workerId'), projectId: text('projectId'), fromDate: text('fromDate'), toDate: text('toDate'), period: text('period') }
@@ -153,7 +186,7 @@ function ConstructionContent() {
     return saved
   }
   const workerOptions = workers.filter(w => w.active || w.id === dialog?.defaults?.workerId).map(w => ({ value: w.id, label: `${w.workerCode} · ${w.fullName} (${w.currency})` }))
-  const projectOptions = projects.filter(p => p.active || p.id === dialog?.defaults?.projectId).map(p => ({ value: p.id, label: `${p.name} / ${p.site}` }))
+  const projectOptions = projects.filter(p => (p.status ?? (p.active ? 'ACTIVE' : 'INACTIVE')) === 'ACTIVE' || p.id === dialog?.defaults?.projectId).map(p => ({ value: p.id, label: `${p.name} / ${p.site}` }))
   function input(name: string, label: string, type = 'text', fallback: string | number = '', required = true, maxLength?: number) {
     const payrollDate = dialog?.kind === 'payroll' && ['fromDate', 'toDate'].includes(name)
     const dateKey = name === 'fromDate' ? 'from' : 'to'
@@ -174,13 +207,22 @@ function ConstructionContent() {
           if (name === 'period') setPayrollPeriod(e.target.value)
         } } : { defaultValue: String(dialog?.defaults?.[name] ?? fallback) })} />
   }
-  function workerField() { return dialog?.kind === 'attendance' && dialog.id ? <><input type="hidden" name="workerId" value={String(dialog.defaults?.workerId)} /><p className="text-sm">{t('Worker:')} {workerName(String(dialog.defaults?.workerId))}</p></> : select('workerId', 'Worker', workerOptions, workerId) }
+  function workerField() {
+    if (dialog?.kind === 'attendance' && dialog.id) return <><input type="hidden" name="workerId" value={String(dialog.defaults?.workerId)} /><p className="text-sm">{t('Worker:')} {workerName(String(dialog.defaults?.workerId))}</p></>
+    if (dialog?.kind === 'attendance') return <MultiSelect label={t('Worker')} options={workerOptions} value={attendanceWorkers} hint={t('Select one or more workers to record attendance for.')} onChange={ids => {
+      setAttendanceWorkers(ids); setSkippedWorkers([]); setError('')
+      const added = ids.find(id => !attendanceWorkers.includes(id))
+      if (added && !payrollProject) { const site = workers.find(w => w.id === added)?.projectId; if (site && projects.some(p => p.id === site && p.active)) setPayrollProject(site) }
+    }} />
+    return select('workerId', 'Worker', workerOptions, workerId)
+  }
   const queries = [workersQ, projectsQ, attendanceQ, ...(manager ? [adjustmentsQ, payrollsQ] : [])]
   const loadError = queries.find(q => q.isError)?.error
   return <div className="space-y-5" lang={language}>
     <PageHeading title={t(manager ? 'Construction worker payments' : 'Worker attendance')} description={t('កម្មករសំណង់ · Workers, attendance, wages and payment records')} action={<div className="flex items-center gap-3"><select aria-label="Language / ភាសា" value={language} onChange={e => setLanguage(e.target.value as 'en' | 'km')} className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"><option value="en">English</option><option value="km">ភាសាខ្មែរ</option></select><HardHat className="h-8 w-8 text-brand-600" /></div>} />
     {(error || loadError) && !dialog && <div role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{t(error || (loadError as Error)?.message || '')} {loadError && <button className="underline" onClick={() => void qc.invalidateQueries({ queryKey: key })}>{t('Retry')}</button>}</div>}
     {notice && <p role="status" className="rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800">{t(notice)}</p>}
+    {skippedWorkers.length > 0 && <p role="status" className="rounded-lg bg-amber-50 p-3 text-sm text-amber-800">{skippedWorkers.length} {t('worker(s) already have attendance on this date and were skipped.')}: {skippedWorkers.map(workerName).join(', ')}</p>}
     <div className="grid gap-4 rounded-xl border border-slate-200 bg-white p-4 sm:grid-cols-2 lg:grid-cols-4">
       <Input label={t('From date')} type="date" value={from} onChange={e => setFrom(e.target.value)} required />
       <Input label={t('To date')} type="date" value={to} onChange={e => setTo(e.target.value)} required />
@@ -192,8 +234,8 @@ function ConstructionContent() {
       <div className="rounded-xl border border-slate-200 bg-white p-4"><p className="text-xs text-slate-500">{t('Total workers')}</p><p className="text-2xl font-semibold">{workers.length}</p><p className="text-xs text-slate-500">{workers.filter(w => w.active).length} {t('active')}</p></div>
       {manager && ['Net wages', 'Paid', 'Unpaid'].map((label, i) => <div key={label} className="rounded-xl border border-slate-200 bg-white p-4"><p className="text-xs text-slate-500">{t(label)} · {t('selected payroll periods')}</p>{totals.length ? totals.map(t => <p key={t.currency} className="mt-1 font-semibold">{money([t.wages, t.paid, t.unpaid][i], t.currency)}</p>) : <p className="mt-1 font-semibold">{t('KHR 0.00')}</p>}</div>)}
     </div>
-    <div className="flex flex-wrap gap-1 border-b border-slate-200" role="tablist" aria-label={t('Construction module')}>
-      {(manager ? ['Workers', 'Projects', 'Attendance', 'Adjustments', 'Payroll', 'Reports', 'Access'] : ['Attendance']).map(tabName => <button key={tabName} role="tab" aria-selected={tab === tabName} onClick={() => setTab(tabName)} className={`px-4 py-3 text-sm font-medium ${tab === tabName ? 'border-b-2 border-brand-600 text-brand-700' : 'text-slate-500'}`}>{t(tabName)}</button>)}
+    <div className="flex gap-1 overflow-x-auto border-b border-slate-200" role="tablist" aria-label={t('Construction module')}>
+      {(manager ? ['Workers', 'Projects', 'Attendance', 'Adjustments', 'Payroll', 'Reports', 'Access'] : ['Attendance']).map(tabName => <button key={tabName} role="tab" aria-selected={tab === tabName} onClick={() => setTab(tabName)} className={`shrink-0 whitespace-nowrap px-4 py-3 text-sm font-medium ${tab === tabName ? 'border-b-2 border-brand-600 text-brand-700' : 'text-slate-500'}`}>{t(tabName)}</button>)}
     </div>
     {queries.some(q => q.isPending) ? <p role="status">{t('Loading construction records…')}</p> : <>
       {tab === 'Workers' && manager && <><div className="flex justify-end"><Button onClick={() => open({ kind: 'worker' })}><Plus className="h-4 w-4" />{t('Add worker')}</Button></div>
@@ -204,11 +246,11 @@ function ConstructionContent() {
           w.startDate, t(w.hasIdCard ? 'Uploaded' : 'Not uploaded'), <Status value={w.active ? 'ACTIVE' : 'INACTIVE'} />,
           <div className="flex gap-2"><Button size="sm" variant="outline" disabled={!!loadingWorker} isLoading={loadingWorker === w.id} onClick={() => void editWorker(w.id)}>{t('View / edit')}</Button><Button size="sm" variant="ghost" onClick={() => { setWorkerId(w.id); setTab('Payroll') }}>{t('History')}</Button></div>,
         ])} /></>}
-      {tab === 'Projects' && <><div className="flex justify-end"><Button onClick={() => open({ kind: 'project' })}>{t('Add project / site')}</Button></div><Table headers={['Project', 'Construction site', 'Duration', 'Planned amount (KHR)', 'Status', 'Actions']} rows={projects.map(p => [p.name, p.site, p.startDate && p.endDate ? <>{p.startDate} / {p.endDate}<br /><small>{Math.round((Date.parse(p.endDate) - Date.parse(p.startDate)) / 86400000) + 1} {t('days')}</small></> : t('Not set'), p.plannedAmount != null ? money(p.plannedAmount, 'KHR') : t('Not set'), <Status value={p.active ? 'ACTIVE' : 'INACTIVE'} />, <Button size="sm" variant="outline" onClick={() => open({ kind: 'project', id: p.id, defaults: { ...p } })}>{t('Edit')}</Button>])} /></>}
+      {tab === 'Projects' && <><div className="flex justify-end"><Button onClick={() => open({ kind: 'project' })}>{t('Add project / site')}</Button></div>                  <Table headers={['Project', 'Construction site', 'Duration', 'Planned amount (KHR)', 'Status', 'Actions']} rows={projects.map(p => { const status = p.status ?? (p.active ? 'ACTIVE' : 'INACTIVE'); return [p.name, p.site, p.startDate && p.endDate ? <>{p.startDate} / {p.endDate}<br /><small>{Math.round((Date.parse(p.endDate) - Date.parse(p.startDate)) / 86400000) + 1} {t('days')}</small></> : t('Not set'), p.plannedAmount != null ? money(p.plannedAmount, 'KHR') : t('Not set'), <Status value={status} />, <div className="flex flex-wrap gap-2">{status === 'COMPLETED' && <Button size="sm" variant="outline" onClick={() => open({ kind: 'transfer', id: p.id })}>{t('Move workers')}</Button>}{status !== 'COMPLETED' && <Button size="sm" variant="outline" onClick={() => open({ kind: 'project', id: p.id, defaults: { ...p, status } })}>{t('Edit')}</Button>}</div>] })} rowClassName={i => { const status = projects[i].status ?? (projects[i].active ? 'ACTIVE' : 'INACTIVE'); return status === 'COMPLETED' ? 'completed-project-row bg-red-50 text-red-900 dark:bg-red-950/70 dark:text-red-100' : status === 'ACTIVE' ? 'active-project-row bg-emerald-50 text-emerald-900' : 'inactive-project-row bg-amber-50 text-amber-900' }} /></>}
       {tab === 'Attendance' && <><div className="flex flex-wrap items-center justify-between gap-3"><p className="text-sm text-slate-500">{attendance.reduce((n, a) => n + Number(a.workdays), 0).toFixed(2)} {t('workdays')} · {attendance.reduce((n, a) => n + Number(a.hours), 0).toFixed(2)} {t('hours')} · {attendance.reduce((n, a) => n + Number(a.overtimeHours), 0).toFixed(2)} {t('overtime hours')}</p><Button onClick={() => open({ kind: 'attendance' })}>{t('Record attendance')}</Button></div>
         <Table headers={['Date', 'Worker', 'Project / site', 'Work', 'Overtime', 'Payroll', 'Actions']} rows={attendance.map(a => [a.workDate, workerName(a.workerId), projectName(a.projectId), <>{t(a.kind)} · {a.hours} {t('hours')}<br /><small>{a.workdays} {t('days')}</small></>, `${a.overtimeHours} ${t('hours')}`, a.payrollId ? t('Locked') : t('Unallocated'), !a.payrollId && <div className="flex gap-2"><Button size="sm" variant="outline" onClick={() => open({ kind: 'attendance', id: a.id, defaults: { ...a } })}>{t('Edit')}</Button><Button size="sm" variant="ghost" onClick={() => open({ kind: 'remove', id: a.id })}>{t('Remove')}</Button></div>])} /></>}
-      {tab === 'Adjustments' && <><div className="flex flex-wrap justify-between gap-3"><p className="text-sm text-slate-500">{t('Outstanding approved advances:')} {money(outstanding.reduce((n, a) => n + Math.round(a.amount * 100), 0) / 100, 'KHR')}</p><Button onClick={() => open({ kind: 'adjustment' })}>{t('Add advance / adjustment')}</Button></div>
-        <p className="text-xs text-slate-500">{t('Adjustments show all dates for the selected worker. Approved, unallocated adjustments through the payroll end date are applied to the next payroll, across projects.')}</p>
+      {tab === 'Adjustments' && <><div className="flex flex-wrap justify-between gap-3"><p className="text-sm text-slate-500">{t('Outstanding approved advances:')} {money(outstanding.reduce((n, a) => n + Math.round(a.amount * 100), 0) / 100, 'KHR')}</p><div className="flex flex-wrap gap-2"><Button onClick={() => open({ kind: 'borrow' })}>{t('Borrow money')}</Button><Button variant="outline" onClick={() => open({ kind: 'adjustment' })}>{t('Add wage adjustment')}</Button></div></div>
+        <p className="text-xs text-slate-500">{t('Borrowing is recorded by a manager, requires approval, and is automatically deducted from the worker’s next payroll. Approved, unallocated adjustments through the payroll end date are applied to that payroll.')}</p>
         <Table headers={['Date / worker', 'Type / amount', 'Reason', 'Approval history', 'Payroll', 'Actions']} rows={adjustments.map(a => [<>{a.adjustmentDate}<br />{workerName(a.workerId)}</>, <>{t(a.kind)}<br />{money(a.amount, workerCurrency(a.workerId))}</>, a.reason, <><Status value={a.status} /><p className="mt-2 text-xs">{t('Created by')} {a.createdBy}<br />{a.approvedBy && <>{t('Reviewed by')} {a.approvedBy}<br />{a.approvedAt?.slice(0, 10)} · {a.approvalReason}</>}</p></>, a.payrollId ? t('Allocated') : t('Outstanding'), a.status === 'PENDING' && <div className="flex gap-2"><Button size="sm" variant="outline" onClick={() => open({ kind: 'approve', id: a.id, approved: true })}>{t('Approve')}</Button><Button size="sm" variant="ghost" onClick={() => open({ kind: 'approve', id: a.id, approved: false })}>{t('Reject')}</Button></div>])} /></>}
       {['Payroll', 'Reports'].includes(tab) && <><div className="flex flex-wrap justify-between gap-3"><p className="text-sm text-slate-500">{t('Periods overlapping selected dates. Paid amounts are cumulative; cancelled records are excluded from totals.')}</p><div className="flex gap-2">{tab === 'Payroll' && <Button onClick={() => open({ kind: 'payroll' })}>{t('Prepare payroll')}</Button>}<Button variant="outline" disabled={exporting || !payrolls.length || from > to} onClick={() => void exportReport('xlsx')}><Download className="h-4 w-4" />{t('Excel')}</Button><Button variant="outline" disabled={exporting || !payrolls.length || from > to} onClick={() => void exportReport('pdf')}>{t('PDF')}</Button></div></div>
         <Table headers={['Worker / reference', 'Project / site', 'Period', 'Wages', 'Paid / balance', 'Status', 'Actions']} rows={payrolls.map(p => [<><p className="font-medium">{p.workerName}</p><small className="break-all">{p.reference}</small></>, projectName(p.projectId), <>{p.fromDate}<br />{p.toDate}<br /><small>{p.workdays} {t('days')} · {p.overtimeHours} {t('OT hours')}</small></>, money(p.netPay, p.currency), <>{money(p.paidAmount, p.currency)}<br /><small>{t('Balance:')} {money(p.status === 'CANCELLED' ? 0 : p.netPay - p.paidAmount, p.currency)}</small></>, <Status value={p.status} />, <div className="flex flex-wrap gap-2">{['PENDING', 'PARTIALLY_PAID'].includes(p.status) && <Button size="sm" onClick={() => open({ kind: 'pay', id: p.id, payroll: p, requestKey: crypto.randomUUID() })}>{t('Pay')}</Button>}<Button size="sm" variant="outline" onClick={() => open({ kind: 'history', id: p.id, payroll: p })}>{t('Details')}</Button>{p.paidAmount === 0 && p.status !== 'CANCELLED' && <Button size="sm" variant="ghost" onClick={() => open({ kind: 'cancel', id: p.id })}>{t('Cancel')}</Button>}{p.paidAmount > 0 && <Button size="sm" variant="ghost" disabled={exporting} onClick={() => void receipt(p)}><Printer className="h-3 w-3" />{t('Receipt')}</Button>}</div>])} /></>}
@@ -224,9 +266,11 @@ function ConstructionContent() {
             <WorkerPhotoField kind="idCard" value={workerIdCard} busy={photoBusy} onChange={setWorkerIdCard} onBusy={setPhotoBusy} onError={setError} />
           </>}
           {dialog.kind === 'worker' && <>{input('workerCode', 'Worker ID', 'text', '', true, 40)}{input('fullName', 'Full name', 'text', '', true, 120)}{input('phone', 'Phone', 'tel', '', false, 40)}<WorkerWageFields defaults={dialog.defaults} /><Input label={t('Currency')} value="KHR" readOnly />{input('startDate', 'Start date', 'date', todayIso())}{select('active', 'Status', [{ value: 'true', label: 'Active' }, { value: 'false', label: 'Inactive' }], 'true')}<p className="text-xs text-slate-500">{t('Rate changes apply to new attendance. Fixed rates apply once per project payroll period.')}</p></>}
-          {dialog.kind === 'project' && <>{input('name', 'Project name', 'text', '', true, 120)}{input('site', 'Construction site', 'text', '', true, 160)}{input('startDate', 'Project start date', 'date', '', false)}{input('endDate', 'Project end date', 'date', '', false)}{input('plannedAmount', 'Planned amount (KHR)', 'number', '', false)}{select('active', 'Status', [{ value: 'true', label: 'Active' }, { value: 'false', label: 'Inactive' }], 'true')}<p className="text-xs text-slate-500 sm:col-span-2">{t('Optional: choose both dates. Duration includes the start and end dates. The planned amount is the project budget in KHR.')}</p></>}
+          {dialog.kind === 'project' && <>{input('name', 'Project name', 'text', '', true, 120)}{input('site', 'Construction site', 'text', '', true, 160)}{input('startDate', 'Project start date', 'date', '', false)}{input('endDate', 'Project end date', 'date', '', false)}{input('plannedAmount', 'Planned amount (KHR)', 'number', '', false)}{select('status', 'Status', [{ value: 'ACTIVE', label: 'Active' }, { value: 'INACTIVE', label: 'Inactive' }, { value: 'COMPLETED', label: 'Completed' }], 'ACTIVE')}<p className="text-xs text-slate-500 sm:col-span-2">{t('Completed sites stay visible in history but no new attendance, assignments, borrowing, or payroll can be recorded.')}</p></>}
+          {dialog.kind === 'transfer' && <>{(() => { const sourceWorkers = workers.filter(w => w.projectId === dialog.id); return <><p className="text-sm text-slate-600">{t('Move existing workers from this completed project. Their worker records, wage rates, photos, and history are preserved.')}</p><MultiSelect label={t('Workers to move')} options={sourceWorkers.map(w => ({ value: w.id, label: `${w.workerCode} · ${w.fullName}` }))} value={transferWorkers} onChange={setTransferWorkers} hint={t('Select one or more workers, or select all.')} /><Button type="button" variant="outline" onClick={() => setTransferWorkers(sourceWorkers.map(w => w.id))}>{t('Select all workers')}</Button><Select name="targetProjectId" label={t('New active project')} required options={projects.filter(p => (p.status ?? (p.active ? 'ACTIVE' : 'INACTIVE')) === 'ACTIVE').map(p => ({ value: p.id, label: `${p.name} / ${p.site}` }))} placeholder={t('Select…')} /><p className="text-xs text-slate-500 sm:col-span-2">{t('Only active projects can receive workers. This does not create duplicate worker records.')}</p></> })()}</>}
           {dialog.kind === 'attendance' && <>{workerField()}{select('projectId', 'Project / site', projectOptions, projectId)}{input('workDate', 'Work date', 'date', todayIso())}{select('kind', 'Work type', choices(['FULL', 'HALF', 'HOURLY']), 'FULL')}{input('hours', 'Regular hours (hourly work only)', 'number', '', false)}{input('overtimeHours', 'Overtime hours', 'number', 0)}<p className="text-xs text-slate-500">{t('Full and half days use the worker’s regular hours. One attendance record per worker per date.')}</p></>}
-          {dialog.kind === 'adjustment' && <>{workerField()}{select('kind', 'Adjustment type', choices(['ADVANCE', 'DEDUCTION', 'BONUS', 'ALLOWANCE']), 'ADVANCE')}{input('amount', 'Amount (KHR)', 'number')}{input('adjustmentDate', 'Date', 'date', todayIso())}{input('reason', 'Reason', 'text', '', true, 255)}<p className="text-xs text-slate-500">{t('Requires approval before inclusion in payroll. Record advances when money has been given to the worker.')}</p></>}
+          {dialog.kind === 'borrow' && <>{workerField()}{input('amount', 'Borrowed amount (KHR)', 'number')}{input('adjustmentDate', 'Borrowing date', 'date', todayIso())}{input('reason', 'Reason', 'text', '', true, 255)}<p className="text-xs text-slate-500">{t('This creates an advance. Approve it in the adjustments list, and it will be automatically deducted from the worker’s next payroll.')}</p></>}
+          {dialog.kind === 'adjustment' && <>{workerField()}{select('kind', 'Adjustment type', choices(['DEDUCTION', 'BONUS', 'ALLOWANCE']), 'DEDUCTION')}{input('amount', 'Amount (KHR)', 'number')}{input('adjustmentDate', 'Date', 'date', todayIso())}{input('reason', 'Reason', 'text', '', true, 255)}<p className="text-xs text-slate-500">{t('Requires approval before inclusion in payroll.')}</p></>}
           {dialog.kind === 'payroll' && <>{workerField()}{select('projectId', 'Project / site', projectOptions, projectId)}{select('period', 'Payment period', [{ value: 'CUSTOM', label: 'Worked days (any date range)' }, ...choices(['DAILY', 'WEEKLY', 'BIWEEKLY', 'MONTHLY'])], 'CUSTOM')}{input('fromDate', 'Period start', 'date', from)}{input('toDate', 'Period end', 'date', to)}<p className="text-xs text-slate-500">{t('Choose any date range to pay all recorded, unpaid worked days together. Days without attendance are not charged. Approved outstanding adjustments through the end date are applied.')}</p></>}
           {dialog.kind === 'pay' && <><p className="sm:col-span-2">{dialog.payroll?.workerName} · {t('Remaining')} {money((dialog.payroll?.netPay ?? 0) - (dialog.payroll?.paidAmount ?? 0), dialog.payroll?.currency ?? '')}</p>{input('amount', 'Payment amount (KHR)', 'number', ((dialog.payroll?.netPay ?? 0) - (dialog.payroll?.paidAmount ?? 0)).toFixed(2))}{input('paymentDate', 'Payment date', 'date', todayIso())}{select('method', 'Payment method', choices(['CASH', 'BANK_TRANSFER', 'QR']), 'CASH')}<p className="text-xs text-slate-500">{t('Partial payments retain the balance. Keep this form open when retrying a failed request to prevent duplicate payment.')}</p></>}
           {dialog.kind === 'approve' && <><p>{dialog.approved ? t('Approve') : t('Reject')} {t('this adjustment?')}</p>{input('reason', 'Review reason', 'text', '', true, 255)}</>}
@@ -237,7 +281,17 @@ function ConstructionContent() {
           {unpaidQ.isFetching ? <p role="status">{t('Loading unpaid worked days…')}</p> : <Button type="button" variant="outline" disabled={!unpaidQ.data || !payrollWorker || !payrollProject} onClick={() => applyWorkedDates(unpaidQ.data ?? [])}>{t('Use all unpaid worked days')}</Button>}
           {unpaidQ.isError && <p role="alert">{t(unpaidQ.error.message)}</p>}
         </div>}
-        {preview && <div className="rounded-lg bg-slate-50 p-4"><WageDetails payroll={preview.payroll} /><Button type="button" className="mt-4" isLoading={mutation.isPending} onClick={() => mutation.mutate(() => createPayroll(preview.request))}>{t('Create payroll')}</Button></div>}
+        {preview && <div className="rounded-lg bg-slate-50 p-4">
+          <WageDetails payroll={preview.payroll} />
+          {preview.payroll.advances > 0 && (
+            <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+              <p className="font-semibold">{t('Borrowing deducted from this payroll')}</p>
+              <p className="mt-1">{t('Worker borrowing')}: {money(preview.payroll.advances, preview.payroll.currency)}</p>
+              <p className="mt-1">{t('Net payable after borrowing')}: {money(preview.payroll.netPay, preview.payroll.currency)}</p>
+            </div>
+          )}
+          <Button type="button" className="mt-4" isLoading={mutation.isPending} onClick={() => mutation.mutate(() => createPayroll(preview.request))}>{t('Create payroll')}</Button>
+        </div>}
         {dialog.kind === 'history' && dialog.payroll && <><WageDetails payroll={dialog.payroll} />{dialog.payroll.cancellationReason && <p>{t('Cancellation:')} {dialog.payroll.cancellationReason}</p>}{historyQ.isPending ? <p>{t('Loading transactions…')}</p> : historyQ.isError ? <p role="alert">{historyQ.error.message}</p> : <Table headers={['Reference', 'Date', 'Amount', 'Method', 'Processed by']} rows={(historyQ.data ?? []).map(p => [<span className="break-all">{p.reference}</span>, p.paymentDate, money(p.amount, dialog.payroll!.currency), t(p.method), p.processorName])} />}{dialog.payroll.paidAmount > 0 && <Button type="button" disabled={exporting} onClick={() => void receipt(dialog.payroll!)}>{t('Download printable receipt')}</Button>}</>}
         {dialog.kind !== 'history' && <div className="flex justify-end gap-2"><Button type="button" variant="outline" disabled={mutation.isPending || exporting || photoBusy} onClick={() => setDialog(null)}>{t('Close')}</Button><Button type="submit" isLoading={mutation.isPending || exporting || photoBusy}>{dialog.kind === 'payroll' ? t('Calculate / refresh preview') : dialog.kind === 'pay' ? t('Record payment') : t('Save')}</Button></div>}
       </form>}
@@ -246,7 +300,8 @@ function ConstructionContent() {
 }
 function WageDetails({ payroll: p }: { payroll: Payroll }) {
   const { t } = useConstructionLanguage()
+  const grossBeforeCuts = p.baseWages + p.overtime + p.bonuses + p.allowances
   return <div className="space-y-2 text-sm"><p>{p.workdays} {t('workdays')} · {p.hours} {t('hours')} · {p.overtimeHours} {t('overtime hours')}</p><dl className="grid grid-cols-2 gap-2">{[
-    ['Base wages', p.baseWages], ['Overtime', p.overtime], ['Bonuses', p.bonuses], ['Allowances', p.allowances], ['Advances', -p.advances], ['Deductions', -p.deductions], ['Net payable', p.netPay], ['Paid', p.paidAmount],
+    ['Base wages', p.baseWages], ['Overtime', p.overtime], ['Bonuses', p.bonuses], ['Allowances', p.allowances], ['Gross wages before borrowing cut', grossBeforeCuts], ['Borrowing deducted', -p.advances], ['Deductions', -p.deductions], ['Net payable', p.netPay], ['Paid', p.paidAmount],
   ].map(([label, amount]) => <div key={String(label)}><dt className="text-slate-500">{t(String(label))}</dt><dd className="font-medium">{money(Number(amount), p.currency)}</dd></div>)}</dl></div>
 }

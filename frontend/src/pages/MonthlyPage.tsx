@@ -10,6 +10,7 @@ import { Alert } from '@/components/ui/Alert'
 import { financeApi } from '@/lib/api/endpoints'
 import { formatMoney, toIsoDate } from '@/lib/utils'
 import { useAuth } from '@/context/AuthContext'
+import { PrivateIncomeAmount } from '@/components/incomes/PrivateIncomeAmount'
 
 export default function MonthlyPage() {
   useLanguage()
@@ -46,9 +47,9 @@ export default function MonthlyPage() {
     {!validPeriod && <Alert tone="error">{t("Choose a valid month between 1900 and 2100.")}</Alert>}
     {report.isError && <Alert tone="error">{t(report.error.message)}<button className="ml-2 underline" onClick={() => void report.refetch()}>{t("Try again")}</button></Alert>}
     <div className="grid gap-4 sm:grid-cols-3">
-      <StatCard label={t("Monthly income")} value={amount(totals?.totalIncome)} hint={numberOf(totals?.incomeCount, t("income entries"))} icon={<ArrowDownLeft />} tone="positive" />
+      <StatCard label={t("Monthly income")} value={available ? <PrivateIncomeAmount amount={totals?.totalIncome ?? 0} currency={currency} scope={period} /> : t("Loading monthly totals")} hint={numberOf(totals?.incomeCount, t("income entries"))} icon={<ArrowDownLeft />} tone="positive" />
       <StatCard label={t("Monthly expenses")} value={amount(totals?.totalExpenses)} hint={numberOf(totals?.expenseCount, t("expenses"))} icon={<ArrowUpRight />} tone="warning" />
-      <StatCard label={t("Monthly balance")} value={amount(totals?.balance)} hint={t("Income minus expenses")} icon={<Wallet />} tone={(totals?.balance ?? 0) < 0 ? 'danger' : 'brand'} />
+      <StatCard label={t("Monthly balance")} value={available ? <PrivateIncomeAmount amount={totals?.balance ?? 0} currency={currency} scope={period} /> : t("Loading monthly totals")} hint={t("Income minus expenses")} icon={<Wallet />} tone="brand" />
     </div>
     {available && !totals && <p className="text-sm text-slate-500">{t("No")}{' '}{currency} {' '}{t("income or expenses recorded for this month.")}</p>}
     <Card><CardHeader title={t("Plan your month")} description={t("Try different amounts to calculate a monthly balance.")} />
