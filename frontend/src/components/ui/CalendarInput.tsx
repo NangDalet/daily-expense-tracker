@@ -1,4 +1,5 @@
-import { forwardRef, useEffect, useId, useRef, useState, type InputHTMLAttributes } from 'react'
+import { forwardRef, useEffect, useId, useLayoutEffect, useRef, useState, type InputHTMLAttributes } from 'react'
+import { createPortal } from 'react-dom'
 import { CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useLanguage } from '@/context/LanguageContext'
 import { todayIso } from '@/lib/utils'
@@ -47,10 +48,18 @@ export const CalendarInput = forwardRef<HTMLInputElement, InputHTMLAttributes<HT
     const fallback = String(props.min ?? todayIso())
     setSelected(value)
     setMonth(monthStart((value || fallback).slice(0, 7) + '-01'))
-    const rect = input.getBoundingClientRect()
-    setPosition({ left: Math.max(8, Math.min(rect.left, window.innerWidth - 328)), top: Math.max(8, rect.bottom + 8 + 370 > window.innerHeight ? rect.top - 370 : rect.bottom + 8) })
     setOpen(true)
   }
+  useLayoutEffect(() => {
+    if (!open || !inputRef.current || !panelRef.current) return
+    const anchor = inputRef.current.getBoundingClientRect()
+    const panel = panelRef.current.getBoundingClientRect()
+    const below = anchor.bottom + 8
+    const above = anchor.top - panel.height - 8
+    const top = below + panel.height <= window.innerHeight - 8 ? below
+      : above >= 8 ? above : Math.max(8, window.innerHeight - panel.height - 8)
+    setPosition({ left: Math.max(8, Math.min(anchor.left, window.innerWidth - panel.width - 8)), top })
+  }, [open, monthly, language])
   useEffect(() => {
     if (!open) return
     panelRef.current?.querySelector<HTMLElement>('[data-selected="true"]:not([disabled]), button[data-day]:not([disabled]), select')?.focus()
@@ -82,9 +91,19 @@ export const CalendarInput = forwardRef<HTMLInputElement, InputHTMLAttributes<HT
     }} />
     <button ref={buttonRef} type="button" disabled={disabled} aria-label={text('Open calendar', 'បើកប្រតិទិន')} aria-expanded={open} aria-controls={open ? panelId : undefined} aria-haspopup="dialog"
       onClick={show} className="absolute inset-y-0 right-0 flex w-10 items-center justify-center rounded-r-lg text-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-500 disabled:opacity-40"><CalendarDays className="h-4 w-4" /></button>
-    {open && <div ref={panelRef} id={panelId} role="dialog" aria-label={text('Calendar', 'ប្រតិទិន')} lang={language}
+    {/* A portal escapes glass-panel containing blocks and clipped modal bodies. */}
+    {open && createPortal(<div ref={panelRef} id={panelId} role="dialog" aria-label={text('Calendar', 'ប្រតិទិន')} lang={language}
       style={position} className="glass-popover fixed z-[100] max-h-[calc(100dvh-16px)] w-80 max-w-[calc(100vw-16px)] overflow-y-auto rounded-2xl p-3 text-sm text-slate-900"
       onKeyDown={event => {
+        if (event.key === 'Tab') {
+          // The surrounding modal's focus trap cannot see this portaled panel.
+          event.stopPropagation()
+          const controls = Array.from(panelRef.current?.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled]), select:not([disabled])') ?? [])
+          const first = controls[0], last = controls[controls.length - 1]
+          if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus() }
+          else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus() }
+          return
+        }
         if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); close() }
         const target = event.target as HTMLElement
         const value = target.dataset.day
@@ -120,6 +139,6 @@ export const CalendarInput = forwardRef<HTMLInputElement, InputHTMLAttributes<HT
         <button type="button" className={control} disabled={!allowed(monthly ? todayIso().slice(0, 7) : todayIso())} onClick={() => choose(monthly ? todayIso().slice(0, 7) : todayIso())}>{text('Today', 'ថ្ងៃនេះ')}</button>
         <button type="button" className={control} onClick={close}>{text('Close', 'បិទ')}</button>
       </div>
-    </div>}
+    </div>, document.body)}
   </>
 })

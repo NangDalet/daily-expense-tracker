@@ -24,7 +24,7 @@ test('Khmer calendar selects ISO dates, navigates months, supports keyboard and 
   await expect(calendar.getByLabel('ខែប្រតិទិន').locator('option:checked')).toHaveText('តុលា')
   await expect(calendar.getByText('អាទិត្យ', { exact: true })).toBeVisible()
   await expect(calendar.getByText('សម្អាត', { exact: true })).toBeVisible()
-  expect(await calendar.evaluate(el => getComputedStyle(el).backgroundColor)).toBe('rgb(22, 34, 53)')
+  expect(await calendar.evaluate(el => getComputedStyle(el).backgroundColor)).toBe('rgba(20, 32, 51, 0.96)')
   const dayName = '១៥ តុលា ២០២៦'
   await calendar.getByRole('button', { name: dayName, exact: true }).click()
   await expect(from).toHaveValue('2026-10-15')
@@ -56,6 +56,9 @@ test('calendar Escape keeps the expense modal open and selected dates update for
   await form.getByRole('button', { name: 'បើកប្រតិទិន', exact: true }).click()
   const calendar = page.getByRole('dialog', { name: 'ប្រតិទិន', exact: true })
   await expect(calendar).toBeVisible()
+  await calendar.getByLabel('ឆ្នាំប្រតិទិន').focus()
+  await page.keyboard.press('Tab')
+  expect(await calendar.evaluate(el => el.contains(document.activeElement))).toBe(true)
   await page.keyboard.press('Escape')
   await expect(calendar).toHaveCount(0)
   await expect(form).toBeVisible()
@@ -77,3 +80,27 @@ test('monthly picker uses Khmer months, honors date limits and retains ISO month
   await calendar.getByLabel('ឆ្នាំប្រតិទិន').fill('1899')
   await expect(calendar.getByRole('button', { name: 'មករា', exact: true })).toBeDisabled()
 })
+
+for (const theme of ['light', 'dark'] as const) {
+  for (const mobile of [false, true]) {
+    test(`monthly calendar stays above glass cards in ${theme} mode on ${mobile ? 'mobile' : 'desktop'}`, async ({ page }) => {
+      await page.setViewportSize(mobile ? { width: 390, height: 844 } : { width: 1440, height: 1000 })
+      await page.addInitScript(theme => localStorage.setItem('expense-tracker.theme', theme), theme)
+      await page.goto('/monthly')
+      await page.getByRole('button', { name: 'បើកប្រតិទិន', exact: true }).click()
+      const calendar = page.getByRole('dialog', { name: 'ប្រតិទិន', exact: true })
+      await expect(calendar).toBeVisible()
+      const popup = await calendar.evaluate(panel => {
+        const rect = panel.getBoundingClientRect()
+        const points = [[rect.left + 8, rect.top + 8], [rect.right - 8, rect.bottom - 8],
+          [rect.left + rect.width / 2, rect.top + rect.height / 2]]
+        return { insideViewport: rect.left >= 0 && rect.top >= 0 && rect.right <= innerWidth && rect.bottom <= innerHeight,
+          unobstructed: points.every(([x, y]) => panel.contains(document.elementFromPoint(x, y))) }
+      })
+      expect(popup).toEqual({ insideViewport: true, unobstructed: true })
+      await calendar.getByRole('button', { name: 'កញ្ញា', exact: true }).click()
+      await expect(page.locator('input[type=month]')).toHaveValue('2026-09')
+      await expect(calendar).toHaveCount(0)
+    })
+  }
+}
