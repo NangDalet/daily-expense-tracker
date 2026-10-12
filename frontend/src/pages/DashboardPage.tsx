@@ -23,6 +23,7 @@ import { Card, CardBody, CardHeader, StatCard } from '@/components/ui/Card'
 import { ProgressBar } from '@/components/ui/ProgressBar'
 import { EmptyState, ErrorState, LoadingBlock } from '@/components/ui/States'
 import { CategorySwatch } from '@/components/ui/CategoryIcon'
+import { Input } from '@/components/ui/Field'
 import { ExpenseList } from '@/components/expenses/ExpenseList'
 import { IncomeList } from '@/components/incomes/IncomeList'
 import {
@@ -53,25 +54,17 @@ const GROUP_BY_OPTIONS: { value: SummaryGroupBy; label: string }[] = [
   { value: 'monthly', label: 'Monthly' },
 ]
 
-/** Rolling window used for the dashboard trend chart. */
-function trendWindow(groupBy: SummaryGroupBy): number {
-  if (groupBy === 'daily') return 30
-  if (groupBy === 'weekly') return 84
-  return 365
-}
-
 export default function DashboardPage() {
   useLanguage()
   const { user } = useAuth()
   const [groupBy, setGroupBy] = useState<SummaryGroupBy>('daily')
   const [chosenCurrency, setChosenCurrency] = useState<string>()
+  const [period, setPeriod] = useState(() => toIsoDate(new Date()).slice(0, 7))
 
-  const to = useMemo(() => toIsoDate(new Date()), [])
-  const from = useMemo(() => {
-    const date = new Date()
-    date.setDate(date.getDate() - trendWindow(groupBy))
-    return toIsoDate(date)
-  }, [groupBy])
+  const year = Number(period.slice(0, 4))
+  const month = Number(period.slice(5))
+  const from = `${period}-01`
+  const to = toIsoDate(new Date(year, month, 0))
 
   const spending = useDashboardExpenses(from, to)
   const currency = chosenCurrency ?? (spending.data?.some((expense) => expense.currency === 'USD')
@@ -82,7 +75,7 @@ export default function DashboardPage() {
   const formatAxisTick = (value: number) => formatMoneyCompact(value, currency)
   const recent = useRecentExpenses(6)
   const recentIncome = useRecentIncome(6)
-  const budgets = useBudgetUsage()
+  const budgets = useBudgetUsage(year, month)
   const { data: categories } = useCategories()
 
   const firstName = user?.fullName?.split(' ')[0] || user?.username || 'there'
@@ -112,7 +105,12 @@ export default function DashboardPage() {
         title={t("Welcome back, {0}", [firstName])}
         description={t("Spending in {0} from {1} to {2}", [currency, formatDate(from, 'short'), formatDate(to, 'short')])}
         action={
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-end gap-2">
+            <Input id="dashboard-month" label={t('Month')} type="month" min="1900-01" max="2100-12"
+              value={period} className="w-44" onChange={(event) => {
+                const value = event.target.value
+                if (/^\d{4}-(0[1-9]|1[0-2])$/.test(value) && Number(value.slice(0, 4)) >= 1900 && Number(value.slice(0, 4)) <= 2100) setPeriod(value)
+              }} />
             <label className="text-xs text-slate-600" htmlFor="dashboard-currency">{t("Currency")}</label>
             <select id="dashboard-currency" value={currency} onChange={(event) => setChosenCurrency(event.target.value)}
               className="rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm">
@@ -216,7 +214,7 @@ export default function DashboardPage() {
               ) : (
                 <div className="h-64 w-full">
                   <ResponsiveContainer width="100%" height="100%">
-                    {groupBy === 'daily' ? (
+                    {groupBy === 'daily' || trendData.length === 1 ? (
                       <BarChart data={trendData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                         <XAxis
