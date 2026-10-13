@@ -118,10 +118,19 @@ body {
 .glass-nav {
   border: 1px solid transparent;
   border-radius: 14px;
-  transition: background-color 160ms ease, border-color 160ms ease;
+  transition: background-color 180ms ease, border-color 180ms ease, color 180ms ease, box-shadow 180ms ease;
 }
 
 .glass-nav:hover { background: var(--glass-tint); }
+
+.module-page {
+  animation: module-enter 180ms ease-out;
+}
+
+@keyframes module-enter {
+  from { opacity: .75; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 .glass-nav[aria-current='page'] {
   background: var(--glass-active);
   border-color: var(--glass-control-border);
@@ -268,4 +277,50 @@ html[data-theme='dark'] .recharts-default-tooltip { background-color: #162235 !i
 
 .app-calendar-input::-webkit-calendar-picker-indicator {
   display: none;
+}
+
+.app-modal-viewport {
+  top: var(--modal-top, 0px);
+  height: var(--modal-height, 100dvh);
+}
+
+.app-modal-panel {
+  max-height: calc(var(--modal-height, 100dvh) - 2rem);
+}
+
+@media (max-width: 639px) {
+  /* Readable input text also avoids iPhone focus zoom without disabling pinch zoom. */
+  input:not([type='checkbox']):not([type='radio']), select, textarea {
+    font-size: 16px;
+  }
+
+  .glass-control { min-width: 0; max-width: 100%; }
+  .glass-control, .app-button { min-height: 44px; }
+
+  .app-modal-panel {
+    height: 100%;
+    max-height: 100%;
+    border-radius: 0;
+    padding-top: env(safe-area-inset-top);
+  }
+
+  .app-modal-panel[data-size='sm'] {
+    height: auto;
+    border-radius: 1.5rem 1.5rem 0 0;
+  }
+
+  .app-modal-body { -webkit-overflow-scrolling: touch; }
+
+  .expense-form-actions {
+    position: sticky;
+    bottom: -1rem;
+    z-index: 2;
+    margin-left: -1rem;
+    margin-right: -1rem;
+    padding: 1rem;
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+    background: var(--glass-dialog);
+  }
+
+  .expense-form-actions > button { flex: 1; }
 }

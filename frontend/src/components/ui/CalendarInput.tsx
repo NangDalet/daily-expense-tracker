@@ -27,7 +27,7 @@ export const CalendarInput = forwardRef<HTMLInputElement, InputHTMLAttributes<HT
   const monthNames = km ? ['មករា', 'កុម្ភៈ', 'មីនា', 'មេសា', 'ឧសភា', 'មិថុនា', 'កក្កដា', 'សីហា', 'កញ្ញា', 'តុលា', 'វិច្ឆិកា', 'ធ្នូ'] : ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
   const number = (value: number) => km ? String(value).replace(/\d/g, digit => '០១២៣៤៥៦៧៨៩'[Number(digit)]) : String(value)
   const format = (value: Date) => km ? `${number(value.getUTCDate())} ${monthNames[value.getUTCMonth()]} ${number(value.getUTCFullYear())}` : new Intl.DateTimeFormat('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' }).format(value)
-  function close() { setOpen(false); buttonRef.current?.focus() }
+  function close() { setOpen(false); buttonRef.current?.focus({ preventScroll: true }) }
   function allowed(value: string) {
     return (!props.min || value >= String(props.min)) && (!props.max || value <= String(props.max))
   }
@@ -50,19 +50,29 @@ export const CalendarInput = forwardRef<HTMLInputElement, InputHTMLAttributes<HT
     setMonth(monthStart((value || fallback).slice(0, 7) + '-01'))
     setOpen(true)
   }
-  useLayoutEffect(() => {
+  function positionCalendar() {
     if (!open || !inputRef.current || !panelRef.current) return
+    const viewport = window.visualViewport
+    const viewportTop = viewport?.offsetTop ?? 0
+    const viewportLeft = viewport?.offsetLeft ?? 0
+    const viewportHeight = viewport?.height ?? window.innerHeight
+    const viewportWidth = viewport?.width ?? window.innerWidth
+    panelRef.current.style.maxHeight = `${Math.max(0, viewportHeight - 16)}px`
     const anchor = inputRef.current.getBoundingClientRect()
     const panel = panelRef.current.getBoundingClientRect()
     const below = anchor.bottom + 8
     const above = anchor.top - panel.height - 8
-    const top = below + panel.height <= window.innerHeight - 8 ? below
-      : above >= 8 ? above : Math.max(8, window.innerHeight - panel.height - 8)
-    setPosition({ left: Math.max(8, Math.min(anchor.left, window.innerWidth - panel.width - 8)), top })
+    const top = below + panel.height <= viewportTop + viewportHeight - 8 ? below
+      : above >= viewportTop + 8 ? above : Math.max(viewportTop + 8, viewportTop + viewportHeight - panel.height - 8)
+    const left = Math.max(viewportLeft + 8, Math.min(anchor.left, viewportLeft + viewportWidth - panel.width - 8))
+    setPosition(previous => previous.left === left && previous.top === top ? previous : { left, top })
+  }
+  useLayoutEffect(() => {
+    positionCalendar()
   }, [open, monthly, language])
   useEffect(() => {
     if (!open) return
-    panelRef.current?.querySelector<HTMLElement>('[data-selected="true"]:not([disabled]), button[data-day]:not([disabled]), select')?.focus()
+    panelRef.current?.querySelector<HTMLElement>('[data-selected="true"]:not([disabled]), button[data-day]:not([disabled]), select')?.focus({ preventScroll: true })
     function escape(event: KeyboardEvent) {
       if (event.key === 'Escape') { event.preventDefault(); event.stopImmediatePropagation(); close() }
     }
@@ -70,12 +80,18 @@ export const CalendarInput = forwardRef<HTMLInputElement, InputHTMLAttributes<HT
       const target = event.target as Node
       if (!panelRef.current?.contains(target) && !buttonRef.current?.contains(target) && !inputRef.current?.contains(target)) setOpen(false)
     }
-    function reposition(event: Event) { if (!panelRef.current?.contains(event.target as Node)) setOpen(false) }
+    function reposition(event: Event) { if (!(event.target instanceof Node) || !panelRef.current?.contains(event.target)) positionCalendar() }
     document.addEventListener('pointerdown', outside)
     document.addEventListener('keydown', escape, true)
     window.addEventListener('resize', reposition)
     window.addEventListener('scroll', reposition, true)
-    return () => { document.removeEventListener('pointerdown', outside); document.removeEventListener('keydown', escape, true); window.removeEventListener('resize', reposition); window.removeEventListener('scroll', reposition, true) }
+    window.visualViewport?.addEventListener('resize', reposition)
+    window.visualViewport?.addEventListener('scroll', reposition)
+    return () => {
+      document.removeEventListener('pointerdown', outside); document.removeEventListener('keydown', escape, true)
+      window.removeEventListener('resize', reposition); window.removeEventListener('scroll', reposition, true)
+      window.visualViewport?.removeEventListener('resize', reposition); window.visualViewport?.removeEventListener('scroll', reposition)
+    }
   }, [open])
   useEffect(() => { if (disabled) setOpen(false) }, [disabled])
   const first = new Date(month); first.setUTCDate(1 - first.getUTCDay())

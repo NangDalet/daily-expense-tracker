@@ -16,6 +16,7 @@ import type {
   ExpenseRequest,
   ExpenseResponse,
   ExpenseSummaryResponse,
+  ExpenseTotal,
   LoginRequest,
   RegisterRequest,
   SummaryParams,
@@ -71,6 +72,8 @@ function toExpenseQuery(filter: ExpenseFilterParams = {}): QueryParams {
 }
 
 export const expenseApi = {
+  totals: (filter: ExpenseFilterParams = {}, signal?: AbortSignal) =>
+    http.get<ExpenseTotal[]>('/expenses/totals', toExpenseQuery(filter), signal),
   async list(filter: ExpenseFilterParams = {}, signal?: AbortSignal): Promise<Page<ExpenseResponse>> {
     const envelope = await http.getEnvelope<ExpenseResponse[]>(
       '/expenses',

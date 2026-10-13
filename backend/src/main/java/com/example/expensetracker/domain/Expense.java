@@ -39,6 +39,8 @@ public class Expense {
 
     private PaymentMethod paymentMethod;
 
+    private boolean useTopupBalance;
+
     private UUID categoryId;
 
     /** Nested projection - populated by the JOIN based statements only. */

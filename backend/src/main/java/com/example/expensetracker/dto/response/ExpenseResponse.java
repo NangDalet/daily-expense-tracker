@@ -20,6 +20,8 @@ import lombok.NoArgsConstructor;
 @Schema(name = "ExpenseResponse", description = "An expense record")
 public class ExpenseResponse {
 
+    private boolean useTopupBalance;
+
     private String id;
 
     @Schema(example = "42.75")

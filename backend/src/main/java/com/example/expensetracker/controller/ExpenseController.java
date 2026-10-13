@@ -3,6 +3,7 @@ package com.example.expensetracker.controller;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
+import com.example.expensetracker.domain.ExpenseTotal;
 
 import com.example.expensetracker.dto.request.ExpenseFilterRequest;
 import com.example.expensetracker.dto.request.ExpenseRequest;
@@ -107,6 +108,13 @@ public class ExpenseController {
     public ApiResponse<Void> delete(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID id) {
         expenseService.delete(SecurityUtils.currentUserId(jwt), id);
         return ApiResponse.empty("Expense deleted");
+    }
+
+    @GetMapping("/totals")
+    @Operation(summary = "Total expenses by currency", description = "All matching expenses across every page; uses the same filters as the expense list.")
+    public ApiResponse<List<ExpenseTotal>> totals(
+            @AuthenticationPrincipal Jwt jwt, @Valid @ModelAttribute ExpenseFilterRequest filter) {
+        return ApiResponse.of(expenseService.totals(SecurityUtils.currentUserId(jwt), filter), "Expense totals retrieved");
     }
 
     @GetMapping("/summary")

@@ -7,6 +7,7 @@ import java.util.UUID;
 import com.example.expensetracker.config.PaginationProperties;
 import com.example.expensetracker.convert.ExpenseConvert;
 import com.example.expensetracker.domain.Expense;
+import com.example.expensetracker.domain.ExpenseTotal;
 import com.example.expensetracker.dto.request.ExpenseFilterRequest;
 import com.example.expensetracker.dto.request.ExpenseRequest;
 import com.example.expensetracker.dto.request.ExpenseSummaryRequest;
@@ -46,6 +47,7 @@ public class ExpenseServiceImpl implements ExpenseService {
     private final ExpenseConvert expenseConvert;
     private final PaginationProperties paginationProperties;
     private final SpendingNotificationService notifications;
+    private final com.example.expensetracker.wallet.CashService cash;
 
     // ===================== Reads =====================
 
@@ -96,6 +98,12 @@ public class ExpenseServiceImpl implements ExpenseService {
 
     @Override
     @Transactional(readOnly = true)
+    public List<ExpenseTotal> totals(UUID userId, ExpenseFilterRequest filter) {
+        return expenseMapper.totalsByFilters(userId, validateFilter(userId, filter));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public List<ExpenseSummaryResponse> summary(UUID userId, ExpenseSummaryRequest request) {
         return expenseConvert.toSummaryResponseList(expenseMapper.sumByPeriod(
                 userId,
@@ -118,7 +126,9 @@ public class ExpenseServiceImpl implements ExpenseService {
     @Override
     @Transactional
     public ExpenseResponse create(UUID userId, ExpenseRequest request) {
+        cash.lock(userId);
         Expense expense = expenseConvert.toDomain(request);
+        cash.validateExpense(expense);
         expense.setUserId(userId);
         expense.setCategoryId(resolveCategory(userId, request.getCategoryId()));
 
@@ -131,6 +141,7 @@ public class ExpenseServiceImpl implements ExpenseService {
         }
         // Re-read so the response carries generated timestamps and the nested category
         Expense saved = expenseMapper.findByIdAndUserId(expense.getId(), userId);
+        cash.requireAvailable(userId);
         notifications.expenseCreated(saved);
         return expenseConvert.toResponse(saved);
     }
@@ -138,15 +149,18 @@ public class ExpenseServiceImpl implements ExpenseService {
     @Override
     @Transactional
     public ExpenseResponse update(UUID userId, UUID id, ExpenseRequest request) {
+        cash.lock(userId);
         notifications.beforeChange(userId);
         Expense existing = requireOwned(userId, id);
 
         Expense changes = expenseConvert.toDomain(request);
+        cash.validateExpense(changes);
         changes.setId(id);
         changes.setUserId(userId);
         changes.setCategoryId(resolveCategory(userId, request.getCategoryId()));
 
         expenseMapper.update(changes);
+        cash.requireAvailable(userId);
 
         // The dynamic UPDATE skips null category_id (a null in the payload means
         // "leave the category untouched" for a PATCH-like client), therefore an
@@ -163,6 +177,7 @@ public class ExpenseServiceImpl implements ExpenseService {
     @Override
     @Transactional
     public void delete(UUID userId, UUID id) {
+        cash.lock(userId);
         notifications.beforeChange(userId);
         requireOwned(userId, id);
         expenseMapper.deleteById(id);

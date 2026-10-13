@@ -13,6 +13,7 @@ import { Pagination } from '@/components/ui/Pagination'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { EmptyState, ErrorState, LoadingBlock } from '@/components/ui/States'
 import { ExpenseForm } from '@/components/expenses/ExpenseForm'
+import { CashBalancePanel } from '@/components/expenses/CashBalancePanel'
 import { ExpenseList, SortableHeader } from '@/components/expenses/ExpenseList'
 import {
   EMPTY_FILTERS,
@@ -20,7 +21,7 @@ import {
   toFilterParams,
   type ExpenseFilterState,
 } from '@/components/expenses/ExpenseFilters'
-import { useCategories, useDeleteExpense, useExpenses } from '@/hooks/queries'
+import { useCategories, useDeleteExpense, useExpenses, useExpenseTotals } from '@/hooks/queries'
 import { ApiError } from '@/lib/api/client'
 import type { ExpenseResponse } from '@/lib/api/types'
 import { formatMoney, formatNumber, paymentMethodLabel } from '@/lib/utils'
@@ -80,6 +81,7 @@ export default function ExpensesPage() {
   )
 
   const { data, isPending, isError, error, refetch } = useExpenses(filterParams)
+  const totals = useExpenseTotals(filterParams)
 
   // Deep-linking: the layout's "Add expense" button navigates to ?new=1.
   useEffect(() => {
@@ -140,6 +142,7 @@ export default function ExpensesPage() {
           <div className="flex flex-wrap items-center gap-2">
             <Button
               variant="outline"
+              size="sm"
               onClick={() => void handleExport('pdf')}
               disabled={Boolean(exporting) || isPending || isError || pageTotal === 0}
               isLoading={exporting === 'pdf'}
@@ -149,6 +152,7 @@ export default function ExpensesPage() {
               {t("Export PDF")}</Button>
             <Button
               variant="outline"
+              size="sm"
               onClick={() => void handleExport('xlsx')}
               disabled={Boolean(exporting) || isPending || isError || pageTotal === 0}
               isLoading={exporting === 'xlsx'}
@@ -164,6 +168,24 @@ export default function ExpensesPage() {
       />
 
       <div className="space-y-4">
+        <div className="grid items-start gap-4 lg:grid-cols-2">
+        <Card className="space-y-4 p-4 sm:p-5">
+          <h2 className="flex h-8 items-center font-semibold text-slate-900">{t('Total expenses')}</h2>
+          {totals.isPending && <p role="status" className="text-sm text-slate-500">{t('Loading expense totals...')}</p>}
+          {totals.isError && <Alert tone="error" title={t('Could not load expense totals')}>
+            <p>{totals.error.message}</p><Button variant="outline" size="sm" onClick={() => void totals.refetch()}>{t('Try again')}</Button>
+          </Alert>}
+          {!totals.isError && <div className="grid grid-cols-2 gap-4">
+            {totals.data?.map((total, index) => <div key={total.currency} className={index > 0 ? 'min-w-0 border-l border-slate-200 pl-4' : 'min-w-0'}>
+              <p className="text-xs font-medium text-slate-500">{total.currency}</p>
+              <p className="mt-1 break-words text-xl font-semibold tabular-nums text-slate-900 sm:text-2xl">{formatMoney(total.totalAmount, total.currency)}</p>
+              <p className="mt-1 text-xs text-slate-500">{t('{0} {1} recorded', [formatNumber(total.expenseCount), total.expenseCount === 1 ? t('expense') : t('expenses')])}</p>
+            </div>)}
+          </div>}
+          <p className="flex min-h-10 items-center border-t border-slate-200 pt-2 text-xs text-slate-500" title={t('All matching expenses across every page, including spending from top-ups.')}>{t('All payment methods · Current filters')}</p>
+        </Card>
+        <CashBalancePanel />
+        </div>
         {exportError && <Alert tone="error" title={t("Could not export expenses")}>{exportError}</Alert>}
         {exportStatus && <p role="status" aria-live="polite" className="text-sm text-slate-600">{exportStatus}</p>}
         <ExpenseFilters
@@ -196,11 +218,6 @@ export default function ExpensesPage() {
               icon={<Receipt className="h-6 w-6" aria-hidden />}
               title={t("No expenses found")}
               description={t("Record your first expense or loosen the filters.")}
-              action={
-                <Button size="sm" onClick={openCreate}>
-                  <Plus className="h-4 w-4" aria-hidden />
-                  {t("Add expense")}</Button>
-              }
             />
           ) : (
             <>
@@ -261,6 +278,7 @@ export default function ExpensesPage() {
                         </td>
                         <td className="whitespace-nowrap px-4 py-3 text-sm text-slate-600">
                           {paymentMethodLabel(expense.paymentMethod)}
+                          {expense.useTopupBalance && <span className="ml-2 text-xs text-brand-600">{t('From top-up')}</span>}
                         </td>
                         <td className="whitespace-nowrap px-4 py-3 text-right text-sm font-semibold tabular-nums text-slate-900">
                           {formatMoney(expense.amount, expense.currency)}

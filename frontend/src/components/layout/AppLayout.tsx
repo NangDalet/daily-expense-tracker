@@ -1,6 +1,7 @@
 import { t } from '@/lib/language'
 import { useLanguage } from '@/context/LanguageContext'
-import { useState } from 'react'
+import { useLayoutEffect, useState } from 'react'
+import { preloadModule } from '@/app/pages'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard,
@@ -79,7 +80,9 @@ export function AppLayout() {
   const navigate = useNavigate()
   const { pathname } = useLocation()
   const isIncomePage = pathname.startsWith('/incomes')
+  const isExpensesPage = pathname.startsWith('/expenses')
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+  useLayoutEffect(() => { window.scrollTo(0, 0) }, [pathname])
 
   const visibleItems = NAV_ITEMS.filter((item) => (!item.adminOnly || isAdmin) && (!item.constructionOnly || access.data?.allowed))
   const roleLabel = isSuperAdmin ? t("Super administrator") : isAdmin ? t("Administrator") : t("Member")
@@ -134,6 +137,9 @@ export function AppLayout() {
               to={item.to}
               end={item.to === '/'}
               onClick={() => setIsSidebarOpen(false)}
+              onPointerEnter={() => preloadModule(item.to)}
+              onFocus={() => preloadModule(item.to)}
+              onTouchStart={() => preloadModule(item.to)}
               className={({ isActive }) =>
                 cn(
                   'glass-nav flex items-center gap-3 px-3 py-2.5 text-sm font-medium',
@@ -191,10 +197,10 @@ export function AppLayout() {
             title={theme === 'light' ? t("Dark mode") : t("Light mode")} className="rounded-lg p-2 text-slate-600 hover:bg-slate-100">
             {theme === 'light' ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
           </button>
-          <Button size="sm" onClick={() => navigate(isIncomePage ? '/incomes?new=1' : '/expenses?new=1')}>
+          {!isExpensesPage && <Button size="sm" onClick={() => navigate(isIncomePage ? '/incomes?new=1' : '/expenses?new=1')}>
             <Plus className="h-4 w-4" aria-hidden />
             <span className="hidden sm:inline">{isIncomePage ? t("Add income") : t("Add expense")}</span>
-          </Button>
+          </Button>}
         </header>
 
         <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">

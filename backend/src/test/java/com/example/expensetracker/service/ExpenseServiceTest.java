@@ -61,6 +61,8 @@ class ExpenseServiceTest {
     private PaginationProperties paginationProperties;
     @Mock
     private SpendingNotificationService notifications;
+    @Mock
+    private com.example.expensetracker.wallet.CashService cash;
 
     private ExpenseService expenseService;
 
@@ -68,7 +70,7 @@ class ExpenseServiceTest {
     void setUp() {
         paginationProperties = new PaginationProperties();
         expenseService = new ExpenseServiceImpl(expenseMapper, categoryMapper, TestFixtures.expenseConvert(),
-                paginationProperties, notifications);
+                paginationProperties, notifications, cash);
     }
 
     @Nested

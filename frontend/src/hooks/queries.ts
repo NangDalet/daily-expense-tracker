@@ -97,6 +97,14 @@ export function useExpenses(filter: ExpenseFilterParams) {
   })
 }
 
+export function useExpenseTotals(filter: ExpenseFilterParams) {
+  const { page: _page, size: _size, sort: _sort, ...criteria } = filter
+  return useQuery({
+    queryKey: ['expenses', 'totals', criteria],
+    queryFn: ({ signal }) => expenseApi.totals(criteria, signal),
+  })
+}
+
 export function useRecentExpenses(limit = 5) {
   return useQuery({
     queryKey: queryKeys.recentExpenses(limit),
@@ -155,6 +163,7 @@ export function useDeleteExpense() {
  * Category projections are refreshed alongside the income queries.
  */
 function invalidateExpenseDerived(client: ReturnType<typeof useQueryClient>) {
+  void client.invalidateQueries({ queryKey: ['cash'] })
   void client.invalidateQueries({ queryKey: ['monthly-finances'] })
   void client.invalidateQueries({ queryKey: ['expenses'] })
   void client.invalidateQueries({ queryKey: ['budgets'] })

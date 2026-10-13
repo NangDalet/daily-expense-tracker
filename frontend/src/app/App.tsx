@@ -1,5 +1,7 @@
 import { useLanguage } from '@/context/LanguageContext'
-import { lazyPage } from './lazyPage'
+import { DashboardPage, ExpensesPage, IncomePage, CategoriesPage, TelegramPage,
+  ProfilePage, MonthlyPage, BudgetsPage, AdminUsersPage, ConstructionPage,
+  LoginPage, RegisterPage, NotFoundPage } from './pages'
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AuthProvider } from '@/context/AuthContext'
@@ -9,19 +11,6 @@ import { ApiError } from '@/lib/api/client'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { RedirectIfAuthenticated, RequireAdmin, RequireAuth, RequireConstruction } from './routeGuards'
 
-const DashboardPage = lazyPage(() => import('@/pages/DashboardPage'))
-const ExpensesPage = lazyPage(() => import('@/pages/ExpensesPage'))
-const IncomePage = lazyPage(() => import('@/pages/IncomePage'))
-const CategoriesPage = lazyPage(() => import('@/pages/CategoriesPage'))
-const TelegramPage = lazyPage(() => import('@/pages/TelegramPage'))
-const ProfilePage = lazyPage(() => import('@/pages/ProfilePage'))
-const MonthlyPage = lazyPage(() => import('@/pages/MonthlyPage'))
-const BudgetsPage = lazyPage(() => import('@/pages/BudgetsPage'))
-const AdminUsersPage = lazyPage(() => import('@/pages/AdminUsersPage'))
-const ConstructionPage = lazyPage(() => import('@/pages/ConstructionPage'))
-const LoginPage = lazyPage(() => import('@/pages/LoginPage'))
-const RegisterPage = lazyPage(() => import('@/pages/RegisterPage'))
-const NotFoundPage = lazyPage(() => import('@/pages/NotFoundPage'))
 
 const queryClient = new QueryClient({
   defaultOptions: {

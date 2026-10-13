@@ -33,6 +33,7 @@
         <result property="description" column="description"/>
         <result property="expenseDate" column="expense_date"/>
         <result property="paymentMethod" column="payment_method"/>
+        <result property="useTopupBalance" column="use_topup_balance"/>
         <result property="categoryId" column="category_id"/>
         <result property="userId" column="user_id"/>
         <result property="receiptUrl" column="receipt_url"/>
@@ -70,7 +71,7 @@
 
     <sql id="expenseColumns">
         e.id, e.amount, e.currency, e.description, e.expense_date, e.payment_method,
-        e.category_id, e.user_id, e.receipt_url, e.tags, e.created_at, e.updated_at
+        e.category_id, e.user_id, e.receipt_url, e.tags, e.created_at, e.updated_at, e.use_topup_balance
     </sql>
 
     <sql id="categoryColumns">
@@ -145,7 +146,7 @@
             SELECT gen_random_uuid()
         </selectKey>
         INSERT INTO expenses (id, amount, currency, description, expense_date, payment_method,
-                              category_id, user_id, receipt_url, tags)
+                              category_id, user_id, receipt_url, use_topup_balance, tags)
         VALUES (#{id},
                 #{amount},
                 COALESCE(#{currency}, 'USD'),
@@ -155,6 +156,7 @@
                 #{categoryId},
                 #{userId},
                 #{receiptUrl},
+                #{useTopupBalance},
                 <choose>
                     <!-- never store NULL in a NOT NULL text[] column -->
                     <when test="tags != null">
@@ -168,6 +170,7 @@
     <update id="update" parameterType="Expense">
         UPDATE expenses
         <set>
+            use_topup_balance = #{useTopupBalance},
             <if test="amount != null">amount = #{amount},</if>
             <if test="currency != null">currency = #{currency},</if>
             <if test="description != null">description = #{description},</if>
@@ -281,6 +284,18 @@
     </select>
 
     <!-- ===================== Aggregations ===================== -->
+
+    <select id="totalsByFilters" resultType="com.example.expensetracker.domain.ExpenseTotal">
+        SELECT c.currency, COALESCE(t.total_amount, 0) AS total_amount,
+               COALESCE(t.expense_count, 0) AS expense_count
+        FROM (VALUES ('USD'), ('KHR')) AS c(currency)
+        LEFT JOIN (
+            SELECT e.currency, SUM(e.amount) AS total_amount, COUNT(*) AS expense_count
+            FROM expenses e
+            <where><include refid="filterClauses"/></where>
+            GROUP BY e.currency
+        ) t ON t.currency = c.currency
+    </select>
 
     <!-- Aggregate unrounded USD equivalents; round only after summing. -->
     <sql id="amountInUsd">

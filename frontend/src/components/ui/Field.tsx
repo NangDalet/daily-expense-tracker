@@ -93,6 +93,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
             error ? 'border-red-400 focus:border-red-500 focus:ring-red-500/30' : 'border-slate-300',
           )}
           {...props}
+          autoFocus={props.autoFocus && window.matchMedia('(min-width: 640px)').matches}
         />
         {suffix && <span className="absolute inset-y-0 right-1 flex items-center">{suffix}</span>}
       </div>

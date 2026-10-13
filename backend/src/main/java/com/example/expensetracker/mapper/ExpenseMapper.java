@@ -6,6 +6,7 @@ import java.util.UUID;
 
 import com.example.expensetracker.domain.CategoryStat;
 import com.example.expensetracker.domain.Expense;
+import com.example.expensetracker.domain.ExpenseTotal;
 import com.example.expensetracker.domain.ExpenseSummary;
 import com.example.expensetracker.domain.PaymentMethod;
 import com.example.expensetracker.dto.request.ExpenseFilterRequest;
@@ -20,6 +21,9 @@ import org.apache.ibatis.annotations.Param;
  * result and the total count can never drift apart.
  */
 public interface ExpenseMapper {
+
+    List<ExpenseTotal> totalsByFilters(
+            @Param("userId") UUID userId, @Param("filter") ExpenseFilterRequest filter);
 
     int insert(Expense expense);
 

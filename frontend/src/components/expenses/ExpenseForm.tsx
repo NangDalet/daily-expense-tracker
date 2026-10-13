@@ -1,6 +1,6 @@
 import { t } from '@/lib/language'
 import { useLanguage } from '@/context/LanguageContext'
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { useForm } from 'react-hook-form'
 import { Alert, FieldErrorList } from '@/components/ui/Alert'
 import { Button } from '@/components/ui/Button'
@@ -11,13 +11,14 @@ import type { ExpenseRequest, ExpenseResponse, PaymentMethod } from '@/lib/api/t
 import { CURRENCIES, PAYMENT_METHODS } from '@/lib/api/types'
 import { formatMoney, paymentMethodLabel, resolveColor, todayIso } from '@/lib/utils'
 import { convertMoney } from '@/lib/currency'
+import { useCashBalances } from '@/hooks/cash'
 
 interface ExpenseFormValues {
   amount: string
   currency: string
   description: string
   expenseDate: string
-  paymentMethod: PaymentMethod
+  paymentMethod: PaymentMethod | 'TOPUP'
   categoryId: string
   receiptUrl: string
   tags: string
@@ -29,7 +30,7 @@ function toFormValues(expense: ExpenseResponse): ExpenseFormValues {
     currency: expense.currency || 'USD',
     description: expense.description ?? '',
     expenseDate: expense.expenseDate,
-    paymentMethod: expense.paymentMethod,
+    paymentMethod: expense.useTopupBalance ? 'TOPUP' : expense.paymentMethod,
     categoryId: expense.categoryId ?? '',
     receiptUrl: expense.receiptUrl ?? '',
     tags: (expense.tags ?? []).join(', '),
@@ -46,6 +47,8 @@ interface ExpenseFormProps {
 export function ExpenseForm({ expense, onSuccess, onCancel }: ExpenseFormProps) {
   useLanguage()
   const isEditing = Boolean(expense)
+  const balances = useCashBalances()
+  const initializedCashDefault = useRef(Boolean(balances.data) || isEditing)
   const { data: categories } = useCategories()
   const createExpense = useCreateExpense()
   const updateExpense = useUpdateExpense()
@@ -58,6 +61,8 @@ export function ExpenseForm({ expense, onSuccess, onCancel }: ExpenseFormProps) 
     reset,
     watch,
     setError,
+    setValue,
+    getFieldState,
     formState: { errors, isSubmitting },
   } = useForm<ExpenseFormValues>({
     defaultValues: expense
@@ -67,7 +72,7 @@ export function ExpenseForm({ expense, onSuccess, onCancel }: ExpenseFormProps) 
           currency: 'USD',
           description: '',
           expenseDate: todayIso(),
-          paymentMethod: 'CASH',
+          paymentMethod: balances.data?.some(balance => balance.totalTopups > 0) ? 'TOPUP' : 'CASH',
           categoryId: '',
           receiptUrl: '',
           tags: '',
@@ -93,6 +98,19 @@ export function ExpenseForm({ expense, onSuccess, onCancel }: ExpenseFormProps) 
   // Preview both currencies while preserving the entered amount on save.
   const amount = watch('amount')
   const currency = watch('currency')
+  const paymentMethod = watch('paymentMethod')
+  useEffect(() => {
+    if (!initializedCashDefault.current && balances.data) {
+      initializedCashDefault.current = true
+      if (!getFieldState('paymentMethod').isDirty && paymentMethod === 'CASH' && balances.data.some(balance => balance.totalTopups > 0)) {
+        setValue('paymentMethod', 'TOPUP')
+      }
+    }
+  }, [balances.data, paymentMethod, getFieldState, setValue])
+  const useTopupBalance = paymentMethod === 'TOPUP'
+  const cashBalance = balances.data?.find(balance => balance.currency === currency)
+  const availableCash = cashBalance ? cashBalance.remainingAmount +
+    (expense?.useTopupBalance && expense.currency === currency ? expense.amount : 0) : undefined
   const parsedAmount = Number.parseFloat(amount)
   const amountPreview =
     Number.isFinite(parsedAmount) && parsedAmount > 0
@@ -108,7 +126,8 @@ export function ExpenseForm({ expense, onSuccess, onCancel }: ExpenseFormProps) 
         // instead of storing empty strings.
         ...(values.description.trim() ? { description: values.description.trim() } : {}),
         expenseDate: values.expenseDate,
-        paymentMethod: values.paymentMethod,
+        paymentMethod: values.paymentMethod === 'TOPUP' ? 'CASH' : values.paymentMethod,
+        useTopupBalance: values.paymentMethod === 'TOPUP',
         // PUT is a full replacement, so an empty selection detaches the category.
         categoryId: values.categoryId || null,
         ...(values.receiptUrl.trim() ? { receiptUrl: values.receiptUrl.trim() } : {}),
@@ -205,14 +224,22 @@ export function ExpenseForm({ expense, onSuccess, onCancel }: ExpenseFormProps) 
 
         <Select
           label={t("Payment method")}
-          options={PAYMENT_METHODS.map((method) => ({
+          options={[{ value: 'TOPUP', label: t('Top-up balance') }, ...PAYMENT_METHODS.map((method) => ({
             value: method,
             label: paymentMethodLabel(method),
-          }))}
+          }))]}
           {...register('paymentMethod', { required: true })}
           error={errors.paymentMethod?.message}
         />
       </div>
+
+      {useTopupBalance && <div className="space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-3">
+        {balances.isPending && <p className="text-xs text-slate-500">{t('Loading cash balance...')}</p>}
+        {balances.isError && <p role="alert" className="text-xs text-red-600">{t('Could not load cash balance')}</p>}
+        {availableCash !== undefined && <p className="text-xs text-slate-500">{t('Available cash')}: {formatMoney(availableCash, currency)}</p>}
+        {useTopupBalance && availableCash !== undefined && parsedAmount > availableCash &&
+          <p role="alert" className="text-xs text-red-600">{t('Not enough cash. Add a top-up or reduce the amount.')}</p>}
+      </div>}
 
       <Select
         label={t("Category")}
@@ -229,11 +256,15 @@ export function ExpenseForm({ expense, onSuccess, onCancel }: ExpenseFormProps) 
 
       <Textarea
         label={t("Description")}
+        rows={2}
         placeholder={t("Weekly groceries run")}
         {...register('description', { maxLength: { value: 500, message: "Must be at most 500 characters" } })}
         error={errors.description?.message}
       />
 
+      <details className="rounded-xl border border-slate-200 p-3" open={Boolean(expense?.tags?.length || expense?.receiptUrl)}>
+      <summary className="cursor-pointer text-sm font-medium text-slate-700">{t('More details')}</summary>
+      <div className="mt-3 space-y-4">
       <Input
         label={t("Tags")}
         placeholder={t("recurring, shared")}
@@ -256,7 +287,10 @@ export function ExpenseForm({ expense, onSuccess, onCancel }: ExpenseFormProps) 
         error={errors.receiptUrl?.message}
       />
 
-      <div className="flex items-center justify-end gap-2 border-t border-slate-200 pt-4">
+      </div>
+      </details>
+
+      <div className="expense-form-actions flex items-center justify-end gap-2 border-t border-slate-200 pt-4">
         {onCancel && (
           <Button type="button" variant="ghost" onClick={onCancel} disabled={isSubmitting}>
             {t("Cancel")}</Button>

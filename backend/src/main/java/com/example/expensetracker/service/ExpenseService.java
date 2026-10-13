@@ -3,6 +3,7 @@ package com.example.expensetracker.service;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
+import com.example.expensetracker.domain.ExpenseTotal;
 
 import com.example.expensetracker.dto.request.ExpenseFilterRequest;
 import com.example.expensetracker.dto.request.ExpenseRequest;
@@ -16,6 +17,8 @@ import org.springframework.data.domain.Pageable;
 
 /** Expense use cases. */
 public interface ExpenseService {
+
+    List<ExpenseTotal> totals(UUID userId, ExpenseFilterRequest filter);
 
     ApiResponse<List<ExpenseResponse>> list(UUID userId, ExpenseFilterRequest filter, Pageable pageable);
 

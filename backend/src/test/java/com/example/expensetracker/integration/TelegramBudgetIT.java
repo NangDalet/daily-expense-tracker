@@ -29,6 +29,7 @@ class TelegramBudgetIT extends AbstractPostgresIT {
     @Autowired UserMapper users;
     @Autowired ExpenseConvert convert;
     @Autowired JdbcTemplate jdbc;
+    @Autowired com.example.expensetracker.wallet.CashService cash;
     UUID user;
     TelegramServiceImpl links;
     ExpenseServiceImpl service;
@@ -43,7 +44,7 @@ class TelegramBudgetIT extends AbstractPostgresIT {
         properties.setBotToken("test-only-token"); properties.setWebhookSecret(SECRET);
         links = new TelegramServiceImpl(telegram, properties);
         service = new ExpenseServiceImpl(expenses, categories, convert, new PaginationProperties(),
-                new SpendingNotificationServiceImpl(budgets, telegram, properties, users));
+                new SpendingNotificationServiceImpl(budgets, telegram, properties, users), cash);
     }
     void connect() {
         telegram.setLink(user, TelegramServiceImpl.hash(TOKEN));

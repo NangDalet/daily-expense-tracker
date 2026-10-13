@@ -144,6 +144,7 @@ export interface CategoryResponse {
 }
 
 export interface ExpenseResponse {
+  useTopupBalance?: boolean
   id: string
   amount: number
   currency: string
@@ -208,6 +209,12 @@ export interface ExpenseSummaryResponse {
   averageAmount: number
 }
 
+export interface ExpenseTotal {
+  currency: string
+  totalAmount: number
+  expenseCount: number
+}
+
 export type SummaryGroupBy = 'daily' | 'weekly' | 'monthly'
 
 export interface LoginRequest {
@@ -223,6 +230,7 @@ export interface RegisterRequest {
 }
 
 export interface ExpenseRequest {
+  useTopupBalance?: boolean
   amount: number
   currency: string
   description?: string

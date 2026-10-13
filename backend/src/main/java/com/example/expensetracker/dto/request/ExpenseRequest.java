@@ -51,6 +51,9 @@ public class ExpenseRequest {
             example = "CREDIT_CARD", requiredMode = Schema.RequiredMode.REQUIRED)
     private PaymentMethod paymentMethod;
 
+    @Schema(description = "Deduct this cash expense from the personal top-up balance")
+    private boolean useTopupBalance;
+
     @Schema(description = "Optional - expenses may exist without a category")
     private String categoryId;
 

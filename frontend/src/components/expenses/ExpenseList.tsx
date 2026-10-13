@@ -36,6 +36,7 @@ export function ExpenseList({ expenses, onEdit, onDelete, compact = false, class
               </p>
               <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-500">
                 <span>{formatDate(expense.expenseDate, 'short')}</span>
+                {expense.useTopupBalance && <span className="text-brand-600">{t('From top-up')}</span>}
                 {expense.category && (
                   <>
                     <span aria-hidden>&middot;</span>
