@@ -10,10 +10,14 @@ services:
       - key: SPRING_PROFILES_ACTIVE
         value: prod
       - key: R2_ENABLED
-        value: "false"
+        value: "true"
       - key: R2_ACCOUNT_ID
         sync: false
       - key: R2_BUCKET
+        sync: false
+      - key: R2_BUCKET_NAME
+        sync: false
+      - key: R2_PUBLIC_URL
         sync: false
       - key: R2_ACCESS_KEY_ID
         sync: false

@@ -65,13 +65,21 @@ mybatis:
 # ------------------------------------------------------------------------------
 # Application specific settings
 # ------------------------------------------------------------------------------
+cloudflare:
+  r2:
+    account-id: ${R2_ACCOUNT_ID:b03c5659098d08768f7570fa2edb7638}
+    access-key-id: ${R2_ACCESS_KEY_ID:}
+    secret-access-key: ${R2_SECRET_ACCESS_KEY:}
+    bucket-name: ${R2_BUCKET_NAME:${R2_BUCKET:user-expend}}
+    public-url: ${R2_PUBLIC_URL:https://b03c5659098d08768f7570fa2edb7638.r2.cloudflarestorage.com}
+
 app:
   r2:
     enabled: ${R2_ENABLED:false}
-    account-id: ${R2_ACCOUNT_ID:}
-    bucket: ${R2_BUCKET:}
-    access-key-id: ${R2_ACCESS_KEY_ID:}
-    secret-access-key: ${R2_SECRET_ACCESS_KEY:}
+    account-id: ${cloudflare.r2.account-id}
+    bucket: ${cloudflare.r2.bucket-name}
+    access-key-id: ${cloudflare.r2.access-key-id}
+    secret-access-key: ${cloudflare.r2.secret-access-key}
   telegram:
     enabled: ${TELEGRAM_ENABLED:false}
     updates-mode: ${TELEGRAM_UPDATES_MODE:webhook}
