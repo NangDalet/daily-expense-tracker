@@ -23,7 +23,7 @@ import { Card, CardBody, CardHeader, StatCard } from '@/components/ui/Card'
 import { ProgressBar } from '@/components/ui/ProgressBar'
 import { EmptyState, ErrorState, LoadingBlock } from '@/components/ui/States'
 import { CategorySwatch } from '@/components/ui/CategoryIcon'
-import { Input } from '@/components/ui/Field'
+import { Input, Select } from '@/components/ui/Field'
 import { ExpenseList } from '@/components/expenses/ExpenseList'
 import { IncomeList } from '@/components/incomes/IncomeList'
 import {
@@ -105,20 +105,17 @@ export default function DashboardPage() {
         title={t("Welcome back, {0}", [firstName])}
         description={t("Spending in {0} from {1} to {2}", [currency, formatDate(from, 'short'), formatDate(to, 'short')])}
         action={
-          <div className="flex flex-wrap items-end gap-2">
+          <div className="grid min-w-0 grid-cols-1 items-end gap-3 sm:flex sm:flex-wrap">
             <Input id="dashboard-month" label={t('Month')} type="month" min="1900-01" max="2100-12"
-              value={period} className="w-44" onChange={(event) => {
+              value={period} className="min-w-0 sm:w-52" onChange={(event) => {
                 const value = event.target.value
                 if (/^\d{4}-(0[1-9]|1[0-2])$/.test(value) && Number(value.slice(0, 4)) >= 1900 && Number(value.slice(0, 4)) <= 2100) setPeriod(value)
               }} />
-            <label className="text-xs text-slate-600" htmlFor="dashboard-currency">{t("Currency")}</label>
-            <select id="dashboard-currency" value={currency} onChange={(event) => setChosenCurrency(event.target.value)}
-              className="rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm">
-              <option value="USD">{t("USD ($)")}</option>
-              <option value="KHR">{t("KHR (៛)")}</option>
-            </select>
+            <Select id="dashboard-currency" label={t('Currency')} value={currency}
+              className="min-w-0 sm:w-36" onChange={(event) => setChosenCurrency(event.target.value)}
+              options={[{ value: 'USD', label: t('USD ($)') }, { value: 'KHR', label: t('KHR (៛)') }]} />
             <div
-              className="flex rounded-lg border border-slate-300 bg-white p-0.5"
+              className="flex w-fit max-w-full rounded-lg border border-slate-300 bg-white p-0.5"
               role="group"
               aria-label={t("Chart grouping")}
             >

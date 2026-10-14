@@ -275,6 +275,19 @@ html[data-theme='dark'] .recharts-default-tooltip { background-color: #162235 !i
   }
 }
 
+.app-calendar-input {
+  min-width: 0;
+  max-width: 100%;
+  /* Safari's native date control must fit inside its field. */
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.app-calendar-input::-webkit-date-and-time-value {
+  min-width: 0;
+  text-align: left;
+}
+
 .app-calendar-input::-webkit-calendar-picker-indicator {
   display: none;
 }

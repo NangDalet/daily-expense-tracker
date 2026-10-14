@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query'
 import { ArrowDownLeft, ArrowUpRight, Wallet, Calculator } from 'lucide-react'
 import { PageHeading } from '@/components/layout/AppLayout'
 import { Card, CardBody, CardHeader, StatCard } from '@/components/ui/Card'
-import { Input } from '@/components/ui/Field'
+import { Input, Select } from '@/components/ui/Field'
 import { Alert } from '@/components/ui/Alert'
 import { financeApi } from '@/lib/api/endpoints'
 import { formatMoney, toIsoDate } from '@/lib/utils'
@@ -48,14 +48,12 @@ export default function MonthlyPage() {
 
   return <div className="mx-auto max-w-5xl space-y-6">
     <PageHeading title={t("Monthly calculator")} description={t("See your income, expenses, and balance for a calendar month.")} />
-    <Card><CardBody className="flex flex-wrap items-end gap-4">
-      <Input type="month" label={t("Month")} min="1900-01" max="2100-12" value={period} onChange={(event) => setPeriod(event.target.value)} />
-      <div><label htmlFor="monthly-currency" className="mb-1.5 block text-sm font-medium text-slate-700">{t("Currency")}</label>
-        <select id="monthly-currency" value={currency} onChange={(event) => { setCurrency(event.target.value); setPlannedIncome(''); setPlannedExpenses('') }} className="h-10 rounded-lg border border-slate-300 bg-white px-3 text-sm">
-          <option value="USD">{t("USD ($)")}</option><option value="KHR">{t("KHR (៛)")}</option>
-        </select>
-      </div>
-      <p className="pb-2 text-xs text-slate-500">{t('Includes USD and KHR at 1 USD = 4,000 KHR.')}</p>
+    <Card><CardBody className="grid min-w-0 grid-cols-1 items-end gap-4 sm:grid-cols-[13rem_9rem]">
+      <Input type="month" label={t("Month")} className="min-w-0" min="1900-01" max="2100-12" value={period} onChange={(event) => setPeriod(event.target.value)} />
+      <Select id="monthly-currency" label={t('Currency')} value={currency} className="min-w-0"
+        onChange={(event) => { setCurrency(event.target.value); setPlannedIncome(''); setPlannedExpenses('') }}
+        options={[{ value: 'USD', label: t('USD ($)') }, { value: 'KHR', label: t('KHR (៛)') }]} />
+      <p className="text-xs text-slate-500 sm:col-span-2">{t('Includes USD and KHR at 1 USD = 4,000 KHR.')}</p>
     </CardBody></Card>
     {!validPeriod && <Alert tone="error">{t("Choose a valid month between 1900 and 2100.")}</Alert>}
     {report.isError && <Alert tone="error">{t(report.error.message)}<button className="ml-2 underline" onClick={() => void report.refetch()}>{t("Try again")}</button></Alert>}
