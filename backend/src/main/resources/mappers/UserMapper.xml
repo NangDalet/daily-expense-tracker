@@ -10,6 +10,10 @@
 -->
 <mapper namespace="com.example.expensetracker.mapper.UserMapper">
 
+    <select id="lockById" resultType="java.util.UUID">
+        SELECT id FROM users WHERE id = #{id} FOR UPDATE
+    </select>
+
     <resultMap id="userResultMap" type="User">
         <id property="id" column="id"/>
         <result property="username" column="username"/>

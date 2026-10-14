@@ -3,7 +3,8 @@ const backend = 'https://daily-expense-tracker-api-mrl6.onrender.com'
 /** Keep browser API calls on the frontend origin, including preview deployments. */
 export default async function handler(request, response) {
   const path = request.query.__backendPath
-  if (typeof path !== 'string' || !/^[A-Za-z0-9/_-]+$/.test(path)) {
+  const privatePhotoPath = /^media\/(?:profiles\/[a-f0-9-]{36}|workers\/[a-f0-9-]{36}\/(?:photos|id-cards))\/[a-f0-9-]{36}\.jpg$/
+  if (typeof path !== 'string' || (!/^[A-Za-z0-9/_-]+$/.test(path) && !privatePhotoPath.test(path))) {
     response.status(400).json({ code: 'BAD_REQUEST', message: 'Invalid API path' })
     return
   }
@@ -15,8 +16,8 @@ export default async function handler(request, response) {
 
   // Forward API credentials explicitly. A browser Origin header would make
   // Spring reject preview domains, even though this is a server-to-server call.
-  const headers = { Accept: 'application/json' }
-  for (const name of ['authorization', 'content-type']) {
+  const headers = { accept: 'application/json' }
+  for (const name of ['authorization', 'content-type', 'accept']) {
     if (typeof request.headers[name] === 'string') headers[name] = request.headers[name]
   }
   const hasBody = request.method !== 'GET' && request.method !== 'HEAD'

@@ -125,6 +125,17 @@ public class ExpenseServiceImpl implements ExpenseService {
 
     @Override
     @Transactional
+    public List<ExpenseResponse> createBatch(UUID userId, List<ExpenseRequest> requests) {
+        if (requests == null || requests.isEmpty() || requests.size() > 20) {
+            throw new ApiException(ErrorCode.VALIDATION_ERROR, "Provide between 1 and 20 expenses");
+        }
+        // create() shares this outer transaction and the user's cash lock.
+        // A failure on any item rolls back all inserts and balance changes.
+        return requests.stream().map(request -> create(userId, request)).toList();
+    }
+
+    @Override
+    @Transactional
     public ExpenseResponse create(UUID userId, ExpenseRequest request) {
         cash.lock(userId);
         Expense expense = expenseConvert.toDomain(request);

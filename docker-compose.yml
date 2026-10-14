@@ -1,4 +1,4 @@
-﻿services:
+services:
   postgres:
     image: postgres:16-alpine
     container_name: expense-tracker-postgres
@@ -39,6 +39,8 @@
     container_name: expense-tracker-backend
     env_file:
       - path: ./backend/.env.telegram
+        required: false
+      - path: ./backend/.env.r2
         required: false
     depends_on:
       postgres:

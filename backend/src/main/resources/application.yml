@@ -66,6 +66,12 @@ mybatis:
 # Application specific settings
 # ------------------------------------------------------------------------------
 app:
+  r2:
+    enabled: ${R2_ENABLED:false}
+    account-id: ${R2_ACCOUNT_ID:}
+    bucket: ${R2_BUCKET:}
+    access-key-id: ${R2_ACCESS_KEY_ID:}
+    secret-access-key: ${R2_SECRET_ACCESS_KEY:}
   telegram:
     enabled: ${TELEGRAM_ENABLED:false}
     updates-mode: ${TELEGRAM_UPDATES_MODE:webhook}

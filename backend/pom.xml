@@ -31,6 +31,17 @@
   </properties>
 
   <dependencies>
+    <!-- Cloudflare R2's S3-compatible API; credentials stay on the backend. -->
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>s3</artifactId>
+      <version>2.55.15</version>
+    </dependency>
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>url-connection-client</artifactId>
+      <version>2.55.15</version>
+    </dependency>
     <!-- ===================== Web / Validation / Actuator ===================== -->
     <dependency>
       <groupId>org.springframework.boot</groupId>

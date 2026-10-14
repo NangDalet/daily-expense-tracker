@@ -33,7 +33,7 @@ public class User {
 
     private String fullName;
 
-    /** A small, validated JPEG data URL; persists across container restarts. */
+    /** A private R2-backed app URL, or a legacy embedded JPEG. */
     private String avatarUrl;
 
     private List<String> roles;

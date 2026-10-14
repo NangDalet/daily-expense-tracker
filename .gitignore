@@ -1,6 +1,7 @@
 .neon
 .env.local
 node_modules/
+/.release/
 .vercel/
 **/target/
 **/dist/
@@ -12,3 +13,4 @@ META-INF/
 .env
 .env.*
 !.env.example
+!**/.env.r2.example

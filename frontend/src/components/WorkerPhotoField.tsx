@@ -3,6 +3,7 @@ import { Input } from '@/components/ui/Field'
 import { Button } from '@/components/ui/Button'
 import { useLanguage as useConstructionLanguage } from '@/context/LanguageContext'
 import { prepareWorkerPhoto } from '@/lib/workerPhoto'
+import { SecureImage } from '@/components/ui/SecureImage'
 
 export function WorkerPhotoField({ value, busy, onChange, onBusy, onError, kind = 'photo' }: {
   value: string; busy: boolean; onChange: (value: string) => void
@@ -24,7 +25,7 @@ export function WorkerPhotoField({ value, busy, onChange, onBusy, onError, kind 
       hint={t('Choose a JPG, PNG or WebP image up to 5 MB.')} onChange={event => void selectPhoto(event)} />
     {busy && <p role="status" className="text-sm">{t('Preparing photo…')}</p>}
     {value && <div className="flex items-center gap-4">
-      <img src={value} alt={t(kind === 'idCard' ? 'Worker ID card preview' : 'Worker photo preview')} className={kind === 'idCard' ? 'max-h-80 w-full max-w-lg rounded-lg border object-contain' : 'h-24 w-24 rounded-lg border object-cover'} />
+      <SecureImage src={value} alt={t(kind === 'idCard' ? 'Worker ID card preview' : 'Worker photo preview')} className={kind === 'idCard' ? 'max-h-80 w-full max-w-lg rounded-lg border object-contain' : 'h-24 w-24 rounded-lg border object-cover'} />
       <Button type="button" variant="outline" size="sm" disabled={busy} onClick={() => { onChange(''); onError('') }}>{t(kind === 'idCard' ? 'Remove ID card' : 'Remove photo')}</Button>
     </div>}
   </div>

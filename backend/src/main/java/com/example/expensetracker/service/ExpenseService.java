@@ -32,6 +32,8 @@ public interface ExpenseService {
 
     ExpenseResponse create(UUID userId, ExpenseRequest request);
 
+    List<ExpenseResponse> createBatch(UUID userId, List<ExpenseRequest> requests);
+
     ExpenseResponse update(UUID userId, UUID id, ExpenseRequest request);
 
     void delete(UUID userId, UUID id);

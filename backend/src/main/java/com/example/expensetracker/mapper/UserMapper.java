@@ -23,6 +23,8 @@ public interface UserMapper {
 
     User findById(@Param("id") UUID id);
 
+    UUID lockById(@Param("id") UUID id);
+
     /** Updates the mutable columns; never touches {@code username}, {@code createdAt}. */
     int update(User user);
 

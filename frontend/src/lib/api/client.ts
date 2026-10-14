@@ -163,6 +163,7 @@ interface RequestOptions {
   /** Internal: prevents infinite refresh recursion on the auth endpoints. */
   skipRefresh?: boolean
   signal?: AbortSignal
+  accept?: string
 }
 
 /** Unwraps the `ApiResponse` envelope down to `data`. */
@@ -172,9 +173,15 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
 
 /** Like {@link request} but keeps the pagination fields of the envelope. */
 async function requestEnvelope<T>(path: string, options: RequestOptions = {}): Promise<ApiResponse<T>> {
-  const { method = 'GET', body, query, skipRefresh = false, signal } = options
+  const response = await requestResponse(path, options)
+  if (response.status === 204) return { data: undefined as T }
+  return (await response.json()) as ApiResponse<T>
+}
 
-  const headers: Record<string, string> = { Accept: 'application/json' }
+async function requestResponse(path: string, options: RequestOptions = {}): Promise<Response> {
+  const { method = 'GET', body, query, skipRefresh = false, signal, accept = 'application/json' } = options
+
+  const headers: Record<string, string> = { Accept: accept }
   if (body !== undefined) headers['Content-Type'] = 'application/json'
   const accessToken = tokenStorage.access
   if (accessToken) headers.Authorization = `Bearer ${accessToken}`
@@ -198,18 +205,18 @@ async function requestEnvelope<T>(path: string, options: RequestOptions = {}): P
   if (response.status === 401 && !skipRefresh) {
     const refreshed = await refreshAccessToken()
     if (refreshed) {
-      return requestEnvelope<T>(path, { ...options, skipRefresh: true })
+      return requestResponse(path, { ...options, skipRefresh: true })
     }
   }
 
   if (!response.ok) throw await toApiError(response)
 
-  if (response.status === 204) return { data: undefined as T }
-
-  return (await response.json()) as ApiResponse<T>
+  return response
 }
 
 export const http = {
+  getBlob: async (path: string, signal?: AbortSignal) =>
+    (await requestResponse(path, { signal, accept: 'image/jpeg' })).blob(),
   get: <T>(path: string, query?: QueryParams, signal?: AbortSignal) =>
     request<T>(path, { method: 'GET', query, signal }),
   /** Returns the whole envelope, for endpoints that page their results. */

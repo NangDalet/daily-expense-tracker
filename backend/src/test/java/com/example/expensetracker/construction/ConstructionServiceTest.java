@@ -16,7 +16,9 @@ import org.junit.jupiter.api.Test;
 
 class ConstructionServiceTest {
     private final ConstructionMapper mapper=mock(ConstructionMapper.class);
-    private final ConstructionService service=new ConstructionService(mapper,mock(UserMapper.class));
+    private final ConstructionService service=new ConstructionService(mapper,mock(UserMapper.class),
+        new com.example.expensetracker.storage.PhotoStorage(new com.example.expensetracker.storage.R2Properties(),
+            new org.springframework.beans.factory.support.DefaultListableBeanFactory().getBeanProvider(software.amazon.awssdk.services.s3.S3Client.class)));
     private final UUID workerId=UUID.randomUUID(), projectId=UUID.randomUUID(), actor=UUID.randomUUID(), payrollId=UUID.randomUUID();
     private Worker worker;
     private final LocalDate date=LocalDate.of(2026,1,1);

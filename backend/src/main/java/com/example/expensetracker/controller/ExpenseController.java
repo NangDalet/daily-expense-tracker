@@ -7,6 +7,7 @@ import com.example.expensetracker.domain.ExpenseTotal;
 
 import com.example.expensetracker.dto.request.ExpenseFilterRequest;
 import com.example.expensetracker.dto.request.ExpenseRequest;
+import com.example.expensetracker.dto.request.ExpenseBatchRequest;
 import com.example.expensetracker.dto.request.ExpenseSummaryRequest;
 import com.example.expensetracker.dto.response.ApiResponse;
 import com.example.expensetracker.dto.response.CategoryStatResponse;
@@ -90,6 +91,14 @@ public class ExpenseController {
                                                               @Valid @RequestBody ExpenseRequest request) {
         ExpenseResponse created = expenseService.create(SecurityUtils.currentUserId(jwt), request);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.of(created, "Expense created"));
+    }
+
+    @PostMapping("/batch")
+    @Operation(summary = "Create multiple expenses", description = "Save 1 to 20 expenses atomically; any failure rolls back the entire batch.")
+    public ResponseEntity<ApiResponse<List<ExpenseResponse>>> createBatch(
+            @AuthenticationPrincipal Jwt jwt, @Valid @RequestBody ExpenseBatchRequest request) {
+        var created = expenseService.createBatch(SecurityUtils.currentUserId(jwt), request.expenses());
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.of(created, "Expenses created"));
     }
 
     @PutMapping("/{id}")

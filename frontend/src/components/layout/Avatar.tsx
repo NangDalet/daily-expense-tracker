@@ -1,4 +1,5 @@
 import { cn } from '@/lib/utils'
+import { SecureImage } from '@/components/ui/SecureImage'
 
 const SIZES = {
   sm: 'h-7 w-7 text-xs',
@@ -49,7 +50,7 @@ export function Avatar({
         className,
       )}
     >
-      {src ? <img src={src} alt="" className="h-full w-full rounded-full object-cover" /> : initials || '?'}
+      {src ? <SecureImage src={src} alt="" fallback={initials || '?'} className="h-full w-full rounded-full object-cover" /> : initials || '?'}
     </span>
   )
 }

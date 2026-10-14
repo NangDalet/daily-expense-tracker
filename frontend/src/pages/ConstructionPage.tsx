@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/Button'
 import { Input, MultiSelect, Select } from '@/components/ui/Field'
 import { Modal } from '@/components/ui/Modal'
 import { WorkerPhotoField } from '@/components/WorkerPhotoField'
+import { SecureImage } from '@/components/ui/SecureImage'
 import { ConstructionAccessPanel } from '@/components/ConstructionAccessPanel'
 import { WorkerWageFields } from '@/components/WorkerWageFields'
 
@@ -240,7 +241,7 @@ function ConstructionContent() {
     {queries.some(q => q.isPending) ? <p role="status">{t('Loading construction records…')}</p> : <>
       {tab === 'Workers' && manager && <><div className="flex justify-end"><Button onClick={() => open({ kind: 'worker' })}><Plus className="h-4 w-4" />{t('Add worker')}</Button></div>
         <Table headers={['Worker', 'Assigned site', 'Contact / job', 'Wage rate', 'Start date', 'ID card', 'Status', 'Actions']} rows={visibleWorkers.map(w => [
-          <div className="flex items-center gap-3">{w.photoDataUrl ? <img src={w.photoDataUrl} alt={w.fullName} loading="lazy" className="h-12 w-12 shrink-0 rounded-lg object-cover" /> : <span aria-hidden="true" className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-slate-100"><HardHat className="h-5 w-5 text-slate-500" /></span>}<div><p className="font-medium">{w.fullName}</p><small>{w.workerCode}</small></div></div>,
+          <div className="flex items-center gap-3">{w.photoDataUrl ? <SecureImage src={w.photoDataUrl} alt={w.fullName} loading="lazy" className="h-12 w-12 shrink-0 rounded-lg object-cover" /> : <span aria-hidden="true" className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-slate-100"><HardHat className="h-5 w-5 text-slate-500" /></span>}<div><p className="font-medium">{w.fullName}</p><small>{w.workerCode}</small></div></div>,
           w.projectId ? projectName(w.projectId) : t('Unassigned'), <>{w.phone || '—'}<br />{w.position}</>,
           <>{money(w.rate, w.currency)} / {t(w.rateType)}<br /><small>{t('OT:')} {money(w.overtimeRate, w.currency)}/{t('hour')} · {w.hoursPerDay} {t('hours/day')}</small></>,
           w.startDate, t(w.hasIdCard ? 'Uploaded' : 'Not uploaded'), <Status value={w.active ? 'ACTIVE' : 'INACTIVE'} />,

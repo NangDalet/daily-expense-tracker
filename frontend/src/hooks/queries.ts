@@ -43,10 +43,12 @@ export const queryKeys = {
 /* -------------------------------------------------------------------------- */
 
 export function useCategories() {
+  const { user } = useAuth()
   return useQuery({
-    queryKey: queryKeys.categories(),
+    queryKey: [...queryKeys.categories(), user?.id],
     queryFn: () => categoryApi.list(),
-    staleTime: 5 * 60 * 1000,
+    enabled: Boolean(user),
+    staleTime: 0,
   })
 }
 
@@ -137,6 +139,14 @@ export function useCreateExpense() {
   const client = useQueryClient()
   return useMutation({
     mutationFn: (body: ExpenseRequest) => expenseApi.create(body),
+    onSuccess: () => invalidateExpenseDerived(client),
+  })
+}
+
+export function useCreateExpenses() {
+  const client = useQueryClient()
+  return useMutation({
+    mutationFn: (expenses: ExpenseRequest[]) => expenseApi.createBatch(expenses),
     onSuccess: () => invalidateExpenseDerived(client),
   })
 }

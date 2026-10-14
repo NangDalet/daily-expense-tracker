@@ -27,6 +27,7 @@ public class ConstructionService {
     }
     private final ConstructionMapper mapper;
     private final UserMapper users;
+    private final com.example.expensetracker.storage.PhotoStorage storage;
     private static ApiException rule(String message) { return new ApiException(ErrorCode.BUSINESS_RULE_VIOLATION, message); }
     private static <T> T found(T value) { if(value==null) throw new ApiException(ErrorCode.NOT_FOUND,"Construction record not found"); return value; }
     private Worker worker(UUID id) { return found(mapper.worker(id,true)); }
@@ -65,8 +66,6 @@ public class ConstructionService {
         var overtimeRate = WageCalculator.overtimeRate(r.rateType(), r.rate(), r.hoursPerDay(), r.overtimeRate());
         if (overtimeRate.compareTo(new java.math.BigDecimal("99999999999999.99")) > 0)
             throw rule("Calculated overtime rate is too large. Check the wage and regular hours.");
-        String photo = WorkerPhoto.normalize(r.photoDataUrl());
-        String idCard = WorkerPhoto.normalizeIdCard(r.idCardDataUrl());
         Worker w = id==null ? new Worker() : worker(id);
         if(r.projectId()!=null) {
             Project assigned = found(mapper.project(r.projectId()));
@@ -82,8 +81,8 @@ public class ConstructionService {
         w.setStartDate(r.startDate()); w.setActive(r.active());
         if (w.getProjectId() != null && !isOpen(found(mapper.project(w.getProjectId())))) w.setActive(false);
         // Omitted photos preserve existing uploads; an empty string removes one.
-        if(r.photoDataUrl()!=null) w.setPhotoDataUrl(photo);
-        if(r.idCardDataUrl()!=null) w.setIdCardDataUrl(idCard);
+        w.setPhotoDataUrl(storage.replace(r.photoDataUrl(), w.getPhotoDataUrl(), "workers/" + w.getId() + "/photos", WorkerPhoto::normalize));
+        w.setIdCardDataUrl(storage.replace(r.idCardDataUrl(), w.getIdCardDataUrl(), "workers/" + w.getId() + "/id-cards", WorkerPhoto::normalizeIdCard));
         w.setHasIdCard(w.getIdCardDataUrl()!=null);
         if(id==null) mapper.insertWorker(w); else mapper.updateWorker(w);
         return w;

@@ -90,6 +90,7 @@ export const expenseApi = {
   },
   get: (id: string) => http.get<ExpenseResponse>(`/expenses/${id}`),
   create: (body: ExpenseRequest) => http.post<ExpenseResponse>('/expenses', body),
+  createBatch: (expenses: ExpenseRequest[]) => http.post<ExpenseResponse[]>('/expenses/batch', { expenses }),
   update: (id: string, body: ExpenseRequest) => http.put<ExpenseResponse>(`/expenses/${id}`, body),
   remove: (id: string) => http.delete<void>(`/expenses/${id}`),
   summary: (params: SummaryParams) =>

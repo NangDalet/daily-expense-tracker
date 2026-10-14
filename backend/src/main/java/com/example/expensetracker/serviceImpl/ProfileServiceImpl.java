@@ -18,6 +18,7 @@ public class ProfileServiceImpl {
     private final UserMapper users;
     private final UserConvert convert;
     private final ProfilePhotoProcessor photos;
+    private final com.example.expensetracker.storage.PhotoStorage storage;
 
     @Transactional(readOnly = true)
     public UserResponse get(UUID userId) { return convert.toResponse(existing(userId)); }
@@ -35,15 +36,17 @@ public class ProfileServiceImpl {
 
     @Transactional
     public UserResponse photo(UUID userId, String dataUrl) {
-        existing(userId);
-        users.updateAvatar(userId, photos.normalize(dataUrl));
+        users.lockById(userId);
+        var user = existing(userId);
+        users.updateAvatar(userId, storage.replace(dataUrl, user.getAvatarUrl(), "profiles/" + userId, photos::normalize));
         return get(userId);
     }
 
     @Transactional
     public UserResponse removePhoto(UUID userId) {
-        existing(userId);
-        users.updateAvatar(userId, null);
+        users.lockById(userId);
+        var user = existing(userId);
+        users.updateAvatar(userId, storage.replace("", user.getAvatarUrl(), "profiles/" + userId, photos::normalize));
         return get(userId);
     }
 
