@@ -67,14 +67,17 @@ class ProfileMonthlyIT extends AbstractPostgresIT {
                 .andExpect(status().isBadRequest());
         assertThat(users.findById(owner).getUsername()).isEqualTo(before);
     }
-    @Test void profilePhotosPersistForTheirOwnerAndCanBeRemoved() throws Exception {
+    @Test void legacyPhotosRemainReadableAndNewUploadsRequireR2() throws Exception {
         var output = new ByteArrayOutputStream();
         ImageIO.write(new BufferedImage(2, 2, BufferedImage.TYPE_INT_RGB), "png", output);
         String image = "data:image/png;base64," + Base64.getEncoder().encodeToString(output.toByteArray());
+        String legacy = new com.example.expensetracker.serviceImpl.ProfilePhotoProcessor().normalize(image);
+        users.updateAvatar(owner, legacy);
+        mvc.perform(get("/api/v1/profile").with(as(owner))).andExpect(jsonPath("$.data.avatarUrl").value(legacy));
         mvc.perform(put("/api/v1/profile/photo").with(as(owner)).contentType(MediaType.APPLICATION_JSON)
                 .content("{\"imageData\":\"" + image + "\"}"))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.data.avatarUrl").isString());
-        assertThat(users.findById(owner).getAvatarUrl()).startsWith("data:image/jpeg;base64,");
+                .andExpect(status().isServiceUnavailable());
+        assertThat(users.findById(owner).getAvatarUrl()).isEqualTo(legacy);
         assertThat(users.findById(other).getAvatarUrl()).isNull();
         mvc.perform(put("/api/v1/profile/photo").with(as(owner)).contentType(MediaType.APPLICATION_JSON)
                 .content("{\"imageData\":\"data:image/svg+xml;base64,PHN2Zz4=\"}"))

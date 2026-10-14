@@ -139,16 +139,15 @@ class ConstructionApiIT extends AbstractPostgresIT {
         mvc.perform(get("/api/v1/construction/workers").header("Authorization","Bearer "+foreman)).andExpect(status().isForbidden());
         org.assertj.core.api.Assertions.assertThat(jdbc.queryForObject("SELECT count(*) FROM construction_foreman_sites WHERE user_id=?",Integer.class,UUID.fromString(foremanId))).isZero();
     }
-    @Test void workerPhotosPersistCanBeReplacedAndRemovedAndRejectInvalidUploads() throws Exception {
+    @Test void workerLegacyPhotosArePreservedButNewUploadsRequireR2() throws Exception {
         String root=data(mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON).content("{\"username\":\"root\",\"password\":\"Root@123\"}")).andExpect(status().isOk()).andReturn()).path("accessToken").asText();
         var bytes=new java.io.ByteArrayOutputStream();
         javax.imageio.ImageIO.write(new java.awt.image.BufferedImage(16,12,java.awt.image.BufferedImage.TYPE_INT_RGB),"png",bytes);
         var request=json.createObjectNode();
         request.put("workerCode","photo-test").put("fullName","Photo worker").put("position","Worker").put("rateType","DAILY").put("rate",40000).put("overtimeRate",0).put("hoursPerDay",8).put("currency","KHR").put("startDate","2026-01-01").put("active",true);
-        request.put("photoDataUrl","data:image/png;base64,"+java.util.Base64.getEncoder().encodeToString(bytes.toByteArray()));
         JsonNode saved=postData("/workers",request.toString(),root);
-        String id=saved.path("id").asText(), photo=saved.path("photoDataUrl").asText();
-        org.assertj.core.api.Assertions.assertThat(photo).startsWith("data:image/jpeg;base64,");
+        String id=saved.path("id").asText(), photo="data:image/png;base64,"+java.util.Base64.getEncoder().encodeToString(bytes.toByteArray());
+        jdbc.update("UPDATE construction_workers SET photo_data_url=? WHERE id=?",photo,UUID.fromString(id));
         org.assertj.core.api.Assertions.assertThat(jdbc.queryForObject("SELECT photo_data_url FROM construction_workers WHERE id=?",String.class,UUID.fromString(id))).isEqualTo(photo);
         mvc.perform(get("/api/v1/construction/workers").header("Authorization","Bearer "+root)).andExpect(status().isOk()).andExpect(jsonPath("$.data[?(@.id == '"+id+"')].photoDataUrl").value(org.hamcrest.Matchers.hasItem(photo)));
         request.remove("photoDataUrl");
@@ -159,8 +158,8 @@ class ConstructionApiIT extends AbstractPostgresIT {
         bytes.reset();
         javax.imageio.ImageIO.write(new java.awt.image.BufferedImage(24,18,java.awt.image.BufferedImage.TYPE_INT_RGB),"png",bytes);
         request.put("photoDataUrl","data:image/png;base64,"+java.util.Base64.getEncoder().encodeToString(bytes.toByteArray()));
-        JsonNode replaced=data(mvc.perform(put("/api/v1/construction/workers/"+id).header("Authorization","Bearer "+root).contentType(MediaType.APPLICATION_JSON).content(request.toString())).andExpect(status().isOk()).andReturn());
-        org.assertj.core.api.Assertions.assertThat(replaced.path("photoDataUrl").asText()).isNotEqualTo(photo);
+        mvc.perform(put("/api/v1/construction/workers/"+id).header("Authorization","Bearer "+root).contentType(MediaType.APPLICATION_JSON).content(request.toString())).andExpect(status().isServiceUnavailable());
+        org.assertj.core.api.Assertions.assertThat(jdbc.queryForObject("SELECT photo_data_url FROM construction_workers WHERE id=?",String.class,UUID.fromString(id))).isEqualTo(photo);
         request.put("photoDataUrl","");
         mvc.perform(put("/api/v1/construction/workers/"+id).header("Authorization","Bearer "+root).contentType(MediaType.APPLICATION_JSON).content(request.toString())).andExpect(status().isOk()).andExpect(jsonPath("$.data.photoDataUrl").doesNotExist());
         org.assertj.core.api.Assertions.assertThat(jdbc.queryForObject("SELECT photo_data_url FROM construction_workers WHERE id=?",String.class,UUID.fromString(id))).isNull();

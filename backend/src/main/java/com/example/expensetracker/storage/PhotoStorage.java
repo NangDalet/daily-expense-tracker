@@ -34,11 +34,13 @@ public class PhotoStorage {
     /** Null preserves, blank removes, and an unchanged managed reference preserves. */
     public String replace(String incoming, String existing, String directory, UnaryOperator<String> normalize) {
         if (incoming == null) return existing;
-        if (incoming.equals(existing) && isManaged(incoming)) return existing;
+        if (incoming.equals(existing) && (isManaged(incoming) || !properties.isEnabled())) return existing;
         String normalized = incoming.isBlank() ? null : normalize.apply(incoming);
-        String replacement = normalized;
+        String replacement = null;
         String newKey = null;
-        if (normalized != null && properties.isEnabled()) {
+        if (normalized != null) {
+            // Never fall back to putting image bytes in PostgreSQL.
+            if (!properties.isEnabled()) throw unavailable();
             if (!TransactionSynchronizationManager.isActualTransactionActive()) {
                 throw new IllegalStateException("R2 photo uploads require a database transaction");
             }

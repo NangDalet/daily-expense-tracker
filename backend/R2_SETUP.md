@@ -10,7 +10,7 @@ The bucket needs no public domain or browser CORS rules: the authenticated backe
 
 Uploads use unique object keys. Failed database transactions remove their new objects. Replaced objects are deleted only after the database commits. If a cleanup request fails, the backend logs the object key for later cleanup. A failed R2 upload leaves the existing database image unchanged.
 
-For Render, set the same five variables on the backend service and set `R2_ENABLED=true`. With `R2_ENABLED=false`, uploads retain the existing embedded-image behavior. Removing R2 configuration while database references still point to R2 makes those images unavailable until the configuration is restored.
+For Render, set the same five variables on the backend service and set `R2_ENABLED=true`. New uploads require R2: when it is disabled or unavailable, uploads fail and never fall back to storing image data in PostgreSQL. Existing embedded images remain readable and can be preserved when editing other worker details. Moving existing embedded images into R2 requires a working Object Read & Write key. Removing R2 configuration while database references still point to R2 makes those images unavailable until the configuration is restored.
 
 `python scripts/check-r2.py` checks the configured bucket using `.env.r2`, without printing credentials or object names. If the bucket name is blank, it lists buckets. Bucket-restricted keys may return `403 AccessDenied` for the account-wide listing while uploads to their permitted bucket still work.
 

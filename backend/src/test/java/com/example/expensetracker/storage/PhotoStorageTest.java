@@ -83,9 +83,11 @@ class PhotoStorageTest {
         verify(client).deleteObject(any(DeleteObjectRequest.class));
     }
 
-    @Test void disabledR2KeepsLegacyUploadsAndInvalidImagesNeverReachStorage() {
+    @Test void disabledR2RejectsUploadsInsteadOfReturningDatabaseImageData() {
         properties.setEnabled(false);
-        assertThat(storage.replace("incoming", null, DIRECTORY, value -> DATA)).isEqualTo(DATA);
+        assertThatThrownBy(() -> storage.replace("incoming", null, DIRECTORY, value -> DATA))
+                .hasMessage("Photo storage is unavailable. Please try again later.");
+        assertThat(storage.replace(DATA, DATA, DIRECTORY, value -> { throw new AssertionError(); })).isEqualTo(DATA);
         assertThatThrownBy(() -> storage.replace("bad", null, DIRECTORY, value -> { throw new IllegalArgumentException("Invalid image"); }))
                 .hasMessage("Invalid image");
         verifyNoInteractions(client);
