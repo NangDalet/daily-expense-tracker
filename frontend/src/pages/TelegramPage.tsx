@@ -62,7 +62,7 @@ export default function TelegramPage() {
       </CardBody></Card>
       <Card><CardBody className="space-y-2">
         <h2 className="font-semibold text-slate-900">Telegram Mini App</h2>
-        <p className="text-sm text-slate-500">Connect your Telegram account above, then open the Mini App from the bot’s menu to sign in automatically.</p>
+        <p className="text-sm text-slate-500">Open the Mini App and sign in once to connect Telegram automatically. Future launches sign you in directly.</p>
         <a href="/miniapp" className="inline-block text-sm font-semibold text-brand-600 underline">Open Mini App</a>
       </CardBody></Card>
       <p className="text-sm text-slate-500">{t('USD and KHR expenses count toward every budget at 1 USD = 4,000 KHR. Each budget alerts once per month when spending reaches at least 80%, including after an expense is edited.')}</p>

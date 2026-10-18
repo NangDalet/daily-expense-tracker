@@ -26,7 +26,7 @@ export default function MiniAppPage() {
     setBusy(true); setError(null)
     try {
       await login({ username: String(values.get('username')), password: String(values.get('password')) })
-      navigate(telegramWebApp() ? '/telegram' : '/', { replace: true })
+      navigate('/', { replace: true })
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Sign-in failed') }
     finally { setBusy(false) }
   }
@@ -43,6 +43,7 @@ export default function MiniAppPage() {
     <p className="miniapp-eyebrow">DAILY EXPENSE · TELEGRAM</p>
     <h1>Your money.<br />A little closer.</h1>
     <p className="miniapp-entry-copy">Track spending, add income, and stay on budget. All your records, right here in Telegram.</p>
+    {telegramWebApp() && <p className="miniapp-entry-copy">Sign in or create an account once. We’ll connect Telegram automatically, so next time you can open the Mini App and go straight in.</p>}
     {(error || telegramError) && <Alert tone="error" title={error || telegramError || ''} />}
     {!telegramWebApp() && <p className="miniapp-entry-copy">Open this page from your bot’s Mini App button for Telegram sign-in, or sign in below to preview.</p>}
     <div className="miniapp-entry-actions">

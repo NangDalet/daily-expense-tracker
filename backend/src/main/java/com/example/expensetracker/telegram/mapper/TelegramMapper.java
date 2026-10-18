@@ -5,6 +5,8 @@ import com.example.expensetracker.telegram.model.TelegramNotification;
 import org.apache.ibatis.annotations.Param;
 public interface TelegramMapper {
     UUID findUserIdByChatId(@Param("chatId") long chatId);
+    UUID findOwnerByChatId(@Param("chatId") long chatId);
+    int connectMiniApp(@Param("userId") UUID userId, @Param("chatId") long chatId);
     TelegramConnection find(@Param("userId") UUID userId);
     UUID lockUser(@Param("userId") UUID userId);
     int setLink(@Param("userId") UUID userId, @Param("hash") String hash);

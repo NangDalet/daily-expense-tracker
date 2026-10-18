@@ -1,4 +1,5 @@
 import { http, type QueryParams } from './client'
+import { telegramWebApp } from '@/lib/telegram'
 import type {
   BudgetRequest,
   BudgetResponse,
@@ -38,8 +39,16 @@ export interface Page<T> {
 export const authApi = {
   telegram: (initData: string) => http.post<TokenResponse>('/auth/telegram', { initData }, true),
   verifyPassword: (password: string) => http.post<void>('/auth/verify-password', { password }),
-  login: (body: LoginRequest) => http.post<TokenResponse>('/auth/login', body, true),
-  register: (body: RegisterRequest) => http.post<TokenResponse>('/auth/register', body, true),
+  login: (body: LoginRequest) => {
+    const initData = telegramWebApp()?.initData
+    return initData ? http.post<TokenResponse>('/auth/telegram/login', { credentials: body, initData }, true)
+      : http.post<TokenResponse>('/auth/login', body, true)
+  },
+  register: (body: RegisterRequest) => {
+    const initData = telegramWebApp()?.initData
+    return initData ? http.post<TokenResponse>('/auth/telegram/register', { account: body, initData }, true)
+      : http.post<TokenResponse>('/auth/register', body, true)
+  },
   // `skipRefresh`: a 401 here must not trigger another refresh attempt.
   refresh: (refreshToken: string) =>
     http.post<TokenResponse>('/auth/refresh', { refreshToken }, true),

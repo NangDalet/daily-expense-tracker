@@ -32,15 +32,28 @@ async function telegramSdk(page: Page) {
 
 async function mockApi(page: Page, authStatus = 200) {
   const calls: string[] = []
+  let linked = authStatus === 200
   await page.route('**/api/v1/**', async route => {
     const request = route.request(), path = new URL(request.url()).pathname
     calls.push(path)
     if (path === '/api/v1/auth/telegram') {
       expect(request.postDataJSON()).toEqual({ initData: 'signed-init-data-from-telegram' })
       expect(request.headers().authorization).toBeUndefined()
-      return route.fulfill(authStatus === 200 ? { json: { data: tokens } } : {
+      return route.fulfill(linked ? { json: { data: tokens } } : {
         status: authStatus, json: { code: 'FORBIDDEN', message: 'Connect Telegram to your expense-tracker account first.' },
       })
+    }
+    if (path === '/api/v1/auth/telegram/login') {
+      expect(request.headers().authorization).toBeUndefined()
+      expect(request.postDataJSON()).toEqual({ credentials: { username: 'dara', password: 'test-password' }, initData: 'signed-init-data-from-telegram' })
+      linked = true
+      return route.fulfill({ json: { data: tokens } })
+    }
+    if (path === '/api/v1/auth/telegram/register') {
+      expect(request.headers().authorization).toBeUndefined()
+      expect(request.postDataJSON()).toEqual({ account: { username: 'dara', email: 'dara@example.com', password: 'test-password' }, initData: 'signed-init-data-from-telegram' })
+      linked = true
+      return route.fulfill({ status: 201, json: { data: tokens } })
     }
     if (path === '/api/v1/auth/login') return route.fulfill({ json: { data: tokens } })
     expect(request.headers().authorization).toBe('Bearer miniapp-access')
@@ -104,7 +117,7 @@ test('opens the existing expense form and handles the native Telegram back butto
   await expect(page.getByRole('heading', { name: 'Hello, Dara' })).toBeVisible()
 })
 
-test('never displays a cached account when Telegram sign-in fails and offers account linking', async ({ page }) => {
+test('automatically connects Telegram after one account sign-in and signs in on the next launch', async ({ page }) => {
   await telegramSdk(page)
   const calls = await mockApi(page, 403)
   await page.goto('/miniapp')
@@ -115,8 +128,28 @@ test('never displays a cached account when Telegram sign-in fails and offers acc
   await page.getByLabel('Username or email').fill('dara')
   await page.getByLabel(/^Password/).fill('test-password')
   await page.getByRole('button', { name: 'Sign in', exact: true }).click()
-  await expect(page).toHaveURL(/\/telegram$/)
-  await expect(page.getByRole('button', { name: 'Connect Telegram', exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Hello, Dara' })).toBeVisible()
+  expect(calls).toContain('/api/v1/auth/telegram/login')
+  expect(calls).not.toContain('/api/v1/auth/login')
+  await page.reload()
+  await expect(page.getByRole('heading', { name: 'Hello, Dara' })).toBeVisible()
+  expect(calls.filter(path => path === '/api/v1/auth/telegram')).toHaveLength(2)
+})
+
+test('automatically connects Telegram during registration inside the Mini App', async ({ page }) => {
+  await telegramSdk(page)
+  const calls = await mockApi(page, 403)
+  await page.goto('/miniapp')
+  await page.getByRole('button', { name: 'Sign in to an existing account' }).click()
+  await page.getByRole('link', { name: 'Create an account' }).click()
+  await page.getByLabel(/^Username/).fill('dara')
+  await page.getByLabel(/^E-mail/).fill('dara@example.com')
+  await page.getByLabel(/^Password/).fill('test-password')
+  await page.getByLabel(/^Confirm password/).fill('test-password')
+  await page.getByRole('button', { name: 'Create account', exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'Hello, Dara' })).toBeVisible()
+  expect(calls).toContain('/api/v1/auth/telegram/register')
+  expect(calls).not.toContain('/api/v1/auth/register')
 })
 
 test('supports browser preview without treating the preview flag as Telegram identity', async ({ page }) => {

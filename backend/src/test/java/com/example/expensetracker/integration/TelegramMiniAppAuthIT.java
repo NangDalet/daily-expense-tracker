@@ -20,6 +20,8 @@ import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 @SpringBootTest(properties = {"app.telegram.enabled=true", "app.telegram.mini-app-enabled=true",
         "app.telegram.bot-token=" + TelegramInitDataFixtures.BOT_TOKEN, "debug=false"})
@@ -29,14 +31,18 @@ class TelegramMiniAppAuthIT extends AbstractPostgresIT {
     @Autowired JdbcTemplate jdbc;
     @Autowired ObjectMapper json;
     @Autowired JwtDecoder decoder;
+    @Autowired PasswordEncoder passwords;
+    @Autowired org.springframework.transaction.PlatformTransactionManager transactions;
     private UUID owner;
     private static final long TELEGRAM_ID = 987654321012L;
 
     @BeforeEach void seed() {
         owner = UUID.randomUUID();
-        jdbc.update("INSERT INTO users(id,username,email,password,roles,enabled) VALUES (?,?,?,'unusable-test-password','USER',true)",
-                owner, "mini-" + owner, owner + "@example.com");
-        jdbc.update("INSERT INTO telegram_connections(user_id,chat_id,enabled) VALUES (?,?,true)", owner, TELEGRAM_ID);
+        new org.springframework.transaction.support.TransactionTemplate(transactions).executeWithoutResult(status -> {
+            jdbc.update("INSERT INTO users(id,username,email,password,roles,enabled) VALUES (?,?,?,?,'USER',true)",
+                    owner, "mini-" + owner, owner + "@example.com", passwords.encode("MiniApp-pass-123!"));
+            jdbc.update("INSERT INTO telegram_connections(user_id,chat_id,enabled) VALUES (?,?,true)", owner, TELEGRAM_ID);
+        });
     }
 
     String signed(long id, Instant timestamp) {
@@ -85,5 +91,89 @@ class TelegramMiniAppAuthIT extends AbstractPostgresIT {
         mvc.perform(post("/api/v1/auth/telegram").contentType(MediaType.APPLICATION_JSON).content("{\"initData\":\"\"}"))
                 .andExpect(status().isBadRequest());
         mvc.perform(get("/api/v1/profile")).andExpect(status().isUnauthorized());
+    }
+
+    Map<String, String> credentials(UUID userId) {
+        return Map.of("username", "mini-" + userId, "password", "MiniApp-pass-123!");
+    }
+
+    @Test void signInConnectsTelegramAutomaticallyAndNextLaunchUsesTheAccount() throws Exception {
+        jdbc.update("UPDATE telegram_connections SET chat_id=NULL, enabled=false, link_hash='old-pending-link', link_expires_at=now()+interval '1 minute' WHERE user_id=?", owner);
+        mvc.perform(post("/api/v1/auth/telegram/login").contentType(MediaType.APPLICATION_JSON)
+                .content(json.writeValueAsString(Map.of("credentials", credentials(owner), "initData", signed(TELEGRAM_ID, Instant.now())))))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.user.id").value(owner.toString()));
+        var connection = jdbc.queryForMap("SELECT chat_id,enabled,link_hash,link_expires_at FROM telegram_connections WHERE user_id=?", owner);
+        assertThat(connection.get("chat_id")).isEqualTo(TELEGRAM_ID);
+        assertThat(connection.get("enabled")).isEqualTo(true);
+        assertThat(connection.get("link_hash")).isNull();
+        assertThat(connection.get("link_expires_at")).isNull();
+        mvc.perform(post("/api/v1/auth/telegram").contentType(MediaType.APPLICATION_JSON)
+                .content(json.writeValueAsString(Map.of("initData", signed(TELEGRAM_ID, Instant.now())))))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.user.id").value(owner.toString()));
+    }
+
+    @Test void registrationConnectsTelegramAndSeedsTheNewAccount() throws Exception {
+        String username = "new-mini-" + UUID.randomUUID();
+        String body = json.writeValueAsString(Map.of("account", Map.of("username", username, "email", username + "@example.com", "password", "MiniApp-pass-123!"),
+                "initData", signed(TELEGRAM_ID + 1, Instant.now())));
+        String response = mvc.perform(post("/api/v1/auth/telegram/register").contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isCreated()).andExpect(jsonPath("$.data.user.roles[0]").value("USER"))
+                .andReturn().getResponse().getContentAsString();
+        UUID created = UUID.fromString(json.readTree(response).path("data").path("user").path("id").asText());
+        assertThat(jdbc.queryForObject("SELECT user_id FROM telegram_connections WHERE chat_id=?", UUID.class, TELEGRAM_ID + 1)).isEqualTo(created);
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM categories WHERE user_id=?", Integer.class, created)).isEqualTo(8);
+    }
+
+    @Test void refusesToReassignEitherSideOfAnExistingConnection() throws Exception {
+        UUID other = UUID.randomUUID();
+        jdbc.update("INSERT INTO users(id,username,email,password,roles,enabled) VALUES (?,?,?,?,'USER',true)",
+                other, "mini-" + other, other + "@example.com", passwords.encode("MiniApp-pass-123!"));
+        mvc.perform(post("/api/v1/auth/telegram/login").contentType(MediaType.APPLICATION_JSON)
+                .content(json.writeValueAsString(Map.of("credentials", credentials(other), "initData", signed(TELEGRAM_ID, Instant.now())))))
+                .andExpect(status().isConflict());
+        mvc.perform(post("/api/v1/auth/telegram/login").contentType(MediaType.APPLICATION_JSON)
+                .content(json.writeValueAsString(Map.of("credentials", credentials(owner), "initData", signed(TELEGRAM_ID + 1, Instant.now())))))
+                .andExpect(status().isConflict());
+        assertThat(jdbc.queryForObject("SELECT user_id FROM telegram_connections WHERE chat_id=?", UUID.class, TELEGRAM_ID)).isEqualTo(owner);
+    }
+
+    @Test void requiresFreshSignedDataAndSuccessfulAccountAuthentication() throws Exception {
+        jdbc.update("DELETE FROM telegram_connections WHERE user_id=?", owner);
+        for (String data : new String[]{"invalid", signed(TELEGRAM_ID, Instant.now().minusSeconds(360))}) {
+            mvc.perform(post("/api/v1/auth/telegram/login").contentType(MediaType.APPLICATION_JSON)
+                    .content(json.writeValueAsString(Map.of("credentials", credentials(owner), "initData", data))))
+                    .andExpect(status().isUnauthorized());
+        }
+        mvc.perform(post("/api/v1/auth/telegram/login").contentType(MediaType.APPLICATION_JSON)
+                .content(json.writeValueAsString(Map.of("credentials", Map.of("username", "mini-"+owner, "password", "wrong-password"), "initData", signed(TELEGRAM_ID, Instant.now())))))
+                .andExpect(status().isUnauthorized());
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM telegram_connections WHERE user_id=?", Integer.class, owner)).isZero();
+    }
+
+    @Test void repeatedAccountSignInKeepsPendingNotifications() throws Exception {
+        String event = "miniapp-idempotence:" + UUID.randomUUID();
+        jdbc.update("INSERT INTO telegram_notifications(user_id,chat_id,event_key,message) VALUES (?,?,?,'pending test notification')",owner,TELEGRAM_ID,event);
+        for (int attempt=0; attempt<2; attempt++) {
+            mvc.perform(post("/api/v1/auth/telegram/login").contentType(MediaType.APPLICATION_JSON)
+                    .content(json.writeValueAsString(Map.of("credentials", credentials(owner), "initData", signed(TELEGRAM_ID, Instant.now())))))
+                    .andExpect(status().isOk());
+        }
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM telegram_notifications WHERE event_key=?", Integer.class, event)).isEqualTo(1);
+    }
+
+    @Test @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    void failedLinkRollsBackRegistrationAndDefaultCategories() throws Exception {
+        String username = "rollback-mini-" + UUID.randomUUID();
+        try {
+            mvc.perform(post("/api/v1/auth/telegram/register").contentType(MediaType.APPLICATION_JSON)
+                    .content(json.writeValueAsString(Map.of("account", Map.of("username", username, "email", username+"@example.com", "password", "MiniApp-pass-123!"),
+                            "initData", signed(TELEGRAM_ID, Instant.now())))))
+                    .andExpect(status().isConflict());
+            assertThat(jdbc.queryForObject("SELECT count(*) FROM users WHERE username=?", Integer.class, username)).isZero();
+            assertThat(jdbc.queryForObject("SELECT user_id FROM telegram_connections WHERE chat_id=?", UUID.class, TELEGRAM_ID)).isEqualTo(owner);
+        } finally {
+            new org.springframework.transaction.support.TransactionTemplate(transactions).executeWithoutResult(status ->
+                    jdbc.update("DELETE FROM users WHERE username=? OR id=?",username,owner));
+        }
     }
 }

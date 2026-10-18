@@ -30,13 +30,19 @@ No migration or new database is required. Authentication uses the existing uniqu
 
 The script reads `TELEGRAM_BOT_TOKEN` from the process environment or, by default, the private `backend/.env.render.telegram` file. It configures the menu button and does not send chat messages. It never prints the token. The URL above is an example; replace it with the deployed frontend URL.
 
-## Connect an existing account
+## Automatic account connection
+
+Open **Open tracker** from the bot menu. If your Telegram identity is already connected, you are signed in immediately. Otherwise, sign in to your existing expense-tracker account or create an account once inside the Mini App. The same request verifies your account credentials and signed Telegram launch data, connects the accounts, and opens the dashboard. Future launches sign in automatically; no separate connection link or bot Start step is required.
+
+An existing link cannot be silently reassigned in either direction. Disconnect an old Telegram link from that account's settings before changing accounts. Invalid or expired Telegram proof does not create a connection. Registration and linking are one database transaction, so a linking conflict rolls back the new account and its default categories.
+
+### Optional website connection
 
 1. Sign in to the expense tracker and open **Telegram alerts**.
 2. Select **Connect Telegram**, open the generated personal link, and press **Start** in the private bot chat.
 3. Open **Open tracker** from the bot menu. Telegram signs into the linked account automatically.
 
-If the Telegram account is not linked, the Mini App offers ordinary account sign-in and takes the user to Telegram connection settings. New users can register first. Linking always requires the existing authenticated account workflow; Telegram usernames, display names, URL parameters, or client-supplied account IDs cannot select an account.
+The website connection flow remains available. Telegram usernames, display names, URL parameters, or client-supplied account IDs cannot select an account. The Mini App's automatic connection requires both fresh signed Telegram data and a successful account sign-in or registration.
 
 ## Authentication and embedded behavior
 
