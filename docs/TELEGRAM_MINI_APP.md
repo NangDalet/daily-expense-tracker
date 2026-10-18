@@ -67,3 +67,9 @@ npx playwright test tests/telegram-miniapp.spec.ts tests/telegram-budget.spec.ts
 ```
 
 Backend integration tests use disposable PostgreSQL containers. Browser tests simulate the Telegram SDK and API to verify authentication transitions, mobile navigation and themes; they do not represent a live Telegram-client acceptance test. Open `http://localhost:3000/miniapp` during Vite development for browser preview and ordinary account sign-in. Telegram sign-in itself requires real signed launch data from the configured HTTPS bot menu.
+
+## Budget alerts at 80%
+
+Connecting your account does not by itself grant the bot permission to message you. In the Mini App, tap **Enable budget alerts** and allow Telegram's permission prompt. Alternatively, open **More → Telegram connection → Open bot connection**, follow the link, and press **Start** in the bot chat.
+
+After permission is granted, the app checks the current month's budgets and queues alerts already at or above 80%. Pending or failed alerts for that month are retried; alerts already delivered are not sent again. You can also use **Check missed budget alerts** in Telegram settings. Each budget sends one alert per month, including overall and category budgets; spending below 80% does not notify.

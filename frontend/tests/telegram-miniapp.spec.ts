@@ -3,13 +3,14 @@ import { test, expect, type Page } from '@playwright/test'
 const user = { id: 'miniapp-user', username: 'dara', fullName: 'Dara Sok', email: 'dara@example.com', roles: ['USER'], enabled: true }
 const tokens = { accessToken: 'miniapp-access', refreshToken: 'miniapp-refresh', tokenType: 'Bearer', expiresIn: 1800, user }
 
-async function telegramSdk(page: Page) {
-  await page.addInitScript(() => {
+async function telegramSdk(page: Page, writeAccess: boolean | null = null) {
+  await page.addInitScript((writeAccess) => {
     const events: Record<string, (() => void)[]> = {}
     let back: (() => void) | undefined
     const bridge = {
       initData: 'signed-init-data-from-telegram', colorScheme: 'light' as 'light' | 'dark', themeParams: {},
       ready: () => {}, expand: () => {},
+      requestWriteAccess: (callback: (allowed: boolean) => void) => callback(writeAccess === true),
       onEvent: (event: string, handler: () => void) => { (events[event] ??= []).push(handler) },
       offEvent: (event: string, handler: () => void) => { events[event] = events[event]?.filter(item => item !== handler) ?? [] },
       BackButton: { show: () => {}, hide: () => {}, onClick: (handler: () => void) => { back = handler }, offClick: () => { back = undefined } },
@@ -27,7 +28,7 @@ async function telegramSdk(page: Page) {
       storage.setItem('expense-tracker.refreshToken', 'stale-refresh')
       storage.setItem('expense-tracker.user', JSON.stringify({ id: 'wrong-user', username: 'Wrong account', roles: ['SUPER_ADMIN'] }))
     }
-  })
+  }, writeAccess)
 }
 
 async function mockApi(page: Page, authStatus = 200) {
@@ -75,6 +76,43 @@ async function mockApi(page: Page, authStatus = 200) {
 }
 
 test.use({ viewport: { width: 390, height: 844 } })
+
+test('requests message permission and catches up missed budget alerts after approval', async ({ page }) => {
+  await telegramSdk(page, true)
+  const calls = await mockApi(page)
+  await page.goto('/miniapp')
+  const enable = page.getByRole('button', { name: 'Enable budget alerts', exact: true })
+  await expect(enable).toBeVisible()
+  expect(calls).not.toContain('/api/v1/telegram/alerts/resume')
+  await enable.click()
+  await expect.poll(() => calls.filter(path => path === '/api/v1/telegram/alerts/resume').length).toBe(1)
+  await expect(page.getByLabel('Telegram budget alerts', { exact: true })).toHaveCount(0)
+})
+
+test('keeps alert setup visible when Telegram message permission is declined', async ({ page }) => {
+  await telegramSdk(page, false)
+  const calls = await mockApi(page)
+  await page.goto('/miniapp')
+  await page.getByRole('button', { name: 'Enable budget alerts', exact: true }).click()
+  await expect(page.getByText('Permission was declined.', { exact: false })).toBeVisible()
+  expect(calls).not.toContain('/api/v1/telegram/alerts/resume')
+  await expect(page.getByRole('link', { name: 'Open Telegram settings', exact: true })).toBeVisible()
+})
+
+test('shows an actionable retry when resuming budget alerts fails', async ({ page }) => {
+  await telegramSdk(page, true); await mockApi(page)
+  let attempts = 0
+  await page.route('**/api/v1/telegram/alerts/resume', route => {
+    attempts++
+    return route.fulfill(attempts === 1 ? { status: 503, json: { message: 'Alert service temporarily unavailable' } } : { json: { data: null } })
+  })
+  await page.goto('/miniapp')
+  await page.getByRole('button', { name: 'Enable budget alerts', exact: true }).click()
+  await expect(page.getByRole('alert')).toContainText('Alert service temporarily unavailable')
+  await page.getByRole('button', { name: 'Retry budget alerts', exact: true }).click()
+  await expect(page.getByLabel('Telegram budget alerts', { exact: true })).toHaveCount(0)
+  expect(attempts).toBe(2)
+})
 
 test('signs into the linked account, isolates sessions, and shows mobile balances', async ({ page }) => {
   await telegramSdk(page)

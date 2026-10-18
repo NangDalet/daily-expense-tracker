@@ -187,6 +187,7 @@ export const userApi = {
 
 
 export const telegramApi = {
+  resumeAlerts: () => http.post<void>('/telegram/alerts/resume', {}),
   status: () => http.get<{ available: boolean; connected: boolean }>('/telegram'),
   link: () => http.post<{ url: string; expiresInSeconds: number }>('/telegram/link', {}),
   disconnect: () => http.delete<void>('/telegram'),

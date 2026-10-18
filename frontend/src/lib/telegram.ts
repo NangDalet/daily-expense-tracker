@@ -11,6 +11,7 @@ export interface TelegramWebApp {
   setHeaderColor?: (color: string) => void
   setBackgroundColor?: (color: string) => void
   openTelegramLink?: (url: string) => void
+  requestWriteAccess?: (callback: (allowed: boolean) => void) => void
   BackButton: { show: () => void; hide: () => void; onClick: (handler: () => void) => void; offClick: (handler: () => void) => void }
   HapticFeedback?: { selectionChanged: () => void }
 }
@@ -27,6 +28,14 @@ export function hasTelegramLaunch(): boolean { return TELEGRAM_LAUNCH || Boolean
 export function telegramWebApp(): TelegramWebApp | undefined {
   const app = window.Telegram?.WebApp
   return app?.initData ? app : undefined
+}
+
+/** Only a UI hint: this must never be used to authenticate or link an account. */
+export function telegramAllowsMessages(): boolean {
+  try {
+    const user = new URLSearchParams(telegramWebApp()?.initData).get('user')
+    return Boolean(user && JSON.parse(user).allows_write_to_pm === true)
+  } catch { return false }
 }
 
 export function isMiniApp(): boolean {

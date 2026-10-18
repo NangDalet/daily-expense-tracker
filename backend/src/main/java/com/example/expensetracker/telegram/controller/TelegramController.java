@@ -18,6 +18,10 @@ public class TelegramController {
     @DeleteMapping public ApiResponse<Void> disconnect(@AuthenticationPrincipal Jwt jwt) {
         service.disconnect(SecurityUtils.currentUserId(jwt)); return ApiResponse.of(null, "Telegram disconnected");
     }
+    @PostMapping("/alerts/resume") public ApiResponse<Void> resumeAlerts(@AuthenticationPrincipal Jwt jwt) {
+        service.resumeAlerts(SecurityUtils.currentUserId(jwt));
+        return ApiResponse.of(null, "Eligible budget alerts queued");
+    }
     public record Chat(Long id, String type) {}
     public record Sender(Long id) {}
     public record Message(Chat chat, Sender from, String text) {}

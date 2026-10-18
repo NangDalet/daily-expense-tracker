@@ -16,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 public class TelegramServiceImpl implements TelegramService {
     private final TelegramMapper mapper;
     private final TelegramProperties properties;
+    private final SpendingNotificationService notifications;
     private static final SecureRandom RANDOM = new SecureRandom();
     @Override @Transactional(readOnly = true)
     public Status status(UUID userId) {
@@ -31,6 +32,17 @@ public class TelegramServiceImpl implements TelegramService {
         mapper.lockUser(userId);
         mapper.setLink(userId, hash(token));
         return new Link("https://t.me/" + properties.getBotUsername() + "?start=" + token, 600);
+    }
+    @Override @Transactional
+    public void resumeAlerts(UUID userId) {
+        if (!properties.isConfigured()) throw new ApiException(ErrorCode.SERVICE_UNAVAILABLE, "Telegram is not configured by the administrator");
+        mapper.lockUser(userId);
+        var connection = mapper.find(userId);
+        if (connection == null || connection.getChatId() == null || !Boolean.TRUE.equals(connection.getEnabled()))
+            throw new ApiException(ErrorCode.CONFLICT, "Connect Telegram before enabling budget alerts");
+        var today = java.time.LocalDate.now(java.time.ZoneId.of("Asia/Bangkok"));
+        notifications.checkBudgets(userId, today.getYear(), today.getMonthValue());
+        mapper.resumeBudgetAlerts(userId, connection.getChatId(), today.getYear(), today.getMonthValue());
     }
     @Override @Transactional
     public void disconnect(UUID userId) {
@@ -50,6 +62,7 @@ public class TelegramServiceImpl implements TelegramService {
             mapper.clearPending(connection.getUserId());
             mapper.enqueue(connection.getUserId(), chatId, "linked:" + updateId + ":" + hash(text.substring(7)),
                     "Telegram connected. You will receive spending messages for your budgets and an alert at 80% usage.");
+            resumeAlerts(connection.getUserId());
         }
     }
     public static String hash(String value) {

@@ -28,7 +28,7 @@ test('connects a personal Telegram chat and disconnects it', async ({ page }) =>
   await expect(link).toHaveAttribute('href', 'https://t.me/test_bot?start=' + 'A'.repeat(43))
   await expect(page.getByText('This personal connection link expires in 10 minutes. Keep it private.')).toBeVisible()
   connected = true
-  await expect(page.getByText('Telegram connected. Budget alerts are enabled.')).toBeVisible({ timeout: 10000 })
+  await expect(page.getByText('Telegram account connected.')).toBeVisible({ timeout: 10000 })
   await page.getByRole('button', { name: 'Disconnect Telegram' }).click()
   await expect(page.getByRole('button', { name: 'Connect Telegram', exact: true })).toBeVisible()
 })

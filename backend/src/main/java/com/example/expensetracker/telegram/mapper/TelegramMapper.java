@@ -18,4 +18,6 @@ public interface TelegramMapper {
     TelegramNotification claim();
     int sent(@Param("id") UUID id);
     int retry(@Param("id") UUID id);
+    int resumeBudgetAlerts(@Param("userId") UUID userId, @Param("chatId") long chatId,
+                          @Param("year") int year, @Param("month") int month);
 }

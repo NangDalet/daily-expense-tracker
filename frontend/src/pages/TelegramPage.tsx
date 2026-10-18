@@ -26,7 +26,8 @@ export default function TelegramPage() {
     mutationFn: telegramApi.disconnect,
     onSuccess: async () => { setLink(null); await client.invalidateQueries({ queryKey: ['telegram'] }) },
   })
-  const error = connect.error ?? disconnect.error
+  const resume = useMutation({ mutationFn: telegramApi.resumeAlerts })
+  const error = connect.error ?? disconnect.error ?? resume.error
   const endpointMissing = status.error instanceof ApiError && status.error.status === 404
   return (
     <div className="mx-auto max-w-2xl space-y-5">
@@ -44,7 +45,14 @@ export default function TelegramPage() {
           <p className="text-sm text-slate-600">{t("Telegram alerts are not configured yet. Ask your administrator to enable the Telegram bot.")}</p>
         ) : status.data.connected ? (
           <>
-            <p className="text-sm font-medium text-emerald-700">{t("Telegram connected. Budget alerts are enabled.")}</p>
+            <p className="text-sm font-medium text-emerald-700">Telegram account connected.</p>
+            <p className="text-sm text-slate-600">The bot needs permission to send alerts. Enable messages in the Mini App, or open the bot and press Start. Then check for any missed alerts.</p>
+            <Button variant="secondary" onClick={() => connect.mutate()} isLoading={connect.isPending}>Open bot connection</Button>
+            {link && <a href={link} target="_blank" rel="noreferrer" onClick={(event) => {
+              if (telegramWebApp()) { event.preventDefault(); openTelegramLink(link) }
+            }} className="block font-medium text-brand-600 underline">Open Telegram and press Start</a>}
+            <Button variant="secondary" onClick={() => resume.mutate()} isLoading={resume.isPending}>Check missed budget alerts</Button>
+            {resume.isSuccess && <p role="status" className="text-sm text-emerald-700">Checked this month's budgets. Unsent alerts at 80% or more are queued; delivered alerts will not repeat.</p>}
             <Button variant="secondary" onClick={() => disconnect.mutate()} isLoading={disconnect.isPending}>{t("Disconnect Telegram")}</Button>
           </>
         ) : (

@@ -5,6 +5,7 @@ public interface TelegramService {
     record Link(String url, int expiresInSeconds) {}
     Status status(UUID userId);
     Link link(UUID userId);
+    void resumeAlerts(UUID userId);
     void disconnect(UUID userId);
     void accept(String secret, Long updateId, Long chatId, Long senderId, String type, String text);
 }

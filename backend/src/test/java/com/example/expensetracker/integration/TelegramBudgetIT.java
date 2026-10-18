@@ -48,7 +48,8 @@ class TelegramBudgetIT extends AbstractPostgresIT {
         properties = new TelegramProperties();
         properties.setEnabled(true); properties.setBotUsername("test_expense_bot");
         properties.setBotToken("test-only-token"); properties.setWebhookSecret(SECRET);
-        links = new TelegramServiceImpl(telegram, properties);
+        links = new TelegramServiceImpl(telegram, properties,
+                new SpendingNotificationServiceImpl(budgets, telegram, properties, users));
         service = new ExpenseServiceImpl(expenses, categories, convert, new PaginationProperties(),
                 new SpendingNotificationServiceImpl(budgets, telegram, properties, users), cash);
     }
@@ -157,5 +158,58 @@ class TelegramBudgetIT extends AbstractPostgresIT {
         assertThat(telegram.claim()).isNull();
         budget("USD"); spend("USD", "80");
         assertThat(telegram.claim().getMessage()).contains("Budget Alert: 80% reached");
+    }
+
+    void currentBudgetAndSpend(String amount) {
+        var today = LocalDate.now(java.time.ZoneId.of("Asia/Bangkok"));
+        budgets.insert(Budget.builder().userId(user).currency("USD").monthlyLimit(new BigDecimal("100"))
+                .year(today.getYear()).month(today.getMonthValue()).build());
+        jdbc.update("INSERT INTO expenses(user_id,amount,currency,expense_date,payment_method) VALUES (?,?,?,?,?)",
+                user, new BigDecimal(amount), "USD", today, "CASH");
+    }
+
+    @Test void enablingAlertsCatchesUpAnExistingBudgetAtEightyPercentOnlyOnce() {
+        connect(); currentBudgetAndSpend("80");
+        links.resumeAlerts(user);
+        assertThat(count("budget80:%")).isEqualTo(1);
+        var item = telegram.claim();
+        assertThat(item.getMessage()).contains("Budget Alert: 80% reached");
+        telegram.sent(item.getId());
+        links.resumeAlerts(user);
+        assertThat(count("budget80:%")).isEqualTo(1);
+        assertThat(telegram.claim()).isNull();
+    }
+
+    @Test void enablingAlertsDoesNotNotifyBelowEightyPercentOrWithoutAConnection() {
+        assertThatThrownBy(() -> links.resumeAlerts(user)).isInstanceOf(ApiException.class);
+        connect(); currentBudgetAndSpend("79.99");
+        links.resumeAlerts(user);
+        assertThat(count("budget80:%")).isZero();
+    }
+
+    @Test void allowingMessagesRetriesFailedCurrentBudgetAlertsButLeavesOtherMonthsAndChatsAlone() {
+        connect(); currentBudgetAndSpend("85"); links.resumeAlerts(user);
+        jdbc.update("UPDATE telegram_notifications SET status='failed', attempts=10 WHERE user_id=?", user);
+        var today = LocalDate.now(java.time.ZoneId.of("Asia/Bangkok"));
+        String suffix = ":" + today.getYear() + ":" + today.getMonthValue() + ":USD";
+        telegram.enqueue(user, 424242L, "budget80:old:2000:1:USD", "Old month");
+        telegram.enqueue(user, 999999L, "budget80:other" + suffix, "Different chat");
+        telegram.enqueue(user, 424242L, "expense:legacy", "Legacy receipt");
+        jdbc.update("UPDATE telegram_notifications SET status='failed', attempts=10 WHERE user_id=?", user);
+        links.resumeAlerts(user);
+        var item = telegram.claim();
+        assertThat(item).isNotNull();
+        assertThat(item.getAttempts()).isEqualTo(1);
+        assertThat(item.getMessage()).contains("Budget Alert: 80% reached");
+        assertThat(telegram.claim()).isNull();
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM telegram_notifications WHERE user_id=? AND status='failed'", Integer.class, user)).isEqualTo(3);
+    }
+
+    @Test void pressingStartChecksBudgetsThatAlreadyReachedTheThreshold() {
+        currentBudgetAndSpend("85");
+        telegram.setLink(user, TelegramServiceImpl.hash(TOKEN));
+        links.accept(SECRET, 5L, 424242L, 424242L, "private", "/start " + TOKEN);
+        assertThat(count("budget80:%")).isEqualTo(1);
+        assertThat(count("linked:%")).isEqualTo(1);
     }
 }

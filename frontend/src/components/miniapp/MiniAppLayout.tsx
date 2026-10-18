@@ -8,6 +8,7 @@ import { Avatar } from '@/components/layout/Avatar'
 import { Modal } from '@/components/ui/Modal'
 import { telegramWebApp } from '@/lib/telegram'
 import { MiniAppHome } from './MiniAppHome'
+import { TelegramAlertPermission } from './TelegramAlertPermission'
 import './miniapp.css'
 
 export function MiniAppLayout() {
@@ -57,6 +58,7 @@ export function MiniAppLayout() {
       <button className="miniapp-more-toggle" aria-label="More" aria-expanded={more} onClick={() => { setMore(value => !value); telegramWebApp()?.HapticFeedback?.selectionChanged() }}><MoreHorizontal size={25} /></button>
     </header>
     <main className="miniapp-main">
+      <TelegramAlertPermission key={user?.id} />
       {more ? <section className="miniapp-more" aria-label="More features">
         <div className="miniapp-section-title"><h1>More from your tracker</h1><button onClick={() => setMore(false)} aria-label="Close more menu"><X size={22} /></button></div>
         <div className="miniapp-panel">{menu.map(({ to, label, icon: Icon }) => <Link to={to} key={to} onClick={() => setMore(false)} className="miniapp-menu-row"><Icon size={20} /><span>{label}</span><ChevronRight size={17} /></Link>)}</div>
