@@ -13,6 +13,7 @@ export const ConstructionPage = lazyPage(() => import('@/pages/ConstructionPage'
 export const LoginPage = lazyPage(() => import('@/pages/LoginPage'))
 export const RegisterPage = lazyPage(() => import('@/pages/RegisterPage'))
 export const NotFoundPage = lazyPage(() => import('@/pages/NotFoundPage'))
+export const MiniAppPage = lazyPage(() => import('@/pages/MiniAppPage'))
 
 const modules = {
   '/': DashboardPage,

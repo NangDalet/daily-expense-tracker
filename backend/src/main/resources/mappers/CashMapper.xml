@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.example.expensetracker.mapper.CashMapper">
+<mapper namespace="com.example.expensetracker.wallet.mapper.CashMapper">
     <!-- Serialize top-up and expense mutations for this user within their transaction. -->
     <select id="lockUser" resultType="java.util.UUID">
         SELECT id FROM users WHERE id = #{userId} FOR UPDATE
     </select>
-    <select id="balances" resultType="com.example.expensetracker.wallet.CashModels$Balance">
+    <select id="balances" resultType="com.example.expensetracker.wallet.model.CashModels$Balance">
         SELECT currency, total_topups, total_spent, total_topups - total_spent AS remaining_amount
         FROM (
             SELECT c.currency,
@@ -16,7 +16,7 @@
             FROM (VALUES ('USD'), ('KHR')) AS c(currency)
         ) totals
     </select>
-    <select id="topups" resultType="com.example.expensetracker.wallet.CashModels$Topup">
+    <select id="topups" resultType="com.example.expensetracker.wallet.model.CashModels$Topup">
         SELECT id, user_id, amount, currency, topup_date, note, created_at FROM cash_topups
         WHERE user_id = #{userId} ORDER BY topup_date DESC, created_at DESC, id DESC
         LIMIT #{limit} OFFSET #{offset}
@@ -24,7 +24,7 @@
     <select id="countTopups" resultType="long">
         SELECT COUNT(*) FROM cash_topups WHERE user_id = #{userId}
     </select>
-    <select id="topup" resultType="com.example.expensetracker.wallet.CashModels$Topup">
+    <select id="topup" resultType="com.example.expensetracker.wallet.model.CashModels$Topup">
         SELECT id, user_id, amount, currency, topup_date, note, created_at FROM cash_topups
         WHERE user_id = #{userId} AND id = #{id}
     </select>

@@ -29,6 +29,8 @@ import { Button } from '@/components/ui/Button'
 import { Avatar } from '@/components/layout/Avatar'
 import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher'
 import { cn } from '@/lib/utils'
+import { isMiniApp } from '@/lib/telegram'
+import { MiniAppLayout } from '@/components/miniapp/MiniAppLayout'
 
 interface NavItem {
   to: string
@@ -73,6 +75,10 @@ function Breadcrumbs() {
 }
 
 export function AppLayout() {
+  return isMiniApp() ? <MiniAppLayout /> : <WebsiteLayout />
+}
+
+function WebsiteLayout() {
   useLanguage()
   const access = useConstructionAccess()
   const { user, isAdmin, isSuperAdmin, logout } = useAuth()

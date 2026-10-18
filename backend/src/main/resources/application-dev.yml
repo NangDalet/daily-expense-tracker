@@ -14,7 +14,6 @@ mybatis:
 logging:
   level:
     com.example.expensetracker: DEBUG
-    com.example.expensetracker.mapper: DEBUG
     org.springframework.web: DEBUG
     org.springframework.security: INFO
 

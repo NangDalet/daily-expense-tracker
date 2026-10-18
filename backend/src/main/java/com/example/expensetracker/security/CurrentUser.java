@@ -2,7 +2,7 @@ package com.example.expensetracker.security;
 
 import java.util.UUID;
 
-import com.example.expensetracker.domain.Role;
+import com.example.expensetracker.common.model.Role;
 
 /**
  * The acting administrator of the current request, reduced to the two facts the

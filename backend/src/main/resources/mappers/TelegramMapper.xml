@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.example.expensetracker.mapper.TelegramMapper">
+<mapper namespace="com.example.expensetracker.telegram.mapper.TelegramMapper">
+  <select id="findUserIdByChatId" resultType="java.util.UUID">
+    SELECT user_id FROM telegram_connections WHERE chat_id = #{chatId} AND enabled = true
+  </select>
   <select id="find" resultType="TelegramConnection">
     SELECT user_id, chat_id, enabled FROM telegram_connections WHERE user_id = #{userId}
   </select>

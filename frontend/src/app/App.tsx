@@ -1,7 +1,7 @@
 import { useLanguage } from '@/context/LanguageContext'
 import { DashboardPage, ExpensesPage, IncomePage, CategoriesPage, TelegramPage,
   ProfilePage, MonthlyPage, BudgetsPage, AdminUsersPage, ConstructionPage,
-  LoginPage, RegisterPage, NotFoundPage } from './pages'
+  LoginPage, RegisterPage, NotFoundPage, MiniAppPage } from './pages'
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AuthProvider } from '@/context/AuthContext'
@@ -38,6 +38,7 @@ export function App() {
       <BrowserRouter>
         <LanguageProvider><ThemeProvider><AuthProvider>
             <Routes>
+              <Route path="/miniapp" element={<MiniAppPage />} />
               <Route element={<RedirectIfAuthenticated />}>
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/register" element={<RegisterPage />} />

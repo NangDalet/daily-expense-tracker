@@ -10,8 +10,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.util.List;
 
-import com.example.expensetracker.domain.User;
-import com.example.expensetracker.mapper.UserMapper;
+import com.example.expensetracker.user.model.User;
+import com.example.expensetracker.user.mapper.UserMapper;
 import com.example.expensetracker.security.JwtTokenService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;

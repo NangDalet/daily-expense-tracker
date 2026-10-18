@@ -9,7 +9,7 @@ import java.io.ByteArrayOutputStream;
 import java.util.Base64;
 import java.util.UUID;
 import javax.imageio.ImageIO;
-import com.example.expensetracker.mapper.UserMapper;
+import com.example.expensetracker.user.mapper.UserMapper;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -71,7 +71,7 @@ class ProfileMonthlyIT extends AbstractPostgresIT {
         var output = new ByteArrayOutputStream();
         ImageIO.write(new BufferedImage(2, 2, BufferedImage.TYPE_INT_RGB), "png", output);
         String image = "data:image/png;base64," + Base64.getEncoder().encodeToString(output.toByteArray());
-        String legacy = new com.example.expensetracker.serviceImpl.ProfilePhotoProcessor().normalize(image);
+        String legacy = new com.example.expensetracker.user.service.ProfilePhotoProcessor().normalize(image);
         users.updateAvatar(owner, legacy);
         mvc.perform(get("/api/v1/profile").with(as(owner))).andExpect(jsonPath("$.data.avatarUrl").value(legacy));
         mvc.perform(put("/api/v1/profile/photo").with(as(owner)).contentType(MediaType.APPLICATION_JSON)

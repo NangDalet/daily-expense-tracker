@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/Button'
 import { Card, CardBody } from '@/components/ui/Card'
 import { LoadingBlock } from '@/components/ui/States'
 import { ApiError } from '@/lib/api/client'
+import { openTelegramLink, telegramWebApp } from '@/lib/telegram'
 
 export default function TelegramPage() {
   useLanguage()
@@ -51,11 +52,18 @@ export default function TelegramPage() {
             <p className="text-sm text-slate-600">{t("Connect your private Telegram chat. After opening the bot, press Start to finish connecting.")}</p>
             <Button onClick={() => connect.mutate()} isLoading={connect.isPending}>{link ? t("Create a new connection link") : t("Connect Telegram")}</Button>
             {link && <div className="space-y-2">
-              <a href={link} target="_blank" rel="noreferrer" className="font-medium text-brand-600 underline">{t("Open Telegram and press Start")}</a>
+              <a href={link} target="_blank" rel="noreferrer" onClick={(event) => {
+                if (telegramWebApp()) { event.preventDefault(); openTelegramLink(link) }
+              }} className="font-medium text-brand-600 underline">{t("Open Telegram and press Start")}</a>
               <p className="text-xs text-slate-500">{t("This personal connection link expires in 10 minutes. Keep it private.")}</p>
             </div>}
           </>
         )}
+      </CardBody></Card>
+      <Card><CardBody className="space-y-2">
+        <h2 className="font-semibold text-slate-900">Telegram Mini App</h2>
+        <p className="text-sm text-slate-500">Connect your Telegram account above, then open the Mini App from the bot’s menu to sign in automatically.</p>
+        <a href="/miniapp" className="inline-block text-sm font-semibold text-brand-600 underline">Open Mini App</a>
       </CardBody></Card>
       <p className="text-sm text-slate-500">{t('USD and KHR expenses count toward every budget at 1 USD = 4,000 KHR. Each budget alerts once per month when spending reaches at least 80%, including after an expense is edited.')}</p>
     </div>

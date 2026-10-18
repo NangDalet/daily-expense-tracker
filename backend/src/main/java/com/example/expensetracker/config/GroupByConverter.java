@@ -1,6 +1,6 @@
 package com.example.expensetracker.config;
 
-import com.example.expensetracker.dto.request.ExpenseSummaryRequest;
+import com.example.expensetracker.expense.model.request.ExpenseSummaryRequest;
 
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.stereotype.Component;

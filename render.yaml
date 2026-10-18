@@ -41,6 +41,8 @@ services:
         generateValue: true
       - key: TELEGRAM_ENABLED
         value: "true"
+      - key: TELEGRAM_MINI_APP_ENABLED
+        value: "true"
       - key: TELEGRAM_UPDATES_MODE
         value: webhook
       - key: TELEGRAM_BOT_USERNAME

@@ -35,7 +35,7 @@ class ConstructionApiIT extends AbstractPostgresIT {
         String id=saved.path("id").asText();
         org.assertj.core.api.Assertions.assertThat(saved.path("overtimeRate").decimalValue()).isEqualByComparingTo("11250");
         org.assertj.core.api.Assertions.assertThat(jdbc.queryForObject("SELECT overtime_rate FROM construction_workers WHERE id=?",java.math.BigDecimal.class,UUID.fromString(id))).isEqualByComparingTo("11250");
-        String site=postData("/projects","{\"name\":\"OT site\",\"site\":\"A1\",\"active\":true}",token).path("id").asText();
+        String site=postData("/projects","{\"name\":\"OT site\",\"status\":\"ACTIVE\",\"site\":\"A1\",\"active\":true}",token).path("id").asText();
         String attendanceBody="{\"workerId\":\"%s\",\"projectId\":\"%s\",\"workDate\":\"2026-01-01\",\"kind\":\"FULL\",\"overtimeHours\":2}".formatted(id,site);
         JsonNode attendance=postData("/attendance",attendanceBody,token);
         org.assertj.core.api.Assertions.assertThat(attendance.path("overtime").decimalValue()).isEqualByComparingTo("22500");
@@ -51,7 +51,7 @@ class ConstructionApiIT extends AbstractPostgresIT {
         String token=data(mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
             .content("{\"username\":\"root\",\"password\":\"Root@123\"}")).andExpect(status().isOk()).andReturn()).path("accessToken").asText();
         String body="""
-            {"name":"Planned site","site":"A1","active":true,"startDate":"2026-10-11","endDate":"2026-11-10","plannedAmount":1250000.50}
+            {"name":"Planned site","status":"ACTIVE","site":"A1","active":true,"startDate":"2026-10-11","endDate":"2026-11-10","plannedAmount":1250000.50}
             """;
         JsonNode created=postData("/projects",body,token);
         String id=created.path("id").asText();
@@ -66,7 +66,7 @@ class ConstructionApiIT extends AbstractPostgresIT {
         mvc.perform(put("/api/v1/construction/projects/"+id).header("Authorization","Bearer "+token).contentType(MediaType.APPLICATION_JSON)
             .content(body.replace("1250000.50","2500000"))).andExpect(status().isOk()).andExpect(jsonPath("$.data.plannedAmount").value(2500000));
         mvc.perform(put("/api/v1/construction/projects/"+id).header("Authorization","Bearer "+token).contentType(MediaType.APPLICATION_JSON)
-            .content("{\"name\":\"Planned site\",\"site\":\"A1\",\"active\":true}")).andExpect(status().isOk());
+            .content("{\"name\":\"Planned site\",\"status\":\"ACTIVE\",\"site\":\"A1\",\"active\":true}")).andExpect(status().isOk());
         org.assertj.core.api.Assertions.assertThat(jdbc.queryForMap("SELECT start_date,end_date,planned_amount FROM construction_projects WHERE id=?",UUID.fromString(id)).values())
             .containsOnlyNulls();
     }
@@ -86,8 +86,8 @@ class ConstructionApiIT extends AbstractPostgresIT {
         JsonNode registered=data(mvc.perform(post("/api/v1/auth/register").contentType(MediaType.APPLICATION_JSON)
             .content("{\"username\":\"site-foreman\",\"email\":\"site-foreman@example.com\",\"password\":\"Foreman-pass-123!\"}")).andExpect(status().isCreated()).andReturn());
         String foreman=registered.path("accessToken").asText(), foremanId=registered.path("user").path("id").asText();
-        String site=postData("/projects","{\"name\":\"Assigned project\",\"site\":\"A1\",\"active\":true,\"plannedAmount\":100000}",manager).path("id").asText();
-        String otherSite=postData("/projects","{\"name\":\"Other project\",\"site\":\"B2\",\"active\":true}",manager).path("id").asText();
+        String site=postData("/projects","{\"name\":\"Assigned project\",\"status\":\"ACTIVE\",\"site\":\"A1\",\"active\":true,\"plannedAmount\":100000}",manager).path("id").asText();
+        String otherSite=postData("/projects","{\"name\":\"Other project\",\"status\":\"ACTIVE\",\"site\":\"B2\",\"active\":true}",manager).path("id").asText();
         String assignment="{\"granted\":true,\"constructionRole\":\"FOREMAN\",\"siteIds\":[\"%s\"]}".formatted(site);
         mvc.perform(put("/api/v1/construction/grants/"+foremanId).header("Authorization","Bearer "+manager).contentType(MediaType.APPLICATION_JSON)
             .content("{\"granted\":true,\"constructionRole\":\"FOREMAN\",\"siteIds\":[]}")).andExpect(status().isUnprocessableEntity());
@@ -164,19 +164,20 @@ class ConstructionApiIT extends AbstractPostgresIT {
         mvc.perform(put("/api/v1/construction/workers/"+id).header("Authorization","Bearer "+root).contentType(MediaType.APPLICATION_JSON).content(request.toString())).andExpect(status().isOk()).andExpect(jsonPath("$.data.photoDataUrl").doesNotExist());
         org.assertj.core.api.Assertions.assertThat(jdbc.queryForObject("SELECT photo_data_url FROM construction_workers WHERE id=?",String.class,UUID.fromString(id))).isNull();
     }
-    @Test void assignedSitesAndIdCardsPersistWithCardsOnlyLoadedForWorkerDetails() throws Exception {
+    @Test void assignedSitesAndLegacyIdCardsPersistWithCardsOnlyLoadedForWorkerDetails() throws Exception {
         String token = data(mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
             .content("{\"username\":\"root\",\"password\":\"Root@123\"}")).andExpect(status().isOk()).andReturn()).path("accessToken").asText();
-        JsonNode site = postData("/projects", "{\"name\":\"Project A\",\"site\":\"A1\",\"active\":true}", token);
+        JsonNode site = postData("/projects", "{\"name\":\"Project A\",\"status\":\"ACTIVE\",\"site\":\"A1\",\"active\":true}", token);
         var bytes = new java.io.ByteArrayOutputStream();
         javax.imageio.ImageIO.write(new java.awt.image.BufferedImage(1200,800,java.awt.image.BufferedImage.TYPE_INT_RGB),"png",bytes);
         var request = json.createObjectNode();
         request.put("workerCode","ID-CARD-01").put("fullName","Site worker").put("position","Worker").put("rateType","DAILY")
             .put("rate",40000).put("overtimeRate",0).put("hoursPerDay",8).put("currency","KHR").put("startDate","2026-01-01")
-            .put("active",true).put("projectId",site.path("id").asText())
-            .put("idCardDataUrl","data:image/png;base64,"+java.util.Base64.getEncoder().encodeToString(bytes.toByteArray()));
+            .put("active",true).put("projectId",site.path("id").asText());
         JsonNode saved = postData("/workers",request.toString(),token);
-        String id = saved.path("id").asText(), card = saved.path("idCardDataUrl").asText();
+        String id = saved.path("id").asText(), card = "data:image/png;base64,"+java.util.Base64.getEncoder().encodeToString(bytes.toByteArray());
+        // Legacy embedded cards remain readable; new uploads are covered by R2PhotoApiIT.
+        jdbc.update("UPDATE construction_workers SET id_card_data_url=? WHERE id=?",card,UUID.fromString(id));
         org.assertj.core.api.Assertions.assertThat(saved.path("projectId").asText()).isEqualTo(site.path("id").asText());
         org.assertj.core.api.Assertions.assertThat(jdbc.queryForObject("SELECT id_card_data_url FROM construction_workers WHERE id=?",String.class,UUID.fromString(id))).isEqualTo(card);
         mvc.perform(get("/api/v1/construction/workers").header("Authorization","Bearer "+token)).andExpect(status().isOk())
@@ -203,7 +204,7 @@ class ConstructionApiIT extends AbstractPostgresIT {
         String worker=postData("/workers","""
             {"workerCode":"CW01","fullName":"Worker","position":"Worker","rateType":"DAILY","rate":20,"overtimeRate":4,"hoursPerDay":8,"currency":"KHR","startDate":"2026-01-01","active":true}
             """,token).path("id").asText();
-        String project=postData("/projects","{\"name\":\"House\",\"site\":\"Site 1\",\"active\":true}",token).path("id").asText();
+        String project=postData("/projects","{\"name\":\"House\",\"status\":\"ACTIVE\",\"site\":\"Site 1\",\"active\":true}",token).path("id").asText();
         String attendanceBody="{\"workerId\":\"%s\",\"projectId\":\"%s\",\"workDate\":\"2026-01-01\",\"kind\":\"HALF\",\"overtimeHours\":2}".formatted(worker,project);
         String attendanceId=postData("/attendance",attendanceBody,token).path("id").asText();
         String adjustment=postData("/adjustments","{\"workerId\":\"%s\",\"kind\":\"ADVANCE\",\"amount\":5,\"adjustmentDate\":\"2026-01-01\",\"reason\":\"Food\"}".formatted(worker),token).path("id").asText();
@@ -237,7 +238,7 @@ class ConstructionApiIT extends AbstractPostgresIT {
         String worker=postData("/workers","""
             {"workerCode":"CUSTOM01","fullName":"Custom worker","position":"Worker","rateType":"DAILY","rate":20000,"overtimeRate":4000,"hoursPerDay":8,"currency":"KHR","startDate":"2026-01-01","active":true}
             """,root).path("id").asText();
-        String project=postData("/projects","{\"name\":\"Custom project\",\"site\":\"Site\",\"active\":true}",root).path("id").asText();
+        String project=postData("/projects","{\"name\":\"Custom project\",\"status\":\"ACTIVE\",\"site\":\"Site\",\"active\":true}",root).path("id").asText();
         for(String date : java.util.List.of("2026-01-01","2026-01-04","2026-01-10")) {
             String kind=date.endsWith("04") ? "HALF" : "FULL";
             postData("/attendance","{\"workerId\":\"%s\",\"projectId\":\"%s\",\"workDate\":\"%s\",\"kind\":\"%s\",\"overtimeHours\":0}".formatted(worker,project,date,kind),root);

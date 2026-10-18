@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.example.expensetracker.mapper.MonthlyFinanceMapper">
-    <select id="summary" resultType="com.example.expensetracker.dto.response.MonthlyFinanceResponse">
+<mapper namespace="com.example.expensetracker.reporting.mapper.MonthlyFinanceMapper">
+    <select id="summary" resultType="com.example.expensetracker.reporting.model.response.MonthlyFinanceResponse">
         SELECT currency, SUM(income) AS total_income, SUM(expenses) AS total_expenses,
                SUM(income) - SUM(expenses) AS balance,
                SUM(income_count) AS income_count, SUM(expense_count) AS expense_count

@@ -8,7 +8,7 @@
    * LEFT JOIN + GROUP BY to compute expense_count without an N+1 query
    * <choose> for the "own row or nothing" update semantics
 -->
-<mapper namespace="com.example.expensetracker.mapper.CategoryMapper">
+<mapper namespace="com.example.expensetracker.category.mapper.CategoryMapper">
 
     <resultMap id="categoryResultMap" type="Category">
         <id property="id" column="id"/>

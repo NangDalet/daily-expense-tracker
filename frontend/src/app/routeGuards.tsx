@@ -4,6 +4,7 @@ import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
 import { Spinner } from '@/components/ui/States'
 import { useConstructionAccess } from '@/hooks/construction'
+import { isMiniApp } from '@/lib/telegram'
 
 export function RequireConstruction() {
   useLanguage()
@@ -31,7 +32,7 @@ export function RequireAuth() {
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" state={{ from: location }} replace />
+    return <Navigate to={isMiniApp() ? '/miniapp' : '/login'} state={{ from: location }} replace />
   }
 
   return <Outlet />

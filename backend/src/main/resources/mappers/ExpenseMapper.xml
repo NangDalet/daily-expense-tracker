@@ -11,7 +11,7 @@
    4. <choose> for the ORDER BY whitelist and for the DATE_TRUNC granularity
    5. <selectKey> to generate the UUID primary key
 -->
-<mapper namespace="com.example.expensetracker.mapper.ExpenseMapper">
+<mapper namespace="com.example.expensetracker.expense.mapper.ExpenseMapper">
 
     <!-- ===================== Result maps ===================== -->
 
@@ -285,7 +285,7 @@
 
     <!-- ===================== Aggregations ===================== -->
 
-    <select id="totalsByFilters" resultType="com.example.expensetracker.domain.ExpenseTotal">
+    <select id="totalsByFilters" resultType="com.example.expensetracker.expense.model.ExpenseTotal">
         SELECT c.currency, COALESCE(t.total_amount, 0) AS total_amount,
                COALESCE(t.expense_count, 0) AS expense_count
         FROM (VALUES ('USD'), ('KHR')) AS c(currency)

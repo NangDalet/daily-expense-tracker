@@ -11,7 +11,7 @@
    4. <choose> for the ORDER BY whitelist and for the DATE_TRUNC granularity
    5. <selectKey> to generate the UUID primary key
 -->
-<mapper namespace="com.example.expensetracker.mapper.IncomeMapper">
+<mapper namespace="com.example.expensetracker.income.mapper.IncomeMapper">
 
     <!-- ===================== Result maps ===================== -->
 

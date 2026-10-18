@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.time.OffsetDateTime;
 import java.util.List;
 
-import com.example.expensetracker.dto.response.ErrorResponse;
+import com.example.expensetracker.common.model.response.ErrorResponse;
 import com.example.expensetracker.exception.ErrorCode;
 
 import jakarta.servlet.http.HttpServletRequest;

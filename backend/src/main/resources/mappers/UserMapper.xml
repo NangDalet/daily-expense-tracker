@@ -8,7 +8,7 @@
   column stores a delimited list that is expanded into List<String> by
   com.example.expensetracker.util.StringListTypeHandler.
 -->
-<mapper namespace="com.example.expensetracker.mapper.UserMapper">
+<mapper namespace="com.example.expensetracker.user.mapper.UserMapper">
 
     <select id="lockById" resultType="java.util.UUID">
         SELECT id FROM users WHERE id = #{id} FOR UPDATE

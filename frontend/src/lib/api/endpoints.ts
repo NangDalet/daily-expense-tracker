@@ -36,6 +36,7 @@ export interface Page<T> {
 }
 
 export const authApi = {
+  telegram: (initData: string) => http.post<TokenResponse>('/auth/telegram', { initData }, true),
   verifyPassword: (password: string) => http.post<void>('/auth/verify-password', { password }),
   login: (body: LoginRequest) => http.post<TokenResponse>('/auth/login', body, true),
   register: (body: RegisterRequest) => http.post<TokenResponse>('/auth/register', body, true),

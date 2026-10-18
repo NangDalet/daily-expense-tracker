@@ -3,7 +3,7 @@ package com.example.expensetracker.security;
 import java.util.List;
 import java.util.UUID;
 
-import com.example.expensetracker.domain.Role;
+import com.example.expensetracker.common.model.Role;
 import com.example.expensetracker.exception.ApiException;
 import com.example.expensetracker.exception.ErrorCode;
 

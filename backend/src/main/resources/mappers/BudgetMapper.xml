@@ -10,7 +10,7 @@
      including the "budget with zero expenses" case
    * remaining / percentage computed in SQL to avoid a second query
 -->
-<mapper namespace="com.example.expensetracker.mapper.BudgetMapper">
+<mapper namespace="com.example.expensetracker.budget.mapper.BudgetMapper">
 
     <resultMap id="categoryAssociationMap" type="Category">
         <id property="id" column="cat_id"/>

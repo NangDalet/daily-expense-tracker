@@ -1,4 +1,5 @@
 import type { ApiErrorBody, ApiErrorCode, ApiResponse, TokenResponse } from './types'
+import { authStorage } from '@/lib/telegram'
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '/api/v1'
 
@@ -7,18 +8,18 @@ const REFRESH_TOKEN_KEY = 'expense-tracker.refreshToken'
 
 export const tokenStorage = {
   get access(): string | null {
-    return localStorage.getItem(ACCESS_TOKEN_KEY)
+    return authStorage().getItem(ACCESS_TOKEN_KEY)
   },
   get refresh(): string | null {
-    return localStorage.getItem(REFRESH_TOKEN_KEY)
+    return authStorage().getItem(REFRESH_TOKEN_KEY)
   },
   set(tokens: Pick<TokenResponse, 'accessToken' | 'refreshToken'>) {
-    localStorage.setItem(ACCESS_TOKEN_KEY, tokens.accessToken)
-    localStorage.setItem(REFRESH_TOKEN_KEY, tokens.refreshToken)
+    authStorage().setItem(ACCESS_TOKEN_KEY, tokens.accessToken)
+    authStorage().setItem(REFRESH_TOKEN_KEY, tokens.refreshToken)
   },
   clear() {
-    localStorage.removeItem(ACCESS_TOKEN_KEY)
-    localStorage.removeItem(REFRESH_TOKEN_KEY)
+    authStorage().removeItem(ACCESS_TOKEN_KEY)
+    authStorage().removeItem(REFRESH_TOKEN_KEY)
   },
 }
 

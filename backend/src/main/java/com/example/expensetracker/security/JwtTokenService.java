@@ -4,8 +4,8 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
-import com.example.expensetracker.domain.Role;
-import com.example.expensetracker.domain.User;
+import com.example.expensetracker.common.model.Role;
+import com.example.expensetracker.user.model.User;
 
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.JwsHeader;
@@ -65,7 +65,7 @@ public class JwtTokenService {
                 .claim(CLAIM_TYPE, TYPE_ACCESS)
                 .claim(CLAIM_USERNAME, user.getUsername())
                 .claim(CLAIM_EMAIL, user.getEmail())
-                .claim(CLAIM_NAME, user.getFullName())
+                .claim(CLAIM_NAME, user.getFullName() == null ? user.getUsername() : user.getFullName())
                 // Array claim - the primary source of authorities...
                 .claim(CLAIM_ROLES, roles)
                 // ...plus the OAuth2 standard space delimited scope as a fallback

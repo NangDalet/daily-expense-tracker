@@ -3,8 +3,8 @@ package com.example.expensetracker.exception;
 import java.time.OffsetDateTime;
 import java.util.List;
 
-import com.example.expensetracker.dto.response.ErrorResponse;
-import com.example.expensetracker.dto.response.ErrorResponse.ErrorDetail;
+import com.example.expensetracker.common.model.response.ErrorResponse;
+import com.example.expensetracker.common.model.response.ErrorResponse.ErrorDetail;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolation;

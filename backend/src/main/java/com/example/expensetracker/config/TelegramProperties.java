@@ -10,6 +10,8 @@ public class TelegramProperties {
     private String botToken = "";
     private String botUsername = "";
     private String webhookSecret = "";
+    private boolean miniAppEnabled;
+    private java.time.Duration miniAppAuthMaxAge = java.time.Duration.ofMinutes(5);
     public boolean isConfigured() {
         return enabled && ("webhook".equals(updatesMode) || "polling".equals(updatesMode)) && !botToken.isBlank() && botUsername.matches("[A-Za-z0-9_]{5,32}")
                 && webhookSecret.matches("[A-Za-z0-9_-]{16,256}");

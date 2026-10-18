@@ -1,0 +1,22 @@
+package com.example.expensetracker.category.service;
+
+import java.util.List;
+import java.util.UUID;
+
+import com.example.expensetracker.category.model.request.CategoryRequest;
+import com.example.expensetracker.common.model.response.ApiResponse;
+import com.example.expensetracker.category.model.response.CategoryResponse;
+
+/** Category use cases. */
+public interface CategoryService {
+
+    ApiResponse<List<CategoryResponse>> list(UUID userId);
+
+    CategoryResponse get(UUID userId, UUID id);
+
+    CategoryResponse create(UUID userId, CategoryRequest request);
+
+    CategoryResponse update(UUID userId, UUID id, CategoryRequest request);
+
+    void delete(UUID userId, UUID id);
+}

@@ -48,7 +48,7 @@ spring:
 # ------------------------------------------------------------------------------
 mybatis:
   mapper-locations: classpath*:mappers/*.xml
-  type-aliases-package: com.example.expensetracker.domain
+  type-aliases-package: com.example.expensetracker.auth.model,com.example.expensetracker.budget.model,com.example.expensetracker.category.model,com.example.expensetracker.common.model,com.example.expensetracker.construction.model,com.example.expensetracker.expense.model,com.example.expensetracker.income.model,com.example.expensetracker.reporting.model,com.example.expensetracker.telegram.model,com.example.expensetracker.user.model,com.example.expensetracker.wallet.model
   configuration:
     map-underscore-to-camel-case: true
     default-statement-timeout: 30
@@ -82,6 +82,8 @@ app:
     secret-access-key: ${cloudflare.r2.secret-access-key}
   telegram:
     enabled: ${TELEGRAM_ENABLED:false}
+    mini-app-enabled: ${TELEGRAM_MINI_APP_ENABLED:false}
+    mini-app-auth-max-age: ${TELEGRAM_MINI_APP_AUTH_MAX_AGE:PT5M}
     updates-mode: ${TELEGRAM_UPDATES_MODE:webhook}
     bot-token: ${TELEGRAM_BOT_TOKEN:}
     bot-username: ${TELEGRAM_BOT_USERNAME:}

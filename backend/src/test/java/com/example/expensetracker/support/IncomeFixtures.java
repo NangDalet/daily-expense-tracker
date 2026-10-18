@@ -5,11 +5,11 @@ import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
-import com.example.expensetracker.convert.CategoryConvertImpl;
-import com.example.expensetracker.convert.IncomeConvert;
-import com.example.expensetracker.convert.IncomeConvertImpl;
-import com.example.expensetracker.domain.Income;
-import com.example.expensetracker.domain.PaymentMethod;
+import com.example.expensetracker.category.convert.CategoryConvertImpl;
+import com.example.expensetracker.income.convert.IncomeConvert;
+import com.example.expensetracker.income.convert.IncomeConvertImpl;
+import com.example.expensetracker.income.model.Income;
+import com.example.expensetracker.common.model.PaymentMethod;
 import org.springframework.test.util.ReflectionTestUtils;
 
 public final class IncomeFixtures {
